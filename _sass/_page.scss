@@ -1,0 +1,48 @@
+/* ---------- page stage (dark background behind the white card) ---------- */
+.page-stage {
+  position: relative;
+  overflow: hidden;
+  padding: 48px 20px 64px;
+
+  &-watermark {
+    position: absolute;
+    top: -2%;
+    right: -2%;
+    width: 640px;
+    max-width: 60%;
+    opacity: 0.08;
+    filter: brightness(0) invert(1);
+    pointer-events: none;
+
+    &.left {
+      top: auto;
+      bottom: -12%;
+      left: -10%;
+      right: auto;
+    }
+  }
+  @media (max-width: 600px) {
+    padding: 32px 14px 48px;
+  }
+}
+
+/* Let the league schedule's sticky date selector move with the viewport. */
+.page-stage:has(.schedule-date-picker) {
+  overflow: visible;
+}
+
+/* ---------- the white card ---------- */
+.card {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  padding: 8px 48px 44px;
+
+  @media (max-width: 700px) {
+    padding: 6px 22px 32px;
+  }
+}

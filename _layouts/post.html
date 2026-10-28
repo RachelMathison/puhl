@@ -1,0 +1,83 @@
+---
+layout: default
+---
+<div class="post-layout">
+  <aside class="news-feed">
+    <div class="news-feed-heading">
+      <a class="back" href="{{ '/' | relative_url }}">News Feed </a><span class="chevron">&rsaquo;</span></div>
+    {% assign recent_posts = site.posts | where_exp: "p", "p.url != page.url" | limit: 5 %}
+    <div class="news-feed-list">
+      {% for post in recent_posts %}
+      <a class="news-feed-item" href="{{ post.url | relative_url }}">
+        <div class="news-feed-thumb">
+          {% if post.header_image %}
+          <img src="{{ post.header_image | relative_url }}" alt="">
+          {% endif %}
+        </div>
+        <div class="news-feed-body">
+          <p class="news-feed-title">{{ post.title }}</p>
+          <div class="news-feed-date">{{ post.date | date: "%b %-d, %Y" }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <div class="post-main">
+    <div class="breadcrumb">
+      {% for tag in page.tags %}
+        {% assign tag_class = "" %}
+        {% if forloop.first %}{% assign tag_class = "navy" %}{% elsif forloop.index == 2 %}{% assign tag_class = "accent" %}{% endif %}
+        <a class="tag {{ tag_class }}" href="{{ '/archive/' | relative_url }}#{{ tag | slugify }}">{{ tag }}</a>
+      {% endfor %}
+    </div>
+
+    <h1 class="headline">{{ page.title }}</h1>
+    <p class="description">{{ page.description }}</p>
+
+    <div class="byline-row">
+      <div class="who">By <strong>{{ page.author | default: "Dark Knights Insider Staff" }}</strong></div>
+      <div class="date">{{ page.date | date: "%B %-d, %Y" }}</div>
+    </div>
+
+    {% if page.header_image %}
+    <div class="header-image">
+      <img src="{{ page.header_image | relative_url }}" alt="{{ page.header_image_alt | default: page.title }}">
+    </div>
+    {% endif %}
+
+    <article>
+      {{ content }}
+    </article>
+
+    {% if page.three_stars %}
+    <div class="three-stars-container post-page-stars">
+      <h2><a href="{{ '/game-stars/' | relative_url }}"{% if page.url == '/game-stars/' %} class="current"{% endif %}>Game Stars</a></h2>
+      <div class="stars-grid">
+        {% assign season_slug = page.season | default: "uncategorized" | slugify %}
+        <div class="star-game-card" data-season="{{ season_slug }}">
+          <div class="star-game-content">
+            <div class="stars-list-wrapper">
+              <ul class="stars-podium">
+                {% for star in page.three_stars %}
+                  {% assign clean_star = star | strip %}
+                  {% assign star_index = forloop.index %}
+                  <li class="star-item">
+                    <span class="star-icon" {% if star_index == 3 %}style="position: relative; right: 5px;"{% endif %}>
+                      {% if star_index == 1 %}⭐{% elsif star_index == 2 %}⭐⭐{% elsif star_index == 3 %}⭐⭐⭐{% endif %}
+                    </span>
+                    <a href="{{ '/game-stars/' | relative_url }}?player={{ clean_star | url_encode }}" class="player-link">
+                      {{ star }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>

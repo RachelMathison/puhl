@@ -1,0 +1,128 @@
+---
+layout: default
+title: Game Stars
+permalink: /game-stars/
+---
+
+<div class="three-stars-container">
+  <h2>Game Stars</h2>
+
+  {% assign game_posts = site.posts | where_exp: "post", "post.three_stars" %}
+
+  {% if game_posts.size > 0 %}
+    <!-- Filter Controls Bar -->
+    <div class="filters-bar">
+      <div class="season-filter-group">
+        <label for="season-select" class="season-label">Season:</label>
+        <select id="season-select" onchange="applyFilters()" class="season-select">
+          <option value="all">All Seasons</option>
+          {% assign seasons = game_posts | map: "season" | uniq | sort %}
+          {% for season in seasons %}
+            {% if season %}
+              <option value="{{ season | slugify }}">{{ season }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
+      <div id="player-filter-indicator" class="player-filter-indicator">
+        Showing awards for: <strong id="selected-player-name" class="selected-player-name"></strong>
+        <button onclick="clearPlayerFilter()" class="clear-filter-btn">&times;</button>
+      </div>
+    </div>
+
+    <!-- Stars Grid Container -->
+    <div class="stars-grid">
+      {% for post in game_posts %}
+        {% assign season_slug = post.season | default: "uncategorized" | slugify %}
+        <div class="star-game-card" data-season="{{ season_slug }}">
+          
+          <!-- Date Header -->
+          <div class="star-game-title">
+            <a href="{{ post.url | relative_url }}">{{ post.date | date: "%B %-d, %Y" }}</a> 
+            {% if post.season %}
+              · <span class="season-subtitle">{{ post.season }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Content Row: Image on left, Stars/Names container on right -->
+          <div class="star-game-content">
+            {% if post.stars_image %}
+              <div class="star-game-thumb">
+                <img src="{{ post.stars_image | relative_url }}" alt="">
+              </div>
+            {% endif %}
+
+            <div class="stars-list-wrapper">
+              <ul class="stars-podium">
+                {% for star in post.three_stars %}
+                  {% assign clean_star = star | strip %}
+                  {% assign star_index = forloop.index %}
+                  <li class="star-item">
+                    <span class="star-icon" {% if star_index == 3 %}style="position: relative; right: 5px;"{% endif %}>
+                      {% if star_index == 1 %}⭐{% elsif star_index == 2 %}⭐⭐{% elsif star_index == 3 %}⭐⭐⭐{% endif %}
+                    </span>
+                    <a href="#" onclick="filterByPlayer('{{ clean_star | escape }}'); return false;" class="player-link" data-player="{{ clean_star }}">
+                      {{ star }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+
+    <script>
+    let activePlayer = null;
+    let activeSeason = 'all';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const playerParam = urlParams.get('player');
+
+      if (playerParam) {
+        filterByPlayer(playerParam);
+      }
+    });
+
+    function applyFilters() {
+      activeSeason = document.getElementById('season-select').value;
+      const cards = document.querySelectorAll('.star-game-card');
+
+      cards.forEach(card => {
+        const matchesSeason = (activeSeason === 'all' || card.dataset.season === activeSeason);
+        
+        let matchesPlayer = true;
+        if (activePlayer) {
+          const playerLinks = card.querySelectorAll('.player-link');
+          matchesPlayer = Array.from(playerLinks).some(link => link.dataset.player === activePlayer);
+        }
+
+        if (matchesSeason && matchesPlayer) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function filterByPlayer(playerName) {
+      activePlayer = playerName;
+      document.getElementById('selected-player-name').textContent = playerName;
+      document.getElementById('player-filter-indicator').style.display = 'flex';
+      applyFilters();
+    }
+
+    function clearPlayerFilter() {
+      activePlayer = null;
+      document.getElementById('player-filter-indicator').style.display = 'none';
+      applyFilters();
+    }
+    </script>
+  {% else %}
+    <p>No game stars recorded yet.</p>
+  {% endif %}
+</div>

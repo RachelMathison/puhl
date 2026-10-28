@@ -1,0 +1,72 @@
+---
+layout: default
+title: Archive
+permalink: /archive/
+---
+<h2>News Archive</h2>
+
+{% assign sorted_tags = site.tags | sort %}
+{% if sorted_tags.size > 0 %}
+<div class="tag-filter-bar" id="tag-filter-bar">
+  <button type="button" class="tag-filter-btn active" data-tag="all">All</button>
+  {% for tag in sorted_tags %}
+    <button type="button" class="tag-filter-btn" data-tag="{{ tag[0] | slugify }}">{{ tag[0] }}</button>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="archive-list" id="archive-list">
+  {% for post in site.posts %}
+    {% assign tag_slugs = "" %}
+    {% for t in post.tags %}
+      {% assign slug = t | slugify %}
+      {% assign tag_slugs = tag_slugs | append: slug | append: " " %}
+    {% endfor %}
+    <a class="archive-row" href="{{ post.url | relative_url }}" data-tags="{{ tag_slugs | strip }}">
+      <span class="archive-row-date">{{ post.date | date: "%b %-d, %Y" }}</span>
+      <span class="archive-row-title">{{ post.title }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<div class="empty-state" id="archive-empty" style="display:none;">No articles match that tag.</div>
+
+{% if site.posts.size == 0 %}
+  <div class="empty-state">No articles yet — add a post to _posts/.</div>
+{% endif %}
+
+<script>
+(function () {
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('.tag-filter-btn'));
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.archive-row'));
+  var emptyMsg = document.getElementById('archive-empty');
+  if (!buttons.length) return;
+
+  function applyFilter(tag) {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var tags = (row.getAttribute('data-tags') || '').split(/\s+/);
+      var show = tag === 'all' || tags.indexOf(tag) !== -1;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    emptyMsg.style.display = visible === 0 ? '' : 'none';
+  }
+
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      buttons.forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyFilter(btn.getAttribute('data-tag'));
+      history.replaceState(null, '', btn.getAttribute('data-tag') === 'all' ? location.pathname : '#' + btn.getAttribute('data-tag'));
+    });
+  });
+
+  // If arriving from a tag link elsewhere on the site (e.g. #playoffs), start pre-filtered.
+  var initialTag = window.location.hash.replace('#', '');
+  if (initialTag) {
+    var match = buttons.find(function (b) { return b.getAttribute('data-tag') === initialTag; });
+    if (match) match.click();
+  }
+})();
+</script>

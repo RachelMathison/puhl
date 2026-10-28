@@ -1,0 +1,174 @@
+---
+layout: default
+title: League Standings
+permalink: /standings/
+---
+
+<!-- Load Jekyll Data into Global Window Object -->
+<script>
+  window.pageTeamLogos = {
+    {% for item in site.data.team_logos %}
+    "{{ item[0] }}": "{{ item[1] }}"{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  };
+</script>
+
+<h1>League Standings</h1>
+
+<div class="stats-container">
+  <div class="stats-table-wrapper">
+    <table class="stats-table" id="standings-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable('Team')">Team <span class="sort-icon" data-key="Team"></span></th>
+          <th class="highlight-col" onclick="sortTable('PTS')">PTS <span class="sort-icon" data-key="PTS"></span></th>
+          <th class="highlight-col" onclick="sortTable('GP')">GP <span class="sort-icon" data-key="GP"></span></th>
+          <th onclick="sortTable('W')">W <span class="sort-icon" data-key="W"></span></th>
+          <th onclick="sortTable('L')">L <span class="sort-icon" data-key="L"></span></th>
+          <th onclick="sortTable('T')">T <span class="sort-icon" data-key="T"></span></th>
+          <th onclick="sortTable('OTL')">OTL <span class="sort-icon" data-key="OTL"></span></th>
+          <th onclick="sortTable('SOL')">SOL <span class="sort-icon" data-key="SOL"></span></th>
+          <th onclick="sortTable('GF')">GF <span class="sort-icon" data-key="GF"></span></th>
+          <th onclick="sortTable('GA')">GA <span class="sort-icon" data-key="GA"></span></th>
+          <th onclick="sortTable('Division')">Division <span class="sort-icon" data-key="Division"></span></th>
+        </tr>
+      </thead>
+      <tbody id="standings-tbody">
+        <tr><td colspan="11" style="text-align: center; color: var(--gray-500);">Loading standings...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Site Configuration Injected via Jekyll Data File (_data/team_config.yml)
+  const STANDINGS_API_URL = "{{ site.data.team_config.standings_api_url }}";
+  const PRIMARY_TEAM_KEY = "{{ site.data.team_config.primary_team_key | default: 'default' }}";
+  const DEFAULT_LOGO_PATH = "{{ site.data.team_config.default_logo_path | default: '/assets/images/default.png' }}";
+  const PRIMARY_TEAM_KEYWORDS = {{ site.data.team_config.primary_team_keywords | jsonify | default: "[]" }};
+
+  let standingsData = [];
+  let currentSort = { key: 'PTS', ascending: false };
+  const columnKeys = ['Team', 'PTS', 'GP', 'W', 'L', 'T', 'OTL', 'SOL', 'GF', 'GA', 'Division'];
+
+  function getLogoUrl(teamName) {
+    const fallbackLogo = window.pageTeamLogos['default'] || DEFAULT_LOGO_PATH;
+    if (!teamName) return fallbackLogo;
+    
+    const lower = teamName.toLowerCase();
+    
+    // 1. Check direct or partial match against keys in site.data.team_logos
+    for (const [key, path] of Object.entries(window.pageTeamLogos)) {
+      if (lower.includes(key.toLowerCase())) {
+        return path;
+      }
+    }
+    
+    // 2. Dynamic check for primary team keywords defined in _config.yml
+    const matchesPrimaryTeam = PRIMARY_TEAM_KEYWORDS.some(keyword => lower.includes(keyword.toLowerCase()));
+    if (matchesPrimaryTeam && window.pageTeamLogos[PRIMARY_TEAM_KEY]) {
+      return window.pageTeamLogos[PRIMARY_TEAM_KEY];
+    }
+    
+    return fallbackLogo;
+  }
+
+  async function fetchStandings() {
+    const tbody = document.getElementById('standings-tbody');
+    
+    try {
+      const response = await fetch(STANDINGS_API_URL);
+      standingsData = await response.json();
+      
+      executeSort();
+    } catch (error) {
+      console.error('Error fetching standings:', error);
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: red;">Failed to load standings data.</td></tr>`;
+    }
+  }
+
+  function sortTable(key) {
+    if (currentSort.key === key) {
+      currentSort.ascending = !currentSort.ascending;
+    } else {
+      currentSort.key = key;
+      currentSort.ascending = (key === 'Team' || key === 'Division');
+    }
+    executeSort();
+  }
+
+  function executeSort() {
+    const key = currentSort.key;
+    const asc = currentSort.ascending;
+
+    standingsData.sort((a, b) => {
+      let valA = a[key] !== undefined ? a[key] : '';
+      let valB = b[key] !== undefined ? b[key] : '';
+
+      if (!isNaN(valA) && !isNaN(valB) && valA !== '' && valB !== '') {
+        valA = Number(valA);
+        valB = Number(valB);
+      } else if (typeof valA === 'string' && typeof valB === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA < valB) return asc ? -1 : 1;
+      if (valA > valB) return asc ? 1 : -1;
+      return 0;
+    });
+
+    updateUI();
+  }
+
+  function updateUI() {
+    const activeIndex = columnKeys.indexOf(currentSort.key);
+
+    document.querySelectorAll('#standings-table th').forEach((th, index) => {
+      const icon = th.querySelector('.sort-icon');
+      if (icon) {
+        icon.textContent = '';
+        if (index === activeIndex) {
+          th.classList.add('active-sort-col');
+          icon.textContent = currentSort.ascending ? '▲' : '▼';
+        } else {
+          th.classList.remove('active-sort-col');
+        }
+      }
+    });
+
+    const tbody = document.getElementById('standings-tbody');
+    if (standingsData.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center;">No standings found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = standingsData.map(row => {
+      const teamName = row['Team'] || '';
+      const logoUrl = getLogoUrl(teamName);
+
+      return `
+        <tr>
+          <td ${activeIndex === 0 ? 'class="active-sort-col"' : ''}>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <img src="${logoUrl}" alt="${teamName}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.style.display='none'">
+              <strong>${teamName}</strong>
+            </div>
+          </td>
+          <td ${activeIndex === 1 ? 'class="active-sort-col highlight-col"' : 'class="highlight-col"'}><strong>${row['PTS'] || 0}</strong></td>
+          <td ${activeIndex === 2 ? 'class="active-sort-col highlight-col"' : 'class="highlight-col"'}>${row['GP'] || 0}</td>
+          <td ${activeIndex === 3 ? 'class="active-sort-col"' : ''}>${row['W'] || 0}</td>
+          <td ${activeIndex === 4 ? 'class="active-sort-col"' : ''}>${row['L'] || 0}</td>
+          <td ${activeIndex === 5 ? 'class="active-sort-col"' : ''}>${row['T'] || 0}</td>
+          <td ${activeIndex === 6 ? 'class="active-sort-col"' : ''}>${row['OTL'] || 0}</td>
+          <td ${activeIndex === 7 ? 'class="active-sort-col"' : ''}>${row['SOL'] || 0}</td>
+          <td ${activeIndex === 8 ? 'class="active-sort-col"' : ''}>${row['GF'] || 0}</td>
+          <td ${activeIndex === 9 ? 'class="active-sort-col"' : ''}>${row['GA'] || 0}</td>
+          <td ${activeIndex === 10 ? 'class="active-sort-col"' : ''}>${row['Division'] || ''}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  fetchStandings();
+</script>

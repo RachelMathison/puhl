@@ -1,0 +1,189 @@
+---
+layout: default
+title: Team Statistics
+permalink: /stats/
+---
+<h1>Team Statistics</h1>
+<div class="stats-container">
+  <h2>Skaters</h2>
+
+  <div class="stats-table-wrapper">
+    <table class="stats-table" id="skaters-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable('number')"># <span class="sort-icon" data-key="number"></span></th>
+          <th onclick="sortTable('name')">Player <span class="sort-icon" data-key="name"></span></th>
+          <th class="highlight-col" onclick="sortTable('gp')">GP <span class="sort-icon" data-key="gp"></span></th>
+          <th class="highlight-col" onclick="sortTable('g')">G <span class="sort-icon" data-key="g"></span></th>
+          <th onclick="sortTable('a')">A <span class="sort-icon" data-key="a"></span></th>
+          <th class="highlight-col" onclick="sortTable('pts')">PTS <span class="sort-icon" data-key="pts"></span></th>
+          <th class="highlight-col" onclick="sortTable('avgPts')">PTS/G <span class="sort-icon" data-key="avgPts"></span></th>
+          <th onclick="sortTable('pim')">PIM <span class="sort-icon" data-key="pim"></span></th>
+          <th onclick="sortTable('ppg')">PPG <span class="sort-icon" data-key="ppg"></span></th>
+          <th onclick="sortTable('gw')">GWG <span class="sort-icon" data-key="gw"></span></th>
+        </tr>
+      </thead>
+      <tbody id="skaters-tbody">
+        <tr><td colspan="10" style="text-align: center; color: var(--gray-500);">Loading skater statistics...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="margin-top: 3rem;">Goalies</h2>
+
+  <div class="stats-table-wrapper">
+    <table class="stats-table" id="goalies-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>GP</th>
+          <th>MIN</th>
+          <th>W</th>
+          <th>L</th>
+          <th>T</th>
+          <th>GA</th>
+          <th>SV</th>
+          <th>GAA</th>
+          <th>SV%</th>
+          <th>SO</th>
+        </tr>
+      </thead>
+      <tbody id="goalies-tbody">
+        <tr><td colspan="12" style="text-align: center; color: var(--gray-500);">Loading goalie statistics...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Configuration Loaded from _data/team_config.yml
+  const STATS_API_URL = "{{ site.data.team_config.stats_api_url }}";
+
+  let skaterStats = [];
+  let goalieStats = [];
+  let currentSort = { key: 'pts', ascending: false };
+
+  const columnKeys = ['number', 'name', 'gp', 'g', 'a', 'pts', 'avgPts', 'pim', 'ppg', 'gw'];
+
+  async function fetchStats() {
+    try {
+      const response = await fetch(STATS_API_URL);
+      const data = await response.json();
+      
+      skaterStats = data.skaters;
+      goalieStats = data.goalies;
+      
+      executeSort();
+      renderGoalies();
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      document.getElementById('skaters-tbody').innerHTML = `<tr><td colspan="10" style="text-align: center; color: red;">Failed to load skater statistics.</td></tr>`;
+      document.getElementById('goalies-tbody').innerHTML = `<tr><td colspan="12" style="text-align: center; color: red;">Failed to load goalie statistics.</td></tr>`;
+    }
+  }
+
+  function sortTable(key) {
+    if (currentSort.key === key) {
+      currentSort.ascending = !currentSort.ascending;
+    } else {
+      currentSort.key = key;
+      currentSort.ascending = (key === 'name' || key === 'number');
+    }
+    executeSort();
+  }
+
+  function executeSort() {
+    const key = currentSort.key;
+    const asc = currentSort.ascending;
+
+    skaterStats.sort((a, b) => {
+      let valA = a[key];
+      let valB = b[key];
+
+      if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA < valB) return asc ? -1 : 1;
+      if (valA > valB) return asc ? 1 : -1;
+      return 0;
+    });
+
+    updateSkaterUI();
+  }
+
+  function updateSkaterUI() {
+    const activeIndex = columnKeys.indexOf(currentSort.key);
+
+    document.querySelectorAll('#skaters-table th').forEach((th, index) => {
+      const icon = th.querySelector('.sort-icon');
+      if (icon) {
+        icon.textContent = '';
+        if (index === activeIndex) {
+          th.classList.add('active-sort-col');
+          icon.textContent = currentSort.ascending ? '▲' : '▼';
+        } else {
+          th.classList.remove('active-sort-col');
+        }
+      }
+    });
+
+    const tbody = document.getElementById('skaters-tbody');
+    if (skaterStats.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align: center;">No skater stats found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = skaterStats.map(player => `
+      <tr>
+        <td ${activeIndex === 0 ? 'class="active-sort-col"' : ''}><strong>${player.number}</strong></td>
+        <td ${activeIndex === 1 ? 'class="active-sort-col"' : ''}>
+          <div class="player-cell">
+            <a href="${player.profileUrl}" class="player-name" target="_blank" rel="noopener noreferrer">${player.name}</a>
+          </div>
+        </td>
+        <td ${activeIndex === 2 ? 'class="active-sort-col"' : ''}>${player.gp}</td>
+        <td ${activeIndex === 3 ? 'class="active-sort-col"' : ''}>${player.g}</td>
+        <td ${activeIndex === 4 ? 'class="active-sort-col"' : ''}>${player.a}</td>
+        <td ${activeIndex === 5 ? 'class="active-sort-col"' : ''}><strong>${player.pts}</strong></td>
+        <td ${activeIndex === 6 ? 'class="active-sort-col"' : ''}>${player.avgPts.toFixed(2)}</td>
+        <td ${activeIndex === 7 ? 'class="active-sort-col"' : ''}>${player.pim}</td>
+        <td ${activeIndex === 8 ? 'class="active-sort-col"' : ''}>${player.ppg}</td>
+        <td ${activeIndex === 9 ? 'class="active-sort-col"' : ''}>${player.gw}</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderGoalies() {
+    const tbody = document.getElementById('goalies-tbody');
+    if (goalieStats.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="12" style="text-align: center;">No goalie stats found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = goalieStats.map(goalie => `
+      <tr>
+        <td><strong>${goalie.number}</strong></td>
+        <td>
+          <div class="player-cell">
+            <a href="${goalie.profileUrl}" class="player-name" target="_blank" rel="noopener noreferrer">${goalie.name}</a>
+          </div>
+        </td>
+        <td>${goalie.gp}</td>
+        <td>${goalie.min}</td>
+        <td>${goalie.w}</td>
+        <td>${goalie.l}</td>
+        <td>${goalie.t}</td>
+        <td>${goalie.ga}</td>
+        <td>${goalie.sv}</td>
+        <td>${goalie.gaa.toFixed(2)}</td>
+        <td>${goalie.svPct.toFixed(3)}</td>
+        <td>${goalie.so}</td>
+      </tr>
+    `).join('');
+  }
+
+  fetchStats();
+</script>

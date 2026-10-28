@@ -1,0 +1,325 @@
+/* ---------- Homepage: Intro Figure + Article List/Cards ---------- */
+
+.list-heading {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray-700);
+  margin: 36px 0 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gray-300);
+
+  &.first {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 24px;
+  }
+}
+
+.article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.article-card {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--gray-300);
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  /* Interactive state triggers on inner elements */
+  &:hover {
+    .article-card-title {
+      color: var(--navy);
+    }
+
+    .article-card-cta {
+      color: var(--black);
+    }
+  }
+
+  &-thumb {
+    position: relative;
+    flex: 0 0 160px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--gray-100);
+
+    @media (max-width: 600px) {
+      width: 100%;
+      height: 190px;
+      flex: 0 0 190px;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    &-icon {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(13, 13, 13, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      span {
+        position: relative;
+
+        &,
+        &::before,
+        &::after {
+          content: "";
+          display: block;
+          width: 12px;
+          height: 2px;
+          background: var(--white);
+          border-radius: 1px;
+        }
+
+        &::before {
+          position: absolute;
+          top: -4px;
+          left: 0;
+        }
+
+        &::after {
+          position: absolute;
+          top: 4px;
+          left: 0;
+        }
+      }
+    }
+  }
+
+  &-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &-tags {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+
+    .tag {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      color: var(--gray-700);
+
+      &.accent {
+        background: var(--yellow);
+        border-color: var(--yellow);
+        color: var(--black);
+      }
+
+      &.navy {
+        background: var(--navy);
+        border-color: var(--navy);
+        color: var(--white);
+      }
+    }
+  }
+
+  &-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 1.25;
+    margin: 0 0 8px;
+
+    @media (max-width: 600px) {
+      font-size: 19px;
+    }
+  }
+
+  &-description {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--gray-700);
+    margin: 0 0 10px;
+    max-width: 600px;
+  }
+
+  &-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &-date {
+    font-size: 12px;
+    color: var(--gray-500);
+    letter-spacing: 0.03em;
+  }
+
+  &-cta {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+}
+
+.empty-state {
+  padding: 30px 0;
+  color: var(--gray-500);
+  font-size: 14px;
+}
+
+/* ---------- Archive Rows (Compact, No Image/Description) ---------- */
+
+.archive-list {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.archive-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-300);
+
+  &:hover {
+    .archive-row-title {
+      color: var(--navy);
+    }
+  }
+
+  &-date {
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--gray-500);
+    letter-spacing: 0.03em;
+    width: 88px;
+  }
+
+  &-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--black);
+    line-height: 1.35;
+  }
+}
+
+/* ---------- Homepage "View Full Archive" Link ---------- */
+
+.archive-link-row {
+  padding: 8px 0 28px;
+  text-align: center;
+}
+
+.archive-link {
+  display: inline-block;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--navy);
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  padding: 10px 20px;
+
+  &:hover {
+    color: var(--white);
+    background: var(--navy);
+    border-color: var(--navy);
+  }
+}
+
+/* ---------- Tags Page ---------- */
+
+.tag-jump-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--gray-300);
+}
+
+.tag-section-heading {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 36px 0 4px;
+  padding-top: 10px;
+  border-top: 3px solid var(--yellow);
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+}
+
+/* ---------- Archive Page: Dynamic Tag Filter Bar ---------- */
+
+.tag-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--gray-300);
+}
+
+.tag-filter-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+  cursor: pointer;
+
+  &:hover:not(.active) {
+    border-color: var(--navy);
+    color: var(--navy);
+  }
+
+  &.active {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: var(--white);
+  }
+}

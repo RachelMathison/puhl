@@ -1,0 +1,502 @@
+---
+layout: default
+title:  PUHL League Calendar
+permalink: /league-calendar/
+---
+
+<!-- 1. FullCalendar & iCal Dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js"></script>
+
+<style>
+  /* --- FullCalendar Layout Overrides --- */
+  .fc-daygrid-day-frame {
+    overflow: hidden !important;
+    position: relative !important;
+    min-height: 140px;
+  }
+
+  .fc-daygrid-day-events {
+    margin-bottom: 0 !important;
+    position: static !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .fc-daygrid-event-harness,
+  .fc-daygrid-event-harness-abs {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    margin: 1px 0 !important;
+  }
+
+  .fc .fc-event {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  .fc .fc-event-main {
+    padding: 0 !important;
+  }
+
+  /* --- Event Display Cards --- */
+  .custom-event-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 1px 0;
+  }
+
+  .custom-event-card .logo-circle {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--rink-color, var(--training-bg-light)) 12%, white);
+    border: 2px solid var(--rink-color, var(--gray-300));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .custom-event-card .logo-circle img {
+    
+    height: 60%;
+    object-fit: contain;
+  }
+
+  .custom-event-card .game-time {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.1;
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  .custom-event-card.multi-game-card {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 5px;
+  }
+
+  .custom-event-card.multi-game-card .logo-circle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .custom-event-card.multi-game-card .logo-circle img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .custom-event-card.multi-game-card .at-symbol {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #555;
+  }
+
+  .custom-event-card.multi-game-card .game-time {
+    width: 100%;
+    text-align: center;
+    font-size: 0.68rem;
+    margin-top: 0;
+  }
+  .fc-daygrid-day-bottom {
+    display: none;
+  }
+</style>
+
+
+<h1>League Calendar</h1>
+<nav class="schedule-page-nav" aria-label="Schedule pages">
+  <a href="/league-schedule/">Upcoming Games</a>
+</nav>
+
+<div id="schedule-filters" class="schedule-filters">
+  <label id="show-all-teams-control" class="show-all-teams-control">
+    <input type="checkbox" id="show-all-teams" checked aria-controls="filter-controls" onchange="toggleShowAllTeams(this.checked)">
+    <span>Show all teams</span>
+  </label>
+  <div class="league-filter-container" id="filter-controls" hidden></div>
+</div>
+<button type="button" id="schedule-filter-toggle" class="schedule-filter-toggle" aria-controls="schedule-filters" aria-expanded="true" onclick="toggleScheduleFilters()">Hide Filters</button>
+
+<div id="calendar-view" class="view-content active">
+  <div id="schedule-legend" class="legend"></div>
+  <div id="calendar"></div>
+</div>
+
+<script>
+// --- Storage Keys ---
+const STORAGE_KEY_LEAGUES = 'puhl_selected_leagues';
+const STORAGE_KEY_TEAMS = 'puhl_selected_teams';
+const STORAGE_KEY_SHOW_ALL_TEAMS = 'puhl_show_all_teams';
+
+// --- League & Team Configurations ---
+const LEAGUE_STRUCTURE = {
+  comp: {
+    name: 'Competitive',
+    icsUrl: 'https://puhl-comp-schedule.xarria.workers.dev',
+    teams: [
+      { name: 'Bushtits', id: 'bushtits', imagePath: '/assets/images/teams/bushtits.png' },
+      { name: 'Eagles', id: 'eagles', imagePath: '/assets/images/teams/eagles.png' },
+      { name: 'Hooters', id: 'hooters', imagePath: '/assets/images/teams/hooters.png' },
+      { name: 'Imperial Shags', id: 'shags', imagePath: '/assets/images/teams/shags.png' }
+    ]
+  },
+  rec: {
+    name: 'Recreational',
+    icsUrl: 'https://puhl-rec-schedule.xarria.workers.dev',
+    teams: [
+      { name: 'Boobies', id: 'boobies', imagePath: '/assets/images/teams/boobies.png' },
+      { name: 'Golden Coqs', id: 'coqs', imagePath: '/assets/images/teams/coqs.png' },
+      { name: 'Flamingos', id: 'flamingos', imagePath: '/assets/images/teams/flamingos.png' },
+      { name: "Flying V's", id: "flying", imagePath: '/assets/images/teams/flying_vs.png' }
+    ]
+  },
+  novice: {
+    name: 'Novice',
+    icsUrl: 'https://puhl-novice-schedule.xarria.workers.dev',
+    teams: [
+      { name: 'Penguins', id: 'penguins', imagePath: '/assets/images/teams/penguins.png' },
+      { name: 'Two Cans', id: 'two cans', imagePath: '/assets/images/teams/two-cans.png' },
+      { name: 'Pigeons', id: 'pigeons', imagePath: '/assets/images/teams/pigeons.png' },
+      { name: 'Honkers', id: 'honkers', imagePath: '/assets/images/teams/honkers.png' }
+    ]
+  }
+};
+
+const teamLogos = window.pageTeamLogos || {};
+
+const activeLeagues = new Set();
+const activeTeams = new Set();
+const allTeamConfigs = [];
+let showAllTeamsMode = true;
+
+// Load state from localStorage or initialize defaults
+function loadSavedFilters() {
+  const savedLeagues = localStorage.getItem(STORAGE_KEY_LEAGUES);
+  const savedTeams = localStorage.getItem(STORAGE_KEY_TEAMS);
+
+  if (savedLeagues !== null) {
+    JSON.parse(savedLeagues).forEach(key => activeLeagues.add(key));
+  } else {
+    Object.keys(LEAGUE_STRUCTURE).forEach(key => activeLeagues.add(key));
+  }
+
+  if (savedTeams !== null) {
+    JSON.parse(savedTeams).forEach(name => activeTeams.add(name));
+  } else {
+    Object.values(LEAGUE_STRUCTURE).forEach(league => {
+      league.teams.forEach(team => activeTeams.add(team.name));
+    });
+  }
+
+  const savedShowAllTeams = localStorage.getItem(STORAGE_KEY_SHOW_ALL_TEAMS);
+  const totalTeamCount = Object.values(LEAGUE_STRUCTURE).reduce((total, league) => total + league.teams.length, 0);
+  showAllTeamsMode = savedShowAllTeams === null
+    ? activeTeams.size === totalTeamCount && activeLeagues.size === Object.keys(LEAGUE_STRUCTURE).length
+    : savedShowAllTeams === 'true';
+}
+
+function saveFiltersToStorage() {
+  localStorage.setItem(STORAGE_KEY_LEAGUES, JSON.stringify(Array.from(activeLeagues)));
+  localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(Array.from(activeTeams)));
+}
+
+// Initialize structure lookups
+Object.values(LEAGUE_STRUCTURE).forEach(league => {
+  league.teams.forEach(team => {
+    allTeamConfigs.push({
+      displayName: team.name,
+      id: String(team.id).toLowerCase(),
+      imagePath: team.imagePath || teamLogos[team.name] || teamLogos.default
+    });
+  });
+});
+
+// Identify team match details using string contains (includes) check
+function getMatchupDetails(title) {
+  if (!title) return { selfLogo: teamLogos.default, oppLogo: teamLogos.default, team1Name: null, team2Name: null };
+
+  const lowerTitle = title.toLowerCase();
+  let matches = [];
+
+  allTeamConfigs.forEach(team => {
+    const idx = lowerTitle.indexOf(team.id);
+    if (idx !== -1) {
+      matches.push({
+        index: idx,
+        displayName: team.displayName,
+        logo: team.imagePath
+      });
+    }
+  });
+
+  matches.sort((a, b) => a.index - b.index);
+
+  const t1 = matches[0] || { displayName: null, logo: teamLogos.default };
+  const t2 = matches[1] || { displayName: null, logo: teamLogos.default };
+
+  return {
+    selfLogo: t1.logo,
+    oppLogo: t2.logo,
+    team1Name: t1.displayName,
+    team2Name: t2.displayName
+  };
+}
+
+// In the single-game calendar card, show the opponent when only one side of
+// the matchup is selected. This keeps the icon useful when filtering to one team.
+function getSingleTeamCalendarLogo(matchup) {
+  const team1Selected = matchup.team1Name && activeTeams.has(matchup.team1Name);
+  const team2Selected = matchup.team2Name && activeTeams.has(matchup.team2Name);
+
+  if (team1Selected && !team2Selected) return matchup.oppLogo;
+  if (team2Selected && !team1Selected) return matchup.selfLogo;
+  return matchup.selfLogo;
+}
+
+function getRinkColor(location) {
+  const value = String(location || '').toLowerCase();
+  if (value.includes('sherwood')) return 'var(--rink-sherwood)';
+  if (value.includes('mountain view')) return 'var(--rink-mv)';
+  if (value.includes('veterans') || value.includes('coliseum')) return 'var(--rink-vmc)';
+  if (value.includes('winterhawks') || value.includes('beaverton')) return 'var(--rink-wsc)';
+  return 'var(--training-bg-light)';
+}
+
+// Check if an event is active based on current selection
+function isEventActive(leagueKey, title) {
+  if (!activeLeagues.has(leagueKey)) return false;
+  const matchup = getMatchupDetails(title);
+  return (matchup.team1Name && activeTeams.has(matchup.team1Name)) ||
+         (matchup.team2Name && activeTeams.has(matchup.team2Name));
+}
+
+let globalCalendarInstance = null;
+let masterAllEvents = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadSavedFilters();
+  buildFilterUI();
+  initializeShowAllTeamsControl();
+  
+  const calendarEl = document.getElementById('calendar');
+  globalCalendarInstance = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    aspectRatio: 1.35,
+    dayMaxEvents: true,
+    dayMaxEventRows: true,
+    headerToolbar: {
+      left: 'title',
+      center: '',
+      right: 'prev,next today'
+    },
+    events: function(fetchInfo, successCallback, failureCallback) {
+      const activeEvents = masterAllEvents.filter(e => isEventActive(e.leagueKey, e.title));
+      successCallback(activeEvents);
+    },
+    eventContent: function(arg) {
+      const matchup = getMatchupDetails(arg.event.title);
+      const timeStr = arg.event.start ? arg.event.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+      
+      const currentDay = arg.event.startStr.split('T')[0];
+      const allDayEvents = globalCalendarInstance.getEvents().filter(e => {
+        return e.startStr.split('T')[0] === currentDay;
+      });
+
+      if (allDayEvents.length > 1) {
+        return {
+          html: `
+            <div class="custom-event-card multi-game-card">
+              <span class="logo-circle" style="--rink-color: ${getRinkColor(arg.event.extendedProps.location)}"><img src="${matchup.selfLogo}" alt="" /></span>
+              <span class="at-symbol">@</span>
+              <span class="logo-circle" style="--rink-color: ${getRinkColor(arg.event.extendedProps.location)}"><img src="${matchup.oppLogo}" alt="" /></span>
+              <div class="game-time">${timeStr}</div>
+            </div>
+          `
+        };
+      }
+
+      return {
+        html: `
+          <div class="custom-event-card">
+            <div class="logo-circle" style="--rink-color: ${getRinkColor(arg.event.extendedProps.location)}">
+              <img src="${getSingleTeamCalendarLogo(matchup)}" alt="${arg.event.title}" />
+            </div>
+            <div class="game-time">${timeStr}</div>
+          </div>
+        `
+      };
+    }
+  });
+
+  fetchAllIcsEvents();
+});
+
+function buildFilterUI() {
+  const filterContainer = document.getElementById('filter-controls');
+  if (!filterContainer) return;
+
+  let html = '';
+  for (const [leagueKey, league] of Object.entries(LEAGUE_STRUCTURE)) {
+    const leagueChecked = activeLeagues.has(leagueKey) ? 'checked' : '';
+    const groupHidden = activeLeagues.has(leagueKey) ? '' : 'hidden';
+
+    html += `
+      <div class="filter-section">
+        <div class="filter-title">
+          <input type="checkbox" id="league-${leagueKey}" ${leagueChecked} onchange="toggleLeague('${leagueKey}', this.checked)">
+          <label for="league-${leagueKey}">${league.name}</label>
+        </div>
+        <div class="team-checkboxes ${groupHidden}" id="teams-group-${leagueKey}">
+    `;
+    
+    league.teams.forEach(team => {
+      const imgPath = team.imagePath || teamLogos[team.name] || teamLogos.default;
+      const teamChecked = activeTeams.has(team.name) ? 'checked' : '';
+      html += `
+        <label class="filter-label">
+          <input type="checkbox" class="team-cb-${leagueKey}" value="${team.name}" ${teamChecked} onchange="toggleTeam('${team.name}', this.checked)">
+          <span class="filter-check-indicator" aria-hidden="true"></span>
+          <img src="${imgPath}" alt="${team.name}" class="filter-team-icon" />
+          <span class="filter-team-name">${team.name}</span>
+        </label>
+      `;
+    });
+
+    html += `</div></div>`;
+  }
+  filterContainer.innerHTML = html;
+}
+
+function toggleLeague(leagueKey, isChecked) {
+  if (isChecked) activeLeagues.add(leagueKey);
+  else activeLeagues.delete(leagueKey);
+
+  const groupEl = document.getElementById(`teams-group-${leagueKey}`);
+  if (groupEl) {
+    if (isChecked) groupEl.classList.remove('hidden');
+    else groupEl.classList.add('hidden');
+  }
+
+  document.querySelectorAll(`.team-cb-${leagueKey}`).forEach(cb => {
+    cb.checked = isChecked;
+    if (isChecked) activeTeams.add(cb.value);
+    else activeTeams.delete(cb.value);
+  });
+
+  saveFiltersToStorage();
+  refreshViews();
+}
+
+function toggleTeam(teamName, isChecked) {
+  if (isChecked) activeTeams.add(teamName);
+  else activeTeams.delete(teamName);
+
+  saveFiltersToStorage();
+  refreshViews();
+}
+
+function initializeShowAllTeamsControl() {
+  const control = document.getElementById('show-all-teams');
+  const filterPanel = document.getElementById('filter-controls');
+  if (!control || !filterPanel) return;
+
+  control.checked = showAllTeamsMode;
+  filterPanel.hidden = showAllTeamsMode;
+}
+
+function toggleShowAllTeams(showAll) {
+  showAllTeamsMode = showAll;
+  localStorage.setItem(STORAGE_KEY_SHOW_ALL_TEAMS, String(showAll));
+
+  const filterPanel = document.getElementById('filter-controls');
+  if (filterPanel) filterPanel.hidden = showAll;
+
+  if (showAll) {
+    activeLeagues.clear();
+    activeTeams.clear();
+    Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
+      activeLeagues.add(leagueKey);
+      league.teams.forEach(team => activeTeams.add(team.name));
+    });
+    saveFiltersToStorage();
+    buildFilterUI();
+    refreshViews();
+  }
+}
+
+function toggleScheduleFilters() {
+  const filterSection = document.getElementById('schedule-filters');
+  if (!filterSection) return;
+
+  filterSection.hidden = !filterSection.hidden;
+  updateFilterToggle(filterSection, filterSection.hidden);
+}
+
+function updateFilterToggle(filterSection, isHidden) {
+  const toggle = document.getElementById('schedule-filter-toggle');
+  if (!filterSection || !toggle) return;
+
+  toggle.textContent = isHidden ? 'Show Filters' : 'Hide Filters';
+  toggle.setAttribute('aria-expanded', String(!isHidden));
+}
+
+function refreshViews() {
+  if (globalCalendarInstance) globalCalendarInstance.refetchEvents();
+}
+
+async function fetchAllIcsEvents() {
+  masterAllEvents = [];
+
+  const promises = Object.keys(LEAGUE_STRUCTURE).map(async leagueKey => {
+    const url = LEAGUE_STRUCTURE[leagueKey].icsUrl;
+    try {
+      const response = await fetch(url);
+      const icsText = await response.text();
+      
+      const jcalData = ICAL.parse(icsText);
+      const comp = new ICAL.Component(jcalData);
+      const vevents = comp.getAllSubcomponents('vevent');
+
+      vevents.forEach(vevent => {
+        const event = new ICAL.Event(vevent);
+        masterAllEvents.push({
+          title: event.summary,
+          start: event.startDate.toJSDate(),
+          location: event.location || 'TBD',
+          leagueKey: leagueKey
+        });
+      });
+    } catch (err) {
+      console.error(`Error fetching ICS for ${leagueKey}:`, err);
+    }
+  });
+
+  await Promise.all(promises);
+  
+  if (globalCalendarInstance) {
+    globalCalendarInstance.render();
+    globalCalendarInstance.refetchEvents();
+  }
+}
+</script>

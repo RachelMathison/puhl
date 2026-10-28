@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:type" content="website" />
+{% if page.header_image %}
+  <meta property="og:image" content="{{ page.header_image | absolute_url }}" />
+{% endif %}
+{% if page.title %}
+  <meta property="og:title" content="{{ page.title | strip_html | normalize_whitespace | escape }}" />
+{% endif %}
+{% if page.description %}
+  <meta property="og:description" content="{{ page.description | strip_html | normalize_whitespace | escape }}" />
+{% endif %}
+<title>{% if page.title %}{{ page.title }} &middot; {% endif %}Dark Knights Insider</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}?v={{ site.time | date: '%s' }}">
+<link rel="icon" type="image/x-icon" href="{{ '/assets/images/favicon.png' | relative_url }}">
+</head>
+<body>
+
+  {% include masthead.html %}
+
+  <div class="page-stage">
+    <img class="page-stage-watermark{% if page.layout == 'home' %} left{% endif %}" src="{{ '/assets/images/site/dark-knights-logo.png' | relative_url }}" alt="">
+
+    <div class="card">
+      {{ content }}
+
+      {% include footer.html %}
+    </div>
+  </div>
+
+</body>
+</html>

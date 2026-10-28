@@ -1,0 +1,225 @@
+---
+layout: default
+---
+
+<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+
+<!-- Pass team configuration and logos from Jekyll to JavaScript -->
+<script>
+  const teamLogos = {{ site.data.team_logos | jsonify }};
+</script>
+
+<div class="home-layout">
+  <aside class="game-feed">
+    <!-- Mobile View: Next Game -->
+    <div id="next-game-mobile" class="mobile-next-game">
+      <h2 class="list-section-title first"><a href="{{ '/schedule/' | relative_url }}">Next Game</a></h2>
+      <div class="game-feed-list">
+        <div class="game-feed-empty">Loading schedule...</div>
+      </div>
+    </div>
+
+    <!-- Desktop View: Upcoming Games -->
+    <div id="upcoming-games-desktop" class="desktop-upcoming-games">
+      <h2 class="list-section-title first"><a href="{{ '/schedule/' | relative_url }}">Upcoming Games</a></h2>
+      <div id="upcoming-games-sidebar" class="game-feed-list">
+        <div class="game-feed-empty">Loading schedule...</div>
+      </div>
+    </div>
+
+    <!-- Mini Standings Widget (Desktop Only) -->
+    <div id="mini-standings-widget" class="desktop-standings">
+      <h2><a href="{{ '/standings/' | relative_url }}">Standings</a></h2>
+      <div class="game-feed-list">
+        <table>
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>PTS</th>
+            </tr>
+          </thead>
+          <tbody id="mini-standings-tbody">
+            <tr><td colspan="2" style="text-align: center; padding-top: 16px; color: var(--gray-500);">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </aside>
+
+  <div class="home-main">
+    <h2 class="list-section-title first">Latest News</h2>
+    <div class="article-list">
+      {% assign recent_posts = site.posts | limit: 5 %}
+      {% for post in recent_posts %}
+      <a class="article-card" href="{{ post.url | relative_url }}">
+        {% if post.header_image %}
+        <div class="article-card-thumb">
+          <img src="{{ post.header_image | relative_url }}" alt="{{ post.header_image_alt | default: post.title }}">
+          <div class="article-card-thumb-icon"><span></span></div>
+        </div>
+        {% endif %}
+        <div class="article-card-body">
+          <div class="article-card-tags">
+            {% for tag in post.tags %}
+              {% if forloop.first %}<span class="tag navy">{{ tag }}</span>
+              {% elsif forloop.index == 2 %}<span class="tag accent">{{ tag }}</span>
+              {% else %}<span class="tag">{{ tag }}</span>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <h3 class="article-card-title">{{ post.title }}</h3>
+          <p class="article-card-description">{{ post.description }}</p>
+          <div class="article-card-footer">
+            <div class="article-card-date">{{ post.date | date: "%B %-d, %Y" }}</div>
+            <div class="article-card-cta">Read Full Article &rarr;</div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+
+      {% if site.posts.size == 0 %}
+      <div class="empty-state">No articles yet — add a post to _posts/.</div>
+      {% endif %}
+    </div>
+
+    {% if site.posts.size > 5 %}
+    <div class="archive-link-row">
+      <a class="archive-link" href="{{ '/archive/' | relative_url }}">View Full Archive &rarr;</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  // --- 1. SCHEDULE LOGIC ---
+  const teamsConfig = window.pageTeamsConfig || [];
+  const mobileContainer = document.querySelector('#next-game-mobile .game-feed-list');
+  const desktopContainer = document.getElementById('upcoming-games-sidebar');
+  
+  if (teamsConfig.length === 0) {
+    const errorMsg = '<div class="game-feed-empty">No calendars configured.</div>';
+    if (mobileContainer) mobileContainer.innerHTML = errorMsg;
+    if (desktopContainer) desktopContainer.innerHTML = errorMsg;
+  } else {
+    let allEvents = [];
+
+    const promises = teamsConfig.map(async team => {
+      try {
+        const response = await fetch(team.url);
+        const icsText = await response.text();
+        const jcalData = ICAL.parse(icsText);
+        const comp = new ICAL.Component(jcalData);
+        const vevents = comp.getAllSubcomponents('vevent');
+
+        vevents.forEach(ve => {
+          const event = new ICAL.Event(ve);
+          allEvents.push({
+            title: event.summary,
+            start: event.startDate.toJSDate(),
+            location: event.location,
+            teamName: team.teamName || '',
+            teamId: team.id || ''
+          });
+        });
+      } catch (err) {
+        console.error(`Error fetching ICS for ${team.name}:`, err);
+      }
+    });
+
+    await Promise.all(promises);
+
+    const now = new Date();
+    const upcomingEvents = allEvents
+      .filter(e => e.start && e.start > now)
+      .sort((a, b) => a.start - b.start);
+
+    if (upcomingEvents.length === 0) {
+      const emptyMsg = '<div class="game-feed-empty">No upcoming games scheduled.</div>';
+      if (mobileContainer) mobileContainer.innerHTML = emptyMsg;
+      if (desktopContainer) desktopContainer.innerHTML = emptyMsg;
+    } else {
+      function getOpponentLogo(title, teamName, teamId) {
+        if (!title) return teamLogos.default || '';
+        const lowerTitle = title.toLowerCase();
+
+        // Identify self-team string position to avoid matching own logo
+        const selfName = (teamName || teamId || '').toLowerCase();
+
+        // Sort keys by length descending to match specific team names first
+        const logoKeys = Object.keys(teamLogos)
+          .filter(k => k !== 'default')
+          .sort((a, b) => b.length - a.length);
+
+        for (const key of logoKeys) {
+          const lowerKey = key.toLowerCase();
+          // Match if key appears in title and isn't our own team name
+          if (lowerTitle.includes(lowerKey) && lowerKey !== selfName) {
+            return teamLogos[key];
+          }
+        }
+        return teamLogos.default || '';
+      }
+
+      function buildGameCardHTML(e) {
+        const dateStr = e.start.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        const timeStr = e.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const locationStr = e.location ? ` · ${e.location}` : '';
+        const logoUrl = getOpponentLogo(e.title, e.teamName, e.teamId);
+
+        return `
+          <div class="game-card">
+            <div class="game-card-logo">
+              <img src="${logoUrl}" alt="">
+            </div>
+            <div class="game-card-body">
+              <div class="game-card-matchup">${e.title || 'Game'}</div>
+              <div class="game-card-meta">${dateStr} · ${timeStr}${locationStr}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (mobileContainer) mobileContainer.innerHTML = buildGameCardHTML(upcomingEvents[0]);
+      if (desktopContainer) desktopContainer.innerHTML = upcomingEvents.slice(0, 5).map(buildGameCardHTML).join('');
+    }
+  }
+
+  // --- 2. MINI STANDINGS LOGIC ---
+  async function loadMiniStandings() {
+    const tbody = document.getElementById('mini-standings-tbody');
+    if (!tbody) return;
+
+    try {
+      const res = await fetch('https://standings.darkknightshockey.com');
+      const data = await res.json();
+      
+      // Sort by PTS descending
+      data.sort((a, b) => {
+        const ptsA = Number(a['PTS'] || 0);
+        const ptsB = Number(b['PTS'] || 0);
+        return ptsB - ptsA;
+      });
+
+      tbody.innerHTML = data.map(row => {
+        const teamName = row['Team'] || 'Unknown';
+        const pts = row['PTS'] || 0;
+        
+        return `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-200, #eee);"><strong>${teamName}</strong></td>
+            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-200, #eee); text-align: center; font-weight: bold; color: var(--accent-color, #111);">${pts}</td>
+          </tr>
+        `;
+      }).join('');
+
+    } catch (e) {
+      console.error('Error fetching mini standings:', e);
+      tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding-top: 16px; color: red;">Failed to load.</td></tr>`;
+    }
+  }
+
+  // Execute the standings fetch independently
+  loadMiniStandings();
+});
+</script>

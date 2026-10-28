@@ -1,0 +1,265 @@
+<!-- _includes/schedule-app.html -->
+
+<!-- 1. FullCalendar & iCal Dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js"></script>
+
+<h1>Schedule</h1>
+
+<!-- Navigation Tabs -->
+<div class="schedule-tabs">
+  <button class="tab-btn active" onclick="switchView('calendar')">Calendar</button>
+  <button class="tab-btn" onclick="switchView('list')">List</button>
+</div>
+
+<!-- Tab 1: Calendar View -->
+<div id="calendar-view" class="view-content active">
+  <!-- Dynamic Legend -->
+  <div id="schedule-legend" class="legend"></div>
+  <div id="calendar"></div>
+</div>
+
+<!-- Tab 2: List View -->
+<div id="list-view" class="view-content">
+  <h2>Upcoming Games</h2>
+  <div id="upcoming-games-container">Loading schedule...</div>
+</div>
+
+<script>
+// --- Configuration & Global Helpers ---
+const teamLogos = window.pageTeamLogos || {};
+const teamsConfig = window.pageTeamsConfig || [];
+const leagueConfigs = {};
+
+// Register league configurations
+teamsConfig.forEach(team => {
+  leagueConfigs[team.id] = {
+    id: team.id,
+    name: team.name,
+    teamName: team.teamName || '',
+    url: team.url,
+    selfLogo: team.selfLogo
+  };
+});
+
+function getMatchupDetails(title, leagueKey) {
+  const cfg = leagueConfigs[leagueKey];
+  const defaultResult = { 
+    oppLogo: teamLogos.default || '', 
+    shouldSwap: false, 
+    selfLogo: cfg?.selfLogo || teamLogos.default || '' 
+  };
+
+  if (!title || !cfg) return defaultResult;
+
+  const lowerTitle = title.toLowerCase();
+
+  // Find own team position in the title string
+  let selfIndex = -1;
+  if (cfg.teamName) {
+    selfIndex = lowerTitle.indexOf(cfg.teamName.toLowerCase());
+  }
+  if (selfIndex === -1 && cfg.id) {
+    selfIndex = lowerTitle.indexOf(cfg.id.toLowerCase());
+  }
+
+  // Dynamically match opponent logo by scanning available keys in teamLogos
+  let oppIndex = -1;
+  let oppLogo = null;
+
+  // Sort logo keys by length descending to match longer, more specific team names first
+  const logoKeys = Object.keys(teamLogos)
+    .filter(k => k !== 'default')
+    .sort((a, b) => b.length - a.length);
+
+  for (const key of logoKeys) {
+    const idx = lowerTitle.indexOf(key.toLowerCase());
+    // Ensure the key matched is not our own team's name
+    if (idx !== -1 && idx !== selfIndex) {
+      oppIndex = idx;
+      oppLogo = teamLogos[key];
+      break;
+    }
+  }
+
+  return {
+    oppLogo: oppLogo || teamLogos.default || '',
+    shouldSwap: selfIndex !== -1 && oppIndex !== -1 ? selfIndex < oppIndex : false,
+    selfLogo: cfg.selfLogo || teamLogos.default || ''
+  };
+}
+
+let globalCalendarInstance = null;
+let masterAllEvents = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  const legendContainer = document.getElementById('schedule-legend');
+  
+  if (legendContainer) {
+    if (teamsConfig.length > 1) {
+      legendContainer.innerHTML = teamsConfig.map(t => 
+        `<span class="legend-item"><span class="legend-swatch legend-${t.id}"></span> ${t.name}</span>`
+      ).join(' ');
+    } else {
+      legendContainer.style.display = 'none';
+    }
+  }
+
+  const calendarEl = document.getElementById('calendar');
+
+  globalCalendarInstance = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    aspectRatio: 1.35,
+    headerToolbar: {
+      left: 'title',
+      center: '',
+      right: 'prev,next today'
+    },
+    eventSources: Object.keys(leagueConfigs).map(function(key) {
+      return {
+        id: key,
+        url: leagueConfigs[key].url,
+        format: 'ics'
+      };
+    }),
+    eventContent: function(arg) {
+      const leagueKey = (arg.event.source && arg.event.source.id) ? arg.event.source.id : null;
+      const matchup = getMatchupDetails(arg.event.title, leagueKey);
+      const timeStr = arg.event.start ? arg.event.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+
+      return {
+        html: `
+          <div class="custom-event-card">
+            <div class="logo-circle">
+              <img src="${matchup.oppLogo}" alt="${arg.event.title}" />
+            </div>
+            <div class="game-time">${timeStr}</div>
+          </div>
+        `
+      };
+    },
+    eventDidMount: function(info) {
+      const leagueKey = (info.event.source && info.event.source.id) ? info.event.source.id : null;
+      if (info.el.closest('.fc-daygrid-day') && leagueKey) {
+        info.el.closest('.fc-daygrid-day').classList.add(`league-${leagueKey}`);
+      }
+    }
+  });
+
+  globalCalendarInstance.render();
+  fetchAllIcsEventsForList();
+});
+
+function switchView(viewName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
+
+  if (viewName === 'calendar') {
+    document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+    document.getElementById('calendar-view').classList.add('active');
+  } else {
+    document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+    document.getElementById('list-view').classList.add('active');
+    renderListView();
+  }
+}
+
+async function fetchAllIcsEventsForList() {
+  masterAllEvents = [];
+
+  const promises = Object.keys(leagueConfigs).map(async leagueKey => {
+    const url = leagueConfigs[leagueKey].url;
+    try {
+      const response = await fetch(url);
+      const icsText = await response.text();
+      
+      const jcalData = ICAL.parse(icsText);
+      const comp = new ICAL.Component(jcalData);
+      const vevents = comp.getAllSubcomponents('vevent');
+
+      vevents.forEach(vevent => {
+        const event = new ICAL.Event(vevent);
+        masterAllEvents.push({
+          title: event.summary,
+          start: event.startDate.toJSDate(),
+          location: event.location || 'TBD',
+          leagueKey: leagueKey
+        });
+      });
+    } catch (err) {
+      console.error(`Error fetching ICS for ${leagueKey}:`, err);
+    }
+  });
+
+  await Promise.all(promises);
+  renderListView();
+}
+
+function renderListView() {
+  const container = document.getElementById('upcoming-games-container');
+  if (!container) return;
+
+  if (masterAllEvents.length === 0) {
+    container.innerHTML = '<p>Loading schedule or no games found...</p>';
+    return;
+  }
+
+  const now = new Date();
+  const upcomingEvents = masterAllEvents.filter(e => e.start && new Date(e.start) > now);
+
+  if (upcomingEvents.length === 0) {
+    container.innerHTML = '<p>No upcoming games scheduled.</p>';
+    return;
+  }
+
+  upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+  const grouped = {};
+  upcomingEvents.forEach(e => {
+    const dateStr = new Date(e.start).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    if (!grouped[dateStr]) grouped[dateStr] = [];
+    grouped[dateStr].push(e);
+  });
+
+  let html = '';
+  for (const date in grouped) {
+    html += `
+      <div class="date-group">
+        <h3 class="date-header">${date}</h3>
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th style="width: 50%;">Matchup</th>
+              <th style="width: 25%;">Time</th>
+              <th style="width: 25%;">Location</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    grouped[date].forEach(event => {
+      const timeStr = new Date(event.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+      const matchup = getMatchupDetails(event.title, event.leagueKey);
+
+      html += `
+        <tr>
+          <td>
+            <div class="matchup-cell ${matchup.shouldSwap ? 'swap-sides' : ''}">
+              <img src="${matchup.oppLogo}" alt="Opponent Logo" />
+              <span>${event.title || 'Game'}</span>
+              <img src="${matchup.selfLogo}" alt="Logo" />
+            </div>
+          </td>
+          <td>${timeStr}</td>
+          <td>${event.location}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table></div>`;
+  }
+  container.innerHTML = html;
+}
+</script>

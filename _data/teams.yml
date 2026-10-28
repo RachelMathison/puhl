@@ -1,0 +1,12 @@
+# _data/teams.yml
+- id: knights
+  name: "Summer 2026"
+  teamName: "Dark Knights"
+  url: "https://schedule-summer.darkknightshockey.com"
+  selfLogo: "/assets/images/site/dark-knights-logo.png"
+
+- id: knights-fall-2026
+  name: "Fall 2026"
+  teamName: "Dark Knights"
+  url: "https://schedule-fall.darkknightshockey.com"
+  selfLogo: "/assets/images/site/dark-knights-logo.png"

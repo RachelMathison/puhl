@@ -1,0 +1,350 @@
+---
+layout: default
+title: Stick and Puck Schedule
+permalink: /stick-and-puck/
+---
+
+<!-- 1. FullCalendar & iCal Dependencies (Loaded with defer for non-blocking render) -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js" defer></script>
+
+<div class="training-page">
+  <!-- Navigation Tabs -->
+  <div class="schedule-tabs" style="margin-bottom: 15px;">
+    <button class="tab-btn active" onclick="switchView('calendar')">Calendar</button>
+    <button class="tab-btn" onclick="switchView('list')">List</button>
+  </div>
+
+  <!-- Tab 1: Calendar View -->
+  <div id="calendar-view" class="view-content active">
+    <h2 class="list-section-title">Stick & Puck Calendar</h2>
+
+    <!-- Dynamic Legend / Toggles -->
+    <div id="schedule-legend" class="legend"></div>
+
+    <div id="calendar">
+      <div class="calendar-loading">Loading schedule data...</div>
+    </div>
+  </div>
+
+  <!-- Tab 2: List View -->
+  <div id="list-view" class="view-content" style="display: none;">
+    <h2 class="list-section-title">Upcoming Sessions</h2>
+
+    <!-- Shared Legend / Toggles for List View -->
+    <div id="schedule-legend-list" class="legend"></div>
+
+    <div id="upcoming-games-container">Loading schedule...</div>
+  </div>
+</div>
+
+<script>
+// --- CONFIGURATION LOADED FROM _data/stick_and_puck_calendars.yml ---
+const calendarsConfig = {{ site.data.stick_and_puck_calendars | jsonify }};
+
+let calendarInstance = null;
+
+function getRinkConfig(id) {
+  return calendarsConfig.find(c => c.id === id) || null;
+}
+
+function isRelevantEvent(title) {
+  if (!title) return false;
+  const t = title.toLowerCase();
+  return t.includes('stick') || t.includes('clinic');
+}
+
+function getEventUrl(event) {
+  if (event.url) return event.url;
+  if (event.extendedProps && event.extendedProps.url) return event.extendedProps.url;
+
+  const desc = event.extendedProps ? event.extendedProps.description : '';
+  if (desc) {
+    const hrefMatch = desc.match(/href=["'](https?:\/\/[^"']+)["']/i);
+    if (hrefMatch && hrefMatch[1]) return hrefMatch[1];
+
+    const urlMatch = desc.match(/(https?:\/\/[^\s"<]+)/i);
+    if (urlMatch && urlMatch[0]) return urlMatch[0];
+  }
+
+  return null;
+}
+
+function formatSessionTitle(title, isMobile) {
+  if (!title) return 'Stick & Puck';
+  const lower = title.toLowerCase();
+
+  if (isMobile) {
+    if (lower.includes('clinic')) return 'Clinic';
+    if (lower.includes('stick')) return 'S&P';
+  }
+  return title;
+}
+
+function formatTimeString(dateObj, isMobile) {
+  if (!dateObj) return '';
+  const timeStr = dateObj.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+  if (isMobile) {
+    return timeStr.replace(' ', '\n');
+  }
+  return timeStr;
+}
+
+function getLightTint(hex) {
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map(x => x + x).join('');
+  const num = parseInt(c, 16);
+  const r = (num >> 16) + Math.round((255 - (num >> 16)) * 0.88);
+  const g = ((num >> 8) & 0x00ff) + Math.round((255 - ((num >> 8) & 0x00ff)) * 0.88);
+  const b = (num & 0x0000ff) + Math.round((255 - (num & 0x0000ff)) * 0.88);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function renderLegend() {
+  const legendHtml = calendarsConfig.map(c => `
+    <label class="legend-item ${c.enabled ? '' : 'disabled'}">
+      <input type="checkbox" data-rink-id="${c.id}" ${c.enabled ? 'checked' : ''} onchange="toggleRink('${c.id}')">
+      <span class="legend-dot" style="background-color: ${c.color};"></span>
+      ${c.name}
+      <a href="${c.siteUrl}" class="rink-link" target="_blank" onclick="event.stopPropagation()">(Website)</a>
+    </label>
+  `).join('');
+
+  const legendContainer = document.getElementById('schedule-legend');
+  if (legendContainer) legendContainer.innerHTML = legendHtml;
+
+  const legendListContainer = document.getElementById('schedule-legend-list');
+  if (legendListContainer) legendListContainer.innerHTML = legendHtml;
+}
+
+function toggleRink(rinkId) {
+  const rink = calendarsConfig.find(c => c.id === rinkId);
+  if (!rink) return;
+
+  rink.enabled = !rink.enabled;
+  renderLegend();
+
+  if (calendarInstance) {
+    const source = calendarInstance.getEventSourceById(rinkId);
+    if (rink.enabled) {
+      if (!source) {
+        calendarInstance.addEventSource({
+          id: rink.id,
+          url: rink.icsUrl,
+          format: 'ics'
+        });
+      }
+    } else {
+      if (source) {
+        source.remove();
+      }
+    }
+    renderListView(calendarInstance.getEvents());
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderLegend();
+
+  const initInterval = setInterval(() => {
+    if (typeof FullCalendar !== 'undefined') {
+      clearInterval(initInterval);
+      initCalendar();
+    }
+  }, 50);
+});
+
+function initCalendar() {
+  const calendarEl = document.getElementById('calendar');
+  const isMobile = window.innerWidth < 768;
+
+  calendarInstance = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    aspectRatio: isMobile ? 0.9 : 1.35,
+    headerToolbar: {
+      left: 'title',
+      center: '',
+      right: 'prev,next today'
+    },
+    eventSources: calendarsConfig.filter(c => c.enabled).map(function(cfg) {
+      return {
+        id: cfg.id,
+        url: cfg.icsUrl,
+        format: 'ics'
+      };
+    }),
+    eventClassNames: function(arg) {
+      if (!isRelevantEvent(arg.event.title)) {
+        return ['hidden-event'];
+      }
+      return [];
+    },
+    eventContent: function(arg) {
+      const sourceId = (arg.event.source && arg.event.source.id) ? arg.event.source.id : null;
+      const rinkConfig = getRinkConfig(sourceId);
+      const eventColor = rinkConfig ? rinkConfig.color : '#333';
+      
+      const now = new Date();
+      const eventEnd = arg.event.end || arg.event.start;
+      const isPast = eventEnd && new Date(eventEnd) < now;
+
+      const lightBg = isPast ? '#f1f1f1' : getLightTint(eventColor);
+      const borderColor = isPast ? '#d1d1d1' : eventColor;
+      const isMobile = window.innerWidth < 768;
+
+      const timeStr = formatTimeString(arg.event.start, isMobile);
+      
+      const rawTitle = arg.event.title || 'Stick & Puck';
+      const title = formatSessionTitle(rawTitle, isMobile);
+      const eventUrl = getEventUrl(arg.event);
+
+      const titleHtml = eventUrl 
+        ? `<a href="${eventUrl}" target="_blank">${title}</a>`
+        : title;
+
+      const cardClasses = isPast ? 'custom-event-card past-event' : 'custom-event-card';
+
+      return {
+        html: `
+          <div class="${cardClasses}" style="padding: 2px 2px; border-color: ${borderColor}; background-color: ${lightBg}; text-align: center;">
+            <div class="game-time" style="font-weight: 600;">${timeStr}</div>
+            <div class="session-title" style="white-space: normal;">${titleHtml}</div>
+          </div>
+        `
+      };
+    },
+    eventsSet: function(events) {
+      renderListView(events);
+    }
+  });
+
+  calendarInstance.render();
+}
+
+function switchView(viewName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.view-content').forEach(view => {
+    view.classList.remove('active');
+    view.style.display = 'none';
+  });
+
+  if (viewName === 'calendar') {
+    document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+    const calView = document.getElementById('calendar-view');
+    calView.classList.add('active');
+    calView.style.display = 'block';
+    if (calendarInstance) calendarInstance.updateSize();
+  } else {
+    document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+    const listView = document.getElementById('list-view');
+    listView.classList.add('active');
+    listView.style.display = 'block';
+  }
+}
+
+function renderListView(events) {
+  const container = document.getElementById('upcoming-games-container');
+  if (!container) return;
+
+  const now = new Date();
+  
+  const upcomingEvents = events.filter(e => {
+    if (!e.start || new Date(e.start) <= now) return false;
+    if (!isRelevantEvent(e.title)) return false;
+
+    const sourceId = (e.source && e.source.id) ? e.source.id : null;
+    const rinkConfig = getRinkConfig(sourceId);
+    return rinkConfig ? rinkConfig.enabled : true;
+  });
+
+  if (upcomingEvents.length === 0) {
+    container.innerHTML = '<p>No upcoming sessions found.</p>';
+    return;
+  }
+
+  upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+  const grouped = {};
+  upcomingEvents.forEach(e => {
+    const startDate = new Date(e.start);
+    const dateStr = startDate.toLocaleDateString([], {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    if (!grouped[dateStr]) grouped[dateStr] = [];
+    grouped[dateStr].push(e);
+  });
+
+  let html = '';
+
+  for (const date in grouped) {
+    html += `
+      <div class="date-group" style="margin-bottom: 20px;">
+        <h3 class="date-header" style="font-size: 1.1em; border-bottom: 2px solid #ddd; padding-bottom: 5px;">${date}</h3>
+        <table class="schedule-table" style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+          <thead>
+            <tr style="text-align: left; background: #f4f4f4;">
+              <th style="padding: 8px; width: 30%;">Time</th>
+              <th style="padding: 8px; width: 35%;">Session</th>
+              <th style="padding: 8px; width: 35%;">Location</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    grouped[date].forEach(event => {
+      const startDate = new Date(event.start);
+      const timeStr = startDate.toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+
+      const sourceId = (event.source && event.source.id) ? event.source.id : null;
+      const rinkConfig = getRinkConfig(sourceId);
+
+      let location = 'TBD';
+      let eventColor = '#333';
+
+      if (rinkConfig) {
+        location = rinkConfig.name;
+        eventColor = rinkConfig.color;
+      } else if (event.extendedProps && event.extendedProps.location) {
+        location = event.extendedProps.location;
+      }
+
+      const targetUrl = getEventUrl(event);
+      const displayTitle = formatSessionTitle(event.title || 'Stick & Puck', false);
+
+      html += `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px; font-weight: bold;">
+            <span class="legend-dot" style="background-color: ${eventColor};"></span>
+            ${timeStr}
+          </td>
+          <td style="padding: 8px;">${displayTitle}</td>
+          <td style="padding: 8px;">
+            ${location} 
+            ${targetUrl ? `<br><a href="${targetUrl}" target="_blank" style="font-size: 0.85em; color: #0066cc;">Register / Info</a>` : ''}
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+</script>

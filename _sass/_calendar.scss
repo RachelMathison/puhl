@@ -1,0 +1,195 @@
+// ==========================================
+// Calendar & League Theme Variables
+// ==========================================
+$knights-bg: #0a1f44;
+$knights-text: #ffffff;
+
+$bushtits-bg: #ffffff;
+$bushtits-text: #0a1f44;
+
+// ==========================================
+// Calendar Container & Legend
+// ==========================================
+.legend {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+
+    &.legend-knights { background: $knights-bg; }
+    &.legend-bushtits { background: $bushtits-bg; }
+  }
+}
+
+// ==========================================
+// FullCalendar Card Layout Reset
+// ==========================================
+.fc {
+  font-family: system-ui, -apple-system, sans-serif;
+    // Make all grid borders invisible
+  --fc-border-color: transparent;
+
+  .fc-theme-standard td,
+  .fc-theme-standard th,
+  .fc-scrollgrid {
+    border: none !important;
+  }
+
+  .fc-daygrid-body-unbalanced .fc-daygrid-day-events {
+    min-height: 0;
+  }
+
+  .fc-daygrid-day-top {
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .fc-daygrid-day-number {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #1f2937;
+    text-decoration: none !important;
+  }
+  // Optional: removes the outer container border if visible
+  .fc-scrollgrid {
+    border: none;
+  }
+
+  // Disable default event hover background
+  .fc-daygrid-dot-event:hover {
+    background: transparent !important;
+  }
+}
+// ==========================================
+// Day Cells & Frames
+// ==========================================
+.fc-daygrid-day {
+  padding: 4px !important;
+
+  // Default empty card
+  .fc-daygrid-day-frame {
+    background-color: #ededed;
+    border-radius: 12px;
+    min-height: 160px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+  }
+
+  // Days WITH events (fallback white card)
+  &:has(.fc-event) .fc-daygrid-day-frame {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 1px #e5e7eb;
+  }
+
+  // Days in adjacent months
+  &.fc-day-other .fc-daygrid-day-frame {
+    opacity: 0.3;
+  }
+
+  // ------------------------------------------
+  // League Card Styles (Applies to the whole day)
+  // ------------------------------------------
+  &.league-knights {
+    .fc-daygrid-day-frame {
+      background-color: $knights-bg !important;
+    }
+    .fc-daygrid-day-number,
+    .game-time {
+      color: $knights-text !important;
+    }
+    .logo-circle {
+      border: 1px solid #3E3E3E;
+      background-color: #1A1A1A;
+    }
+  }
+
+  &.league-bushtits {
+    .fc-daygrid-day-frame {
+      background-color: $bushtits-bg !important;
+      border: 1px solid #e5e7eb !important;
+    }
+    .fc-daygrid-day-number,
+    .game-time {
+      color: $bushtits-text !important;
+    }
+  }
+}
+
+.fc-daygrid-day-events {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.fc-h-event,
+.fc-v-event {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100%;
+}
+
+// ==========================================
+// Custom Event Card Inside Cell
+// ==========================================
+.custom-event-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+
+  .logo-circle {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    border: 1px solid #E0E0E0;
+    background-color: rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (max-width: 700px) {
+      width: 35px;
+      height: 35px;
+    }
+
+    img {
+      height: 60%;
+      object-fit: contain;
+      background: transparent;
+    }
+  }
+
+  .game-time {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #111827;
+    text-transform: uppercase;
+    text-align: center;
+
+    @media (max-width: 768px) {
+      font-size: 0.65rem !important;
+      line-height: 1.1;
+      width: 100%;
+      white-space: pre-wrap; // Allows the CSS to wrap text at newline characters (\n)
+    }
+  }
+}

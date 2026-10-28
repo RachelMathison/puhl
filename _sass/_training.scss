@@ -1,0 +1,183 @@
+// --- Variables ---
+$color-subtle: #666;
+$color-disabled: #888;
+$color-past-bg: #f1f1f1;
+$color-past-border: #d1d1d1;
+
+$breakpoint-mobile: 768px;
+
+.training-page {
+  // --- Legend Styles ---
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 15px;
+
+    &-item {
+      cursor: pointer;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      font-weight: 500;
+      font-size: 0.9em;
+
+      &.disabled {
+        opacity: 0.4;
+        text-decoration: line-through;
+      }
+
+      input[type="checkbox"] {
+        margin-right: 6px;
+        cursor: pointer;
+      }
+    }
+
+    &-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+  }
+
+  // --- Typography & Link Helpers ---
+  .rink-link {
+    font-size: 0.85em;
+    margin-left: 5px;
+    text-decoration: underline;
+    color: $color-subtle;
+  }
+
+  .session-title {
+    font-weight: bold;
+    width: 100%;
+    padding: 0 .5em;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      display: inline-block;
+      max-width: 100%;
+      white-space: nowrap;
+      vertical-align: bottom;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // --- Utility Classes ---
+  .hidden-event {
+    display: none !important;
+  }
+
+  .calendar-loading {
+    text-align: center;
+    padding: 40px;
+    color: $color-subtle;
+    font-style: italic;
+  }
+
+  // --- Event Cards & Custom Classes ---
+  .custom-event-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border-width: 2px;
+    border-style: solid;
+    overflow: hidden;
+
+    &.past-event {
+      background-color: $color-past-bg !important;
+      border-color: $color-past-border !important;
+      opacity: 0.7;
+
+      .game-time,
+      .session-title,
+      .session-title a {
+        color: $color-disabled !important;
+      }
+    }
+  }
+
+  // --- FullCalendar Overrides ---
+  .fc-daygrid-day {
+    &:has(.fc-event) .fc-daygrid-day-frame {
+      height: 100%;
+      justify-content: flex-start;
+    }
+
+    /* Past day that has events: keep muted grey background */
+    &.fc-day-past:has(.fc-event) .fc-daygrid-day-frame {
+      background-color: $color-past-bg !important;
+      border: 1px solid $color-past-border !important;
+    }
+
+    /* Today/future days that have events: white with grey border */
+    &:not(.fc-day-past):has(.fc-event) .fc-daygrid-day-frame {
+      background-color: #ffffff !important;
+      border: 1px solid $color-past-border !important;
+    }
+
+    .fc-daygrid-day-frame {
+      background-color: $color-bg-light;
+      border-radius: 12px;
+      min-height: 140px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      box-sizing: border-box;
+      transition: all 0.15s ease;
+    }
+  }
+
+  .fc-daygrid-event-harness {
+    margin-bottom: 3px !important;
+  }
+
+  .fc-daygrid-event {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  // --- Mobile Responsive Styles ---
+  @media (max-width: $breakpoint-mobile) {
+    .fc .fc-toolbar-title {
+      font-size: 1.1em;
+    }
+
+    .fc-daygrid-day .fc-daygrid-day-frame {
+      min-height: 110px;
+      padding: 2px;
+    }
+
+    .custom-event-card {
+      padding: 2px !important;
+    }
+
+    .game-time {
+      font-size: 0.65em !important;
+      line-height: 1.1;
+      width: 100%;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+
+    .session-title {
+      font-size: 0.7em !important;
+      line-height: 1.1;
+      width: 100%;
+      text-align: center;
+      padding: 0;
+    }
+  }
+}

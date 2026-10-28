@@ -1,0 +1,463 @@
+---
+layout: default
+title:  PUHL League Schedule
+permalink: /league-schedule/
+---
+
+<!-- iCal Dependency -->
+<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+
+<h1>League Schedule</h1>
+<nav class="schedule-page-nav" aria-label="Schedule pages">
+  <a href="/league-calendar/">Calendar</a>
+</nav>
+
+<div id="list-view" class="view-content active">
+  <h2>Upcoming Games</h2>
+  <div class="schedule-date-picker">
+    <div class="schedule-week-nav">
+      <button type="button" id="previous-schedule-week" aria-label="Previous week" onclick="shiftScheduleWeek(-1)">&lsaquo;</button>
+      <span id="schedule-week-label"></span>
+      <button type="button" aria-label="Next week" onclick="shiftScheduleWeek(1)">&rsaquo;</button>
+    </div>
+    <div id="day-selector" class="schedule-day-selector" aria-label="Upcoming game days"></div>
+  </div>
+  <div id="schedule-filters" class="schedule-filters">
+    <label id="show-all-teams-control" class="show-all-teams-control">
+      <input type="checkbox" id="show-all-teams" checked aria-controls="filter-controls" onchange="toggleShowAllTeams(this.checked)">
+      <span>Show all teams</span>
+    </label>
+    <div id="filter-controls" class="league-filter-container" hidden></div>
+  </div>
+  <button type="button" id="schedule-filter-toggle" class="schedule-filter-toggle" aria-controls="schedule-filters" aria-expanded="true" onclick="toggleScheduleFilters()">Hide Filters</button>
+  <div id="upcoming-games-container">Loading schedule...</div>
+</div>
+
+<script>
+// --- Storage Keys ---
+const STORAGE_KEY_LEAGUES = 'puhl_selected_leagues';
+const STORAGE_KEY_TEAMS = 'puhl_selected_teams';
+const STORAGE_KEY_SHOW_ALL_TEAMS = 'puhl_show_all_teams';
+
+// --- League & Team Configurations ---
+const LEAGUE_STRUCTURE = {
+  comp: {
+    name: 'Competitive',
+    icsUrl: 'https://puhl-comp-schedule.xarria.workers.dev',
+    teams: [
+      { name: 'Bushtits', id: 'bushtits', imagePath: '/assets/images/teams/bushtits.png' },
+      { name: 'Eagles', id: 'eagles', imagePath: '/assets/images/teams/eagles.png' },
+      { name: 'Hooters', id: 'hooters', imagePath: '/assets/images/teams/hooters.png' },
+      { name: 'Imperial Shags', id: 'shags', imagePath: '/assets/images/teams/shags.png' }
+    ]
+  },
+  rec: {
+    name: 'Recreational',
+    icsUrl: 'https://puhl-rec-schedule.xarria.workers.dev',
+    teams: [
+      { name: 'Boobies', id: 'boobies', imagePath: '/assets/images/teams/boobies.png' },
+      { name: 'Golden Coqs', id: 'coqs', imagePath: '/assets/images/teams/coqs.png' },
+      { name: 'Flamingos', id: 'flamingos', imagePath: '/assets/images/teams/flamingos.png' },
+      { name: "Flying V's", id: "flying", imagePath: '/assets/images/teams/flying_vs.png' }
+    ]
+  },
+  novice: {
+    name: 'Novice',
+    icsUrl: 'https://puhl-novice-schedule.xarria.workers.dev',
+    teams: [
+      { name: 'Penguins', id: 'penguins', imagePath: '/assets/images/teams/penguins.png' },
+      { name: 'Two Cans', id: 'two cans', imagePath: '/assets/images/teams/two-cans.png' },
+      { name: 'Pigeons', id: 'pigeons', imagePath: '/assets/images/teams/pigeons.png' },
+      { name: 'Honkers', id: 'honkers', imagePath: '/assets/images/teams/honkers.png' }
+    ]
+  }
+};
+
+const teamLogos = window.pageTeamLogos || {};
+
+const activeLeagues = new Set();
+const activeTeams = new Set();
+const allTeamConfigs = [];
+let showAllTeamsMode = true;
+
+// Load state from localStorage or initialize defaults
+function loadSavedFilters() {
+  const savedLeagues = localStorage.getItem(STORAGE_KEY_LEAGUES);
+  const savedTeams = localStorage.getItem(STORAGE_KEY_TEAMS);
+
+  if (savedLeagues !== null) {
+    JSON.parse(savedLeagues).forEach(key => activeLeagues.add(key));
+  } else {
+    Object.keys(LEAGUE_STRUCTURE).forEach(key => activeLeagues.add(key));
+  }
+
+  if (savedTeams !== null) {
+    JSON.parse(savedTeams).forEach(name => activeTeams.add(name));
+  } else {
+    Object.values(LEAGUE_STRUCTURE).forEach(league => {
+      league.teams.forEach(team => activeTeams.add(team.name));
+    });
+  }
+
+  const savedShowAllTeams = localStorage.getItem(STORAGE_KEY_SHOW_ALL_TEAMS);
+  const totalTeamCount = Object.values(LEAGUE_STRUCTURE).reduce((total, league) => total + league.teams.length, 0);
+  showAllTeamsMode = savedShowAllTeams === null
+    ? activeTeams.size === totalTeamCount && activeLeagues.size === Object.keys(LEAGUE_STRUCTURE).length
+    : savedShowAllTeams === 'true';
+}
+
+function saveFiltersToStorage() {
+  localStorage.setItem(STORAGE_KEY_LEAGUES, JSON.stringify(Array.from(activeLeagues)));
+  localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(Array.from(activeTeams)));
+}
+
+// Initialize structure lookups
+Object.values(LEAGUE_STRUCTURE).forEach(league => {
+  league.teams.forEach(team => {
+    allTeamConfigs.push({
+      displayName: team.name,
+      id: String(team.id).toLowerCase(),
+      imagePath: team.imagePath || teamLogos[team.name] || teamLogos.default
+    });
+  });
+});
+
+// Identify team match details using string contains (includes) check
+function getMatchupDetails(title) {
+  if (!title) return { selfLogo: teamLogos.default, oppLogo: teamLogos.default, team1Name: null, team2Name: null };
+
+  const lowerTitle = title.toLowerCase();
+  let matches = [];
+
+  allTeamConfigs.forEach(team => {
+    const idx = lowerTitle.indexOf(team.id);
+    if (idx !== -1) {
+      matches.push({
+        index: idx,
+        displayName: team.displayName,
+        logo: team.imagePath
+      });
+    }
+  });
+
+  matches.sort((a, b) => a.index - b.index);
+
+  const t1 = matches[0] || { displayName: null, logo: teamLogos.default };
+  const t2 = matches[1] || { displayName: null, logo: teamLogos.default };
+
+  return {
+    selfLogo: t1.logo,
+    oppLogo: t2.logo,
+    team1Name: t1.displayName,
+    team2Name: t2.displayName
+  };
+}
+
+// Check if an event is active based on current selection
+function isEventActive(leagueKey, title) {
+  if (!activeLeagues.has(leagueKey)) return false;
+  const matchup = getMatchupDetails(title);
+  return (matchup.team1Name && activeTeams.has(matchup.team1Name)) ||
+         (matchup.team2Name && activeTeams.has(matchup.team2Name));
+}
+
+let masterAllEvents = [];
+let scheduleWeekOffset = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadSavedFilters();
+  buildFilterUI();
+  initializeShowAllTeamsControl();
+  setupStickySchedulePicker();
+  fetchAllIcsEvents();
+});
+
+function buildFilterUI() {
+  const filterContainer = document.getElementById('filter-controls');
+  if (!filterContainer) return;
+
+  let html = '';
+  for (const [leagueKey, league] of Object.entries(LEAGUE_STRUCTURE)) {
+    const leagueChecked = activeLeagues.has(leagueKey) ? 'checked' : '';
+    const groupHidden = activeLeagues.has(leagueKey) ? '' : 'hidden';
+
+    html += `
+      <div class="filter-section">
+        <div class="filter-title">
+          <input type="checkbox" id="league-${leagueKey}" ${leagueChecked} onchange="toggleLeague('${leagueKey}', this.checked)">
+          <label for="league-${leagueKey}">${league.name}</label>
+        </div>
+        <div class="team-checkboxes ${groupHidden}" id="teams-group-${leagueKey}">
+    `;
+    
+    league.teams.forEach(team => {
+      const imgPath = team.imagePath || teamLogos[team.name] || teamLogos.default;
+      const teamChecked = activeTeams.has(team.name) ? 'checked' : '';
+      html += `
+        <label class="filter-label">
+          <input type="checkbox" class="team-cb-${leagueKey}" value="${team.name}" ${teamChecked} onchange="toggleTeam('${team.name}', this.checked)">
+          <span class="filter-check-indicator" aria-hidden="true"></span>
+          <img src="${imgPath}" alt="${team.name}" class="filter-team-icon" />
+          <span class="filter-team-name">${team.name}</span>
+        </label>
+      `;
+    });
+
+    html += `</div></div>`;
+  }
+  filterContainer.innerHTML = html;
+}
+
+function toggleLeague(leagueKey, isChecked) {
+  if (isChecked) activeLeagues.add(leagueKey);
+  else activeLeagues.delete(leagueKey);
+
+  const groupEl = document.getElementById(`teams-group-${leagueKey}`);
+  if (groupEl) {
+    if (isChecked) groupEl.classList.remove('hidden');
+    else groupEl.classList.add('hidden');
+  }
+
+  document.querySelectorAll(`.team-cb-${leagueKey}`).forEach(cb => {
+    cb.checked = isChecked;
+    if (isChecked) activeTeams.add(cb.value);
+    else activeTeams.delete(cb.value);
+  });
+
+  saveFiltersToStorage();
+  refreshViews();
+}
+
+function toggleTeam(teamName, isChecked) {
+  if (isChecked) activeTeams.add(teamName);
+  else activeTeams.delete(teamName);
+
+  saveFiltersToStorage();
+  refreshViews();
+}
+
+function initializeShowAllTeamsControl() {
+  const control = document.getElementById('show-all-teams');
+  const filterPanel = document.getElementById('filter-controls');
+  if (!control || !filterPanel) return;
+
+  control.checked = showAllTeamsMode;
+  filterPanel.hidden = showAllTeamsMode;
+}
+
+function toggleShowAllTeams(showAll) {
+  showAllTeamsMode = showAll;
+  localStorage.setItem(STORAGE_KEY_SHOW_ALL_TEAMS, String(showAll));
+
+  const filterPanel = document.getElementById('filter-controls');
+  if (filterPanel) filterPanel.hidden = showAll;
+
+  if (showAll) {
+    activeLeagues.clear();
+    activeTeams.clear();
+    Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
+      activeLeagues.add(leagueKey);
+      league.teams.forEach(team => activeTeams.add(team.name));
+    });
+    saveFiltersToStorage();
+    buildFilterUI();
+    refreshViews();
+  }
+}
+
+function toggleScheduleFilters() {
+  const filterSection = document.getElementById('schedule-filters');
+  if (!filterSection) return;
+
+  filterSection.hidden = !filterSection.hidden;
+  updateFilterToggle(filterSection, filterSection.hidden);
+}
+
+function updateFilterToggle(filterSection, isHidden) {
+  const toggle = document.getElementById('schedule-filter-toggle');
+  if (!filterSection || !toggle) return;
+
+  toggle.textContent = isHidden ? 'Show Filters' : 'Hide Filters';
+  toggle.setAttribute('aria-expanded', String(!isHidden));
+}
+
+function refreshViews() {
+  renderListView();
+}
+
+function getLocalDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function setupStickySchedulePicker() {
+  const picker = document.querySelector('.schedule-date-picker');
+  if (!picker) return;
+
+  const updateStickyState = () => {
+    const top = picker.getBoundingClientRect().top;
+    picker.classList.toggle('is-stuck', Math.abs(top) <= 1);
+  };
+  window.addEventListener('scroll', updateStickyState, { passive: true });
+  updateStickyState();
+}
+
+function scrollToScheduleDay(dateKey) {
+  const dayGroup = document.getElementById(`schedule-day-${dateKey}`);
+  const picker = document.querySelector('.schedule-date-picker');
+  if (!dayGroup) return;
+
+  const targetTop = dayGroup.getBoundingClientRect().top + window.scrollY - (picker?.offsetHeight || 0) - 12;
+  window.scrollTo({ top: targetTop, behavior: 'smooth' });
+}
+
+function shiftScheduleWeek(amount) {
+  scheduleWeekOffset = Math.max(0, scheduleWeekOffset + amount);
+  const activeEvents = masterAllEvents
+    .filter(event => isEventActive(event.leagueKey, event.title))
+    .filter(event => event.start && new Date(event.start) > new Date());
+  renderDaySelector(activeEvents);
+}
+
+async function fetchAllIcsEvents() {
+  masterAllEvents = [];
+
+  const promises = Object.keys(LEAGUE_STRUCTURE).map(async leagueKey => {
+    const url = LEAGUE_STRUCTURE[leagueKey].icsUrl;
+    try {
+      const response = await fetch(url);
+      const icsText = await response.text();
+      
+      const jcalData = ICAL.parse(icsText);
+      const comp = new ICAL.Component(jcalData);
+      const vevents = comp.getAllSubcomponents('vevent');
+
+      vevents.forEach(vevent => {
+        const event = new ICAL.Event(vevent);
+        masterAllEvents.push({
+          title: event.summary,
+          start: event.startDate.toJSDate(),
+          location: event.location || 'TBD',
+          leagueKey: leagueKey
+        });
+      });
+    } catch (err) {
+      console.error(`Error fetching ICS for ${leagueKey}:`, err);
+    }
+  });
+
+  await Promise.all(promises);
+  renderListView();
+}
+
+function renderListView() {
+  const container = document.getElementById('upcoming-games-container');
+  if (!container) return;
+
+  const filteredEvents = masterAllEvents.filter(e => isEventActive(e.leagueKey, e.title));
+  const noFilteredEvents = filteredEvents.length === 0;
+
+  const now = new Date();
+  const upcomingEvents = filteredEvents.filter(e => e.start && new Date(e.start) > now);
+  renderDaySelector(upcomingEvents);
+
+  if (noFilteredEvents) {
+    container.innerHTML = '<p>No games found matching the selected filters.</p>';
+    return;
+  }
+
+  if (upcomingEvents.length === 0) {
+    container.innerHTML = '<p>No upcoming games scheduled.</p>';
+    return;
+  }
+
+  upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+  const grouped = {};
+  upcomingEvents.forEach(e => {
+    const dateKey = getLocalDateKey(new Date(e.start));
+    if (!grouped[dateKey]) grouped[dateKey] = [];
+    grouped[dateKey].push(e);
+  });
+
+  let html = '';
+  for (const dateKey in grouped) {
+    const date = new Date(`${dateKey}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    html += `
+      <div class="date-group" id="schedule-day-${dateKey}">
+        <h3 class="date-header">${date}</h3>
+        <table class="schedule-table league-matchup-table">
+          <thead>
+            <tr>
+              <th style="width: 42%;">Matchup</th>
+              <th style="width: 20%;">Division</th>
+              <th style="width: 18%;">Time</th>
+              <th style="width: 20%;">Location</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    grouped[dateKey].forEach(event => {
+      const timeStr = new Date(event.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      const matchup = getMatchupDetails(event.title);
+
+      html += `
+        <tr>
+          <td>
+            <div class="matchup-cell">
+              <span class="team-name">${matchup.team1Name || 'Team 1'}</span>
+              <img src="${matchup.selfLogo}" alt="${matchup.team1Name || 'Team 1'}" />
+              <span class="matchup-at">@</span>
+              <img src="${matchup.oppLogo}" alt="${matchup.team2Name || 'Team 2'}" />
+              <span class="team-name">${matchup.team2Name || 'Team 2'}</span>
+            </div>
+          </td>
+          <td class="division-cell">${LEAGUE_STRUCTURE[event.leagueKey]?.name || ''}</td>
+          <td class="time-cell">${timeStr}</td>
+          <td class="location-cell">${event.location}</td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table></div>`;
+  }
+  container.innerHTML = html;
+}
+
+function renderDaySelector(upcomingEvents) {
+  const selector = document.getElementById('day-selector');
+  const weekLabel = document.getElementById('schedule-week-label');
+  const previousButton = document.getElementById('previous-schedule-week');
+  if (!selector || !weekLabel) return;
+
+  const eventCounts = {};
+  upcomingEvents.forEach(event => {
+    const key = getLocalDateKey(new Date(event.start));
+    eventCounts[key] = (eventCounts[key] || 0) + 1;
+  });
+
+  const firstDay = new Date();
+  firstDay.setHours(0, 0, 0, 0);
+  firstDay.setDate(firstDay.getDate() + scheduleWeekOffset * 7);
+  const lastDay = new Date(firstDay);
+  lastDay.setDate(firstDay.getDate() + 6);
+  const formatRangeDate = date => date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  weekLabel.textContent = `${formatRangeDate(firstDay)} – ${formatRangeDate(lastDay)}`;
+  if (previousButton) previousButton.disabled = scheduleWeekOffset === 0;
+
+  selector.innerHTML = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(firstDay);
+    day.setDate(firstDay.getDate() + index);
+    const key = getLocalDateKey(day);
+    const count = eventCounts[key] || 0;
+    return `<button type="button" class="schedule-day-option ${count ? '' : 'no-games'}" ${count ? `onclick="scrollToScheduleDay('${key}')"` : 'disabled'} aria-label="${day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}: ${count} games">
+      <span class="schedule-day-name">${day.toLocaleDateString([], { weekday: 'short' })}</span>
+      <span class="schedule-day-date">${day.getDate()}</span>
+      <span class="schedule-day-count">${count}</span>
+    </button>`;
+  }).join('');
+}
+</script>

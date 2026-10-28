@@ -1,0 +1,7 @@
+standings_api_url: "https://standings.darkknightshockey.com"
+stats_api_url: "https://stats.darkknightshockey.com"
+primary_team_key: "dk"
+primary_team_keywords:
+  - "dark"
+  - "knights"
+default_logo_path: "/assets/images/default.png"

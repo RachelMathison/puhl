@@ -1,0 +1,667 @@
+/* ---------- schedule page: tab navigation ---------- */
+.schedule-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.schedule-page-nav {
+  margin: -8px 0 18px;
+
+  a {
+    display: inline-block;
+    padding: 7px 12px;
+    border: 1px solid #d8d8d4;
+    border-radius: 6px;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      background: #f5f5f2;
+    }
+  }
+}
+
+.show-all-teams-control {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1px solid #e0e5eb;
+  border-radius: 10px;
+  background: #f8f9fb;
+  color: #17263b;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    appearance: none;
+    position: relative;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    border: 1.5px solid #9aa5b1;
+    border-radius: 5px;
+    background: #fff;
+    cursor: pointer;
+
+    &:checked {
+      border-color: var(--navy);
+      background: var(--navy);
+    }
+
+    &:checked::after {
+      position: absolute;
+      top: 1px;
+      left: 5px;
+      width: 5px;
+      height: 9px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      content: '';
+      transform: rotate(45deg);
+    }
+
+    &:focus-visible {
+      outline: 3px solid rgba(246, 225, 27, 0.7);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.show-all-teams-control[hidden] {
+  display: none;
+}
+
+.schedule-filter-toggle {
+  display: block;
+  margin: -2px auto 18px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #005bff;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.league-filter-container {
+  margin-bottom: 12px;
+  padding: 8px 20px;
+  border: 1px solid #e3e7ec;
+  border-radius: 14px;
+}
+
+.filter-section {
+  margin: 0;
+  padding: 8px 0;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.filter-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  label {
+    color: #17263b;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+  }
+
+  input[type="checkbox"] {
+    appearance: none;
+    position: relative;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    border: 1.5px solid #9aa5b1;
+    border-radius: 5px;
+    background: #fff;
+    cursor: pointer;
+
+    &:checked {
+      border-color: var(--navy);
+      background: var(--navy);
+    }
+
+    &:checked::after {
+      position: absolute;
+      top: 1px;
+      left: 5px;
+      width: 5px;
+      height: 9px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      content: '';
+      transform: rotate(45deg);
+    }
+
+    &:focus-visible {
+      outline: 3px solid rgba(246, 225, 27, 0.7);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.team-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 0 28px;
+
+  &.hidden {
+    display: none !important;
+  }
+}
+
+.filter-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 5px 12px 5px 8px;
+  border: 1px solid #e0e5eb;
+  border-radius: 999px;
+  background: #fff;
+  color: #283548;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    border-color: #aeb9c7;
+    transform: translateY(-1px);
+  }
+
+  &:has(input:checked) {
+    border-color: #aab9cb;
+    background: #edf2f8;
+    color: #17263b;
+  }
+
+  &:focus-within {
+    outline: 3px solid rgba(246, 225, 27, 0.7);
+    outline-offset: 2px;
+  }
+
+  input[type="checkbox"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+}
+
+.filter-team-icon {
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  padding: 2px;
+  border-radius: 50%;
+  background: #f0f2f5;
+  object-fit: contain;
+}
+
+.filter-check-indicator {
+  position: relative;
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  box-sizing: border-box;
+  border: 1px solid #c8d0db;
+  border-radius: 4px;
+  background: #f0f2f5;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-label:has(input:checked) .filter-check-indicator {
+  border-color: #b6c3d3;
+  background: #d6e0ec;
+
+  &::after {
+    position: absolute;
+    top: 47%;
+    left: 50%;
+    width: 7px;
+    height: 4px;
+    border: solid var(--navy);
+    border-width: 0 0 2px 2px;
+    content: '';
+    transform: translate(-50%, -60%) rotate(-45deg);
+  }
+}
+
+.filter-team-name {
+  font-weight: 550;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 5px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  position: relative;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+
+  &.active {
+    color: #000;
+    border-bottom-color: #000;
+  }
+}
+
+/* --- View Containers --- */
+.view-content {
+  display: none;
+
+  &.active {
+    display: block;
+  }
+}
+
+/* --- List View Styling --- */
+.date-group {
+  margin-bottom: 30px;
+  scroll-margin-top: 16px;
+}
+
+.schedule-date-picker {
+  display: block;
+}
+
+.schedule-date-picker {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  width: calc(100% + 96px);
+  margin-left: -48px;
+  padding-right: 48px;
+  padding-left: 48px;
+  background: #fff;
+
+  &.is-stuck {
+    &::after {
+      opacity: 1;
+    }
+  }
+
+  &::after {
+    position: absolute;
+    right: 0;
+    bottom: -8px;
+    left: 0;
+    height: 8px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.14), transparent);
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+}
+
+.schedule-week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 42px;
+  margin-bottom: 8px;
+
+  button {
+    width: 44px;
+    height: 40px;
+    border: 0;
+    background: transparent;
+    color: #222;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:disabled {
+      color: #aaa;
+      cursor: default;
+    }
+  }
+
+  span {
+    font-weight: 700;
+  }
+}
+
+.schedule-day-selector {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 12px;
+}
+
+.schedule-day-option {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 82px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 2px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: #fff;
+  color: #222;
+  cursor: pointer;
+
+  &:disabled {
+    color: #999;
+    background: #fafafa;
+    cursor: default;
+  }
+}
+
+.schedule-day-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.schedule-day-date {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.schedule-day-count {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.date-header {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+
+  th,
+  td {
+    padding: 12px 16px;
+    text-align: left;
+  }
+
+  th {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+    border-bottom: 1px solid #ddd;
+  }
+
+  tr {
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #eee;
+  }
+}
+
+.league-matchup-table {
+  thead tr {
+    background-color: #fff;
+  }
+
+  thead th:first-child {
+    text-align: center;
+  }
+
+  tbody tr {
+    background-color: #fff;
+
+    &:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  }
+}
+
+/* Matchup Cell layout for List view */
+.matchup-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  /* Swaps the order of elements (Logo 1, Text, Logo 2) */
+  &.swap-sides {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+  }
+
+  img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+}
+
+/* League schedule matchup rows: names outside, logos and @ centered. */
+.league-matchup-table .matchup-cell {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) 36px 24px 36px minmax(70px, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 10px;
+
+  .team-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    white-space: nowrap;
+
+    &:first-child {
+      justify-self: end;
+      text-align: right;
+    }
+
+    &:last-child {
+      justify-self: start;
+      text-align: left;
+    }
+  }
+
+  img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .matchup-at {
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 600px) {
+  .schedule-date-picker {
+    padding: 6px 0 8px;
+    margin-bottom: 18px;
+  }
+
+  .schedule-week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 34px;
+    margin-bottom: 6px;
+
+    button {
+      width: 40px;
+      height: 34px;
+      border: 0;
+      background: transparent;
+      color: #222;
+      font-size: 1.8rem;
+      line-height: 1;
+      cursor: pointer;
+
+      &:disabled {
+        color: #aaa;
+        cursor: default;
+      }
+    }
+
+    span {
+      font-weight: 700;
+    }
+  }
+
+  .schedule-day-selector {
+    gap: 4px;
+    margin: 0;
+  }
+
+  .schedule-day-option {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 68px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 3px 1px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    background: #fff;
+    color: #222;
+    cursor: pointer;
+
+    &:disabled {
+      color: #999;
+      background: #fafafa;
+      cursor: default;
+    }
+  }
+
+  .schedule-day-name {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .schedule-day-date {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .schedule-day-count {
+    color: #666;
+    font-size: 0.7rem;
+  }
+
+  .league-matchup-table {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: block;
+    }
+
+    tbody tr {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 0 14px;
+      border-bottom: 1px solid #ddd;
+
+      &:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 10px;
+        text-align: center;
+      }
+
+      .time-cell {
+        order: 1;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      td:first-child {
+        order: 2;
+      }
+
+      .division-cell {
+        order: 3;
+        padding-top: 0;
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .location-cell {
+        order: 4;
+        padding-top: 0;
+        color: #666;
+        font-size: 0.9rem;
+      }
+    }
+  }
+
+  .league-matchup-table .matchup-cell {
+    grid-template-columns: minmax(0, 1fr) 34px 20px 34px minmax(0, 1fr);
+    gap: 5px;
+
+    .team-name {
+      font-size: 0.95rem;
+      white-space: normal;
+    }
+
+    img {
+      width: 34px;
+      height: 34px;
+    }
+  }
+}
+
+@media (max-width: 700px) {
+  .schedule-date-picker {
+    width: calc(100% + 44px);
+    margin-left: -22px;
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+}
+
+@media (min-width: 701px) {
+  .schedule-date-picker {
+    padding-bottom: 1px;
+  }
+}
