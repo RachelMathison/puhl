@@ -1,7 +1,7 @@
 /* ---------- masthead ---------- */
 .masthead {
-  background: linear-gradient(90deg, var(--black) 0%, var(--navy-deep) 70%, var(--navy) 100%);
-  border-bottom: 3px solid var(--yellow);
+  background: linear-gradient(90deg, var(--black) 0%, var(--green-deep) 70%, var(--green) 100%);
+  border-bottom: 3px solid var(--gray-500);
 
   &-inner {
     max-width: 1200px;
@@ -21,8 +21,12 @@
   }
 
   &-logo {
-    height: 40px;
-    width: auto;
+    height: 44px;
+    width: 44px;
+    padding: 2px;
+    border-radius: 5px;
+    background: var(--white);
+    object-fit: contain;
     display: block;
   }
 
@@ -36,7 +40,7 @@
     line-height: 1;
 
     span {
-      color: var(--yellow);
+      color: var(--gray-300);
     }
   }
 
@@ -66,12 +70,12 @@
     border-bottom: 2px solid transparent;
 
     &:hover {
-      color: var(--navy);
+      color: var(--white);
     }
 
     &.active {
       color: var(--white);
-      border-bottom-color: var(--yellow);
+      border-bottom-color: var(--gray-500);
     }
   }
 }
@@ -101,12 +105,12 @@
   cursor: pointer;
 
   &:hover {
-    color: var(--yellow);
+    color: var(--white);
   }
 
   &.active {
     color: var(--white);
-    border-bottom-color: var(--yellow);
+    border-bottom-color: var(--gray-500);
   }
 }
 

@@ -43,7 +43,7 @@
   /* Interactive state triggers on inner elements */
   &:hover {
     .article-card-title {
-      color: var(--navy);
+      color: var(--green);
     }
 
     .article-card-cta {
@@ -134,14 +134,14 @@
       color: var(--gray-700);
 
       &.accent {
-        background: var(--yellow);
-        border-color: var(--yellow);
+        background: var(--accent);
+        border-color: var(--accent);
         color: var(--black);
       }
 
-      &.navy {
-        background: var(--navy);
-        border-color: var(--navy);
+      &.green {
+        background: var(--green);
+        border-color: var(--green);
         color: var(--white);
       }
     }
@@ -187,7 +187,7 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--navy);
+    color: var(--green);
     white-space: nowrap;
   }
 }
@@ -215,7 +215,7 @@
 
   &:hover {
     .archive-row-title {
-      color: var(--navy);
+      color: var(--green);
     }
   }
 
@@ -250,15 +250,15 @@
   font-size: 13px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--navy);
+  color: var(--green);
   border: 1px solid var(--gray-300);
   border-radius: 4px;
   padding: 10px 20px;
 
   &:hover {
     color: var(--white);
-    background: var(--navy);
-    border-color: var(--navy);
+    background: var(--green);
+    border-color: var(--green);
   }
 }
 
@@ -281,7 +281,7 @@
   letter-spacing: 0.01em;
   margin: 36px 0 4px;
   padding-top: 10px;
-  border-top: 3px solid var(--yellow);
+  border-top: 3px solid var(--accent);
 
   &:first-of-type {
     margin-top: 0;
@@ -313,13 +313,13 @@
   cursor: pointer;
 
   &:hover:not(.active) {
-    border-color: var(--navy);
-    color: var(--navy);
+    border-color: var(--green);
+    color: var(--green);
   }
 
   &.active {
-    background: var(--navy);
-    border-color: var(--navy);
+    background: var(--green);
+    border-color: var(--green);
     color: var(--white);
   }
 }

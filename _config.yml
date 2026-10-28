@@ -18,10 +18,10 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Dark Knights Hockey
-description: Winterhawks Adult Hockey — Bronze Division
+title: Portland United Hockey League
+description: Portland United Hockey League (PUHL), Portland, Oregon
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://darkknightshockey.com" # the base hostname & protocol for your site, e.g. http://example.com
+url: "http://darkknightshockey.com" # Update when the league's production domain is set.
 twitter_username: jekyllrb
 github_username:  jekyll
 

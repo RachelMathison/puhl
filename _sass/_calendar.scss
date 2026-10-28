@@ -1,11 +1,11 @@
 // ==========================================
 // Calendar & League Theme Variables
 // ==========================================
-$knights-bg: #0a1f44;
-$knights-text: #ffffff;
+$league-bg: #0d543c;
+$league-text: #ffffff;
 
 $bushtits-bg: #ffffff;
-$bushtits-text: #0a1f44;
+$bushtits-text: #0d543c;
 
 // ==========================================
 // Calendar Container & Legend
@@ -29,7 +29,7 @@ $bushtits-text: #0a1f44;
     border-radius: 3px;
     border: 1px solid #ccc;
 
-    &.legend-knights { background: $knights-bg; }
+    &.legend-knights { background: $league-bg; }
     &.legend-bushtits { background: $bushtits-bg; }
   }
 }
@@ -109,11 +109,11 @@ $bushtits-text: #0a1f44;
   // ------------------------------------------
   &.league-knights {
     .fc-daygrid-day-frame {
-      background-color: $knights-bg !important;
+      background-color: $league-bg !important;
     }
     .fc-daygrid-day-number,
     .game-time {
-      color: $knights-text !important;
+      color: $league-text !important;
     }
     .logo-circle {
       border: 1px solid #3E3E3E;

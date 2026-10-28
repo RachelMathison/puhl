@@ -39,7 +39,7 @@
       /* Applied dynamically via JS to the active sort header */
       &.active-sort-col {
         background-color: rgba(28, 52, 87, 0.12);
-        color: var(--navy);
+        color: var(--green);
       }
     }
 
@@ -74,7 +74,7 @@
 
     .player-name {
       font-weight: 600;
-      color: var(--navy);
+      color: var(--green);
       text-decoration: none;
 
       &:hover {
@@ -86,6 +86,6 @@
   .sort-icon {
     font-size: 0.75rem;
     margin-left: 4px;
-    color: var(--navy);
+    color: var(--green);
   }
 }

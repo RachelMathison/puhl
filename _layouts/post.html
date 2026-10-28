@@ -27,7 +27,7 @@ layout: default
     <div class="breadcrumb">
       {% for tag in page.tags %}
         {% assign tag_class = "" %}
-        {% if forloop.first %}{% assign tag_class = "navy" %}{% elsif forloop.index == 2 %}{% assign tag_class = "accent" %}{% endif %}
+        {% if forloop.first %}{% assign tag_class = "green" %}{% elsif forloop.index == 2 %}{% assign tag_class = "accent" %}{% endif %}
         <a class="tag {{ tag_class }}" href="{{ '/archive/' | relative_url }}#{{ tag | slugify }}">{{ tag }}</a>
       {% endfor %}
     </div>
@@ -36,7 +36,7 @@ layout: default
     <p class="description">{{ page.description }}</p>
 
     <div class="byline-row">
-      <div class="who">By <strong>{{ page.author | default: "Dark Knights Insider Staff" }}</strong></div>
+      <div class="who">By <strong>{{ page.author | default: "PUHL Staff" }}</strong></div>
       <div class="date">{{ page.date | date: "%B %-d, %Y" }}</div>
     </div>
 

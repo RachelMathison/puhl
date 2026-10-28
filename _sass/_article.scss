@@ -17,14 +17,14 @@
     font-weight: 600;
 
     &.accent {
-      background: var(--yellow);
-      border-color: var(--yellow);
+      background: var(--accent);
+      border-color: var(--accent);
       color: var(--black);
     }
 
-    &.navy {
-      background: var(--navy);
-      border-color: var(--navy);
+    &.green {
+      background: var(--green);
+      border-color: var(--green);
       color: var(--white);
     }
   }
@@ -105,8 +105,8 @@ h1.headline {
 }
 
 .cta {
-  background: linear-gradient(100deg, var(--navy-deep), var(--navy) 100%);
-  border-top: 4px solid var(--yellow);
+  background: linear-gradient(100deg, var(--green-deep), var(--green) 100%);
+  border-top: 4px solid var(--accent);
   border-radius: 2px;
   padding: 34px 32px;
   text-align: center;
@@ -117,7 +117,7 @@ h1.headline {
     font-size: 11px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--yellow);
+    color: var(--accent);
     font-weight: 600;
     margin-bottom: 10px;
   }
@@ -207,21 +207,21 @@ article {
   text-transform: uppercase;
   letter-spacing: 0.01em;
   margin: 44px 0 18px;
-  border-top: 3px solid var(--yellow);
+  border-top: 3px solid var(--accent);
   padding-top: 14px;
 
   &.list-section-title {
     border-top: none;
-    border-bottom: 3px solid var(--yellow);
+    border-bottom: 3px solid var(--accent);
   }
 }
 
 .pullquote {
-  background: linear-gradient(120deg, var(--navy-deep), var(--black) 75%);
+  background: linear-gradient(120deg, var(--green-deep), var(--black) 75%);
   color: var(--white);
   padding: 30px 32px;
   border-radius: 2px;
-  border-left: 6px solid var(--yellow);
+  border-left: 6px solid var(--accent);
   font-family: 'Oswald', sans-serif;
   font-weight: 500;
   font-size: 20px;
@@ -234,7 +234,7 @@ article {
     font-size: 11px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--yellow);
+    color: var(--accent);
     font-weight: 600;
     margin-bottom: 10px;
   }
