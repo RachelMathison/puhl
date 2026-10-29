@@ -43,11 +43,11 @@
   /* Interactive state triggers on inner elements */
   &:hover {
     .article-card-title {
-      color: var(--green);
+      color: var(--primary);
     }
 
     .article-card-cta {
-      color: var(--black);
+      color: var(--text);
     }
   }
 
@@ -93,7 +93,7 @@
           display: block;
           width: 12px;
           height: 2px;
-          background: var(--white);
+          background: var(--surface);
           border-radius: 1px;
         }
 
@@ -136,12 +136,12 @@
       &.accent {
         background: var(--accent);
         border-color: var(--accent);
-        color: var(--black);
+      color: var(--text);
       }
 
       &.green {
-        background: var(--green);
-        border-color: var(--green);
+        background: var(--primary);
+        border-color: var(--primary);
         color: var(--white);
       }
     }
@@ -187,7 +187,7 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--green);
+    color: var(--primary);
     white-space: nowrap;
   }
 }
@@ -215,7 +215,7 @@
 
   &:hover {
     .archive-row-title {
-      color: var(--green);
+      color: var(--primary);
     }
   }
 
@@ -231,7 +231,7 @@
     font-family: 'Oswald', sans-serif;
     font-weight: 500;
     font-size: 16px;
-    color: var(--black);
+    color: var(--text);
     line-height: 1.35;
   }
 }
@@ -250,15 +250,15 @@
   font-size: 13px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--green);
+  color: var(--primary);
   border: 1px solid var(--gray-300);
   border-radius: 4px;
   padding: 10px 20px;
 
   &:hover {
     color: var(--white);
-    background: var(--green);
-    border-color: var(--green);
+    background: var(--primary);
+    border-color: var(--primary);
   }
 }
 
@@ -313,13 +313,13 @@
   cursor: pointer;
 
   &:hover:not(.active) {
-    border-color: var(--green);
-    color: var(--green);
+    border-color: var(--primary);
+    color: var(--primary);
   }
 
   &.active {
-    background: var(--green);
-    border-color: var(--green);
+    background: var(--primary);
+    border-color: var(--primary);
     color: var(--white);
   }
 }

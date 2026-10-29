@@ -1,0 +1,62 @@
+// Theme tokens: palette and decorative watermark for each selectable site theme.
+:root {
+  --primary:#0d543c;
+  --primary-deep:#083b2b;
+  --accent:#68b24a;
+  --page-background:var(--primary-deep);
+  --surface:#ffffff;
+  --surface-raised:#f1f2f2;
+  --text:#000000;
+  --watermark-image:#{'url("../images/site/puhl_logo.png")'};
+}
+
+:root[data-color-mode="dark"] {
+  --page-background:color-mix(in srgb, var(--primary-deep) 24%, #202325);
+  --surface:#292d2f;
+  --surface-raised:#34393b;
+  --text:#e8ecee;
+  --black:#000000;
+  --white:#ffffff;
+  --gray-900:#e8ecee;
+  --gray-700:#c1c6c8;
+  --gray-500:#9ca3a6;
+  --gray-300:#4b5154;
+  --gray-100:#34393b;
+  --bg:#202325;
+  --training-bg-light:#34393b;
+}
+
+:root[data-site-theme="penguins"] {
+  --primary:#167fbf;
+  --primary-deep:#0b4568;
+  --accent:#c2e2da;
+  --watermark-image:#{'url("../images/teams/penguins.png")'};
+}
+
+:root[data-site-theme="twocans"] {
+  --primary:#187dbd;
+  --primary-deep:#452576;
+  --accent:#0eb29f;
+  --watermark-image:#{'url("../images/teams/two-cans.png")'};
+}
+
+:root[data-site-theme="coqs"] {
+  --primary:#f7bd1a;
+  --primary-deep:#cb2227;
+  --accent:#f05820;
+  --watermark-image:#{'url("../images/teams/coqs.png")'};
+}
+
+:root[data-site-theme="honkers"] {
+  --primary:#252c62;
+  --primary-deep:#ce2027;
+  --accent:#ede0b0;
+  --watermark-image:#{'url("../images/teams/honkers.png")'};
+}
+
+:root[data-site-theme="boobies"] {
+  --primary:#c3e1db;
+  --primary-deep:#252c62;
+  --accent:#ce2121;
+  --watermark-image:#{'url("../images/teams/boobies.png")'};
+}

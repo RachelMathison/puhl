@@ -33,7 +33,7 @@
     align-items: center;
     gap: 6px;
     margin: 28px 0 14px;
-    color: var(--black);
+    color: var(--text);
 
     .chevron {
       color: var(--gray-500);
@@ -62,7 +62,7 @@
 
     &:hover {
       .news-feed-title {
-        color: var(--green);
+        color: var(--primary);
       }
     }
   }
@@ -93,7 +93,7 @@
     font-size: 15px;
     line-height: 1.32;
     margin: 0 0 6px;
-    color: var(--black);
+    color: var(--text);
   }
 
   &-date {

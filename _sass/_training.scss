@@ -1,8 +1,8 @@
 // --- Variables ---
-$color-subtle: #666;
-$color-disabled: #888;
-$color-past-bg: #f1f1f1;
-$color-past-border: #d1d1d1;
+$color-subtle: var(--gray-700);
+$color-disabled: var(--gray-500);
+$color-past-bg: var(--gray-100);
+$color-past-border: var(--gray-300);
 
 $breakpoint-mobile: 768px;
 
@@ -122,12 +122,12 @@ $breakpoint-mobile: 768px;
 
     /* Today/future days that have events: white with grey border */
     &:not(.fc-day-past):has(.fc-event) .fc-daygrid-day-frame {
-      background-color: #ffffff !important;
+      background-color: var(--surface) !important;
       border: 1px solid $color-past-border !important;
     }
 
     .fc-daygrid-day-frame {
-      background-color: $color-bg-light;
+      background-color: var(--training-bg-light);
       border-radius: 12px;
       min-height: 140px;
       padding: 4px;

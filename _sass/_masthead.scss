@@ -1,6 +1,6 @@
 /* ---------- masthead ---------- */
 .masthead {
-  background: linear-gradient(90deg, var(--black) 0%, var(--green-deep) 70%, var(--green) 100%);
+  background: linear-gradient(90deg, var(--black) 0%, var(--primary-deep) 70%, var(--primary) 100%);
   border-bottom: 3px solid var(--gray-500);
 
   &-inner {
@@ -25,7 +25,7 @@
     width: 44px;
     padding: 2px;
     border-radius: 5px;
-    background: var(--white);
+    background: #ffffff;
     object-fit: contain;
     display: block;
   }
@@ -121,7 +121,7 @@
   left: 50%;
   transform: translateX(-50%);
   min-width: 180px;
-  background: var(--white);
+  background: var(--surface);
   border-radius: 8px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
   overflow: hidden;
@@ -133,7 +133,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: var(--black);
+    color: var(--text);
     border-bottom: 1px solid var(--gray-300);
 
     &:last-child {
@@ -154,5 +154,12 @@
     left: 0;
     transform: none;
     min-width: 200px;
+  }
+}
+
+:root[data-color-mode="dark"] {
+  .site-nav a,
+  .nav-trigger {
+    color: var(--white);
   }
 }

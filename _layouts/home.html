@@ -9,6 +9,22 @@ layout: default
   const teamLogos = {{ site.data.team_logos | jsonify }};
 </script>
 
+<div class="site-theme-control">
+  <label for="site-theme-select">Site theme</label>
+  <select id="site-theme-select">
+    <option value="green">PUHL Green</option>
+    <option value="penguins">Penguins</option>
+    <option value="twocans">Two Cans</option>
+    <option value="coqs">Golden Coqs</option>
+    <option value="honkers">Honkers</option>
+    <option value="boobies">Boobies</option>
+  </select>
+  <label class="dark-mode-toggle" for="dark-mode-toggle">
+    <input id="dark-mode-toggle" type="checkbox">
+    Dark mode
+  </label>
+</div>
+
 <div class="home-layout">
   <aside class="game-feed">
     <!-- Mobile View: Next Game -->
@@ -91,6 +107,43 @@ layout: default
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const themeSelect = document.getElementById('site-theme-select');
+  if (!themeSelect) return;
+
+  const activeTheme = document.documentElement.dataset.siteTheme || 'green';
+  themeSelect.value = activeTheme;
+  themeSelect.addEventListener('change', function() {
+    const selectedTheme = themeSelect.value;
+    if (selectedTheme === 'green') {
+      delete document.documentElement.dataset.siteTheme;
+    } else {
+      document.documentElement.dataset.siteTheme = selectedTheme;
+    }
+    try {
+      localStorage.setItem('puhl_site_theme', selectedTheme);
+    } catch (error) {}
+  });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  const darkModeToggle = document.getElementById('dark-mode-toggle');
+  if (!darkModeToggle) return;
+
+  darkModeToggle.checked = document.documentElement.dataset.colorMode === 'dark';
+  darkModeToggle.addEventListener('change', function() {
+    if (darkModeToggle.checked) {
+      document.documentElement.dataset.colorMode = 'dark';
+    } else {
+      delete document.documentElement.dataset.colorMode;
+    }
+
+    try {
+      localStorage.setItem('puhl_color_mode', darkModeToggle.checked ? 'dark' : 'light');
+    } catch (error) {}
+  });
+});
+
 document.addEventListener('DOMContentLoaded', async function() {
   // --- 1. SCHEDULE LOGIC ---
   const teamsConfig = window.pageTeamsConfig || [];
@@ -207,8 +260,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         return `
           <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-200, #eee);"><strong>${teamName}</strong></td>
-            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-200, #eee); text-align: center; font-weight: bold; color: var(--accent-color, #111);">${pts}</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-300);"><strong>${teamName}</strong></td>
+            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-300); text-align: center; font-weight: bold; color: var(--primary);">${pts}</td>
           </tr>
         `;
       }).join('');

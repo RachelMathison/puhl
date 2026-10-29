@@ -8,14 +8,14 @@
       </div>
     </a>
     <nav class="site-nav">
-      <div class="nav-dropdown">
+      <!-- <div class="nav-dropdown">
         <button type="button" class="nav-trigger{% if page.layout == 'home' or page.url == '/archive/' %} active{% endif %}" onclick="this.closest('.nav-dropdown').classList.toggle('open')">News</button>
         <div class="nav-dropdown-panel">
           <a href="{{ '/' | relative_url }}"{% if page.layout == 'home' %} class="current"{% endif %}>Latest News</a>
           <a href="{{ '/archive/' | relative_url }}"{% if page.url == '/archive/' %} class="current"{% endif %}>Archive</a>
-          <a href="{{ '/game-stars/' | relative_url }}"{% if page.url == '/game-stars/' %} class="current"{% endif %}>Game Stars</a>
         </div>
-      </div><a href="{{ '/schedule/' | relative_url }}"{% if page.url == '/schedule/' %} class="active"{% endif %}>Schedule</a>
+      </div> -->
+      <a href="{{ '/schedule/' | relative_url }}"{% if page.url == '/schedule/' %} class="active"{% endif %}>Schedule</a>
       <a href="{{ '/stats/' | relative_url }}"{% if page.url == '/stats/' %} class="active"{% endif %}>Stats</a>
       <a href="{{ '/standings/' | relative_url }}"{% if page.url == '/standings/' %} class="active"{% endif %}>Standings</a>
       <a href="{{ '/training/' | relative_url }}"{% if page.url == '/training/' %} class="active"{% endif %}>Training</a>

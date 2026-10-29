@@ -10,6 +10,11 @@
     right: -2%;
     width: 640px;
     max-width: 60%;
+    aspect-ratio: 1.2;
+    background-image: var(--watermark-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
     opacity: 0.08;
     filter: brightness(0) invert(1);
     pointer-events: none;
@@ -37,7 +42,7 @@
   z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
-  background: var(--white);
+  background: var(--surface);
   border-radius: 10px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
   padding: 8px 48px 44px;

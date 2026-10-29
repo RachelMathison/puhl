@@ -2,7 +2,7 @@
 .schedule-tabs {
   display: flex;
   gap: 20px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--gray-300);
   margin-bottom: 20px;
 }
 
@@ -12,14 +12,14 @@
   a {
     display: inline-block;
     padding: 7px 12px;
-    border: 1px solid #d8d8d4;
+    border: 1px solid var(--gray-300);
     border-radius: 6px;
     color: inherit;
     font-weight: 600;
     text-decoration: none;
 
     &:hover {
-      background: #f5f5f2;
+      background: var(--surface-raised);
     }
   }
 }
@@ -46,14 +46,14 @@
     width: 18px;
     height: 18px;
     margin: 0;
-    border: 1.5px solid #9aa5b1;
+    border: 1.5px solid var(--gray-500);
     border-radius: 5px;
-    background: #fff;
+    background: var(--surface);
     cursor: pointer;
 
     &:checked {
-      border-color: var(--green);
-      background: var(--green);
+      border-color: var(--primary);
+      background: var(--primary);
     }
 
     &:checked::after {
@@ -69,7 +69,7 @@
     }
 
     &:focus-visible {
-      outline: 3px solid rgba(13, 84, 60, 0.35);
+      outline: 3px solid color-mix(in srgb, var(--primary) 35%, transparent);
       outline-offset: 2px;
     }
   }
@@ -85,7 +85,7 @@
   padding: 4px 0;
   border: 0;
   background: transparent;
-  color: var(--green);
+  color: var(--primary);
   font-size: 0.95rem;
   font-weight: 650;
   cursor: pointer;
@@ -98,7 +98,7 @@
 .league-filter-container {
   margin-bottom: 12px;
   padding: 8px 20px;
-  border: 1px solid #e3e7ec;
+  border: 1px solid var(--gray-300);
   border-radius: 14px;
 }
 
@@ -132,14 +132,14 @@
     width: 18px;
     height: 18px;
     margin: 0;
-    border: 1.5px solid #9aa5b1;
+    border: 1.5px solid var(--gray-500);
     border-radius: 5px;
-    background: #fff;
+    background: var(--surface);
     cursor: pointer;
 
     &:checked {
-      border-color: var(--green);
-      background: var(--green);
+      border-color: var(--primary);
+      background: var(--primary);
     }
 
     &:checked::after {
@@ -155,7 +155,7 @@
     }
 
     &:focus-visible {
-      outline: 3px solid rgba(13, 84, 60, 0.35);
+      outline: 3px solid color-mix(in srgb, var(--primary) 35%, transparent);
       outline-offset: 2px;
     }
   }
@@ -179,27 +179,27 @@
   gap: 8px;
   min-height: 40px;
   padding: 5px 12px 5px 8px;
-  border: 1px solid #e0e5eb;
+  border: 1px solid var(--gray-300);
   border-radius: 999px;
-  background: #fff;
-  color: #283548;
+  background: var(--surface);
+  color: var(--gray-900);
   font-size: 0.92rem;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 
   &:hover {
-    border-color: #aeb9c7;
+    border-color: var(--gray-500);
     transform: translateY(-1px);
   }
 
   &:has(input:checked) {
-    border-color: #aab9cb;
-    background: rgba(13, 84, 60, 0.08);
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--gray-300));
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface));
     color: var(--gray-900);
   }
 
   &:focus-within {
-    outline: 3px solid rgba(13, 84, 60, 0.35);
+    outline: 3px solid color-mix(in srgb, var(--primary) 35%, transparent);
     outline-offset: 2px;
   }
 
@@ -220,7 +220,7 @@
   height: 26px;
   padding: 2px;
   border-radius: 50%;
-  background: #f0f2f5;
+  background: var(--surface-raised);
   object-fit: contain;
 }
 
@@ -230,15 +230,15 @@
   width: 15px;
   height: 15px;
   box-sizing: border-box;
-  border: 1px solid #c8d0db;
+  border: 1px solid var(--gray-300);
   border-radius: 4px;
-  background: #f0f2f5;
+  background: var(--surface-raised);
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .filter-label:has(input:checked) .filter-check-indicator {
-  border-color: #b6c3d3;
-  background: rgba(13, 84, 60, 0.18);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--gray-300));
+  background: color-mix(in srgb, var(--primary) 18%, var(--surface));
 
   &::after {
     position: absolute;
@@ -246,7 +246,7 @@
     left: 50%;
     width: 7px;
     height: 4px;
-    border: solid var(--green);
+    border: solid var(--primary);
     border-width: 0 0 2px 2px;
     content: '';
     transform: translate(-50%, -60%) rotate(-45deg);
@@ -263,15 +263,15 @@
   padding: 10px 5px;
   font-size: 16px;
   font-weight: 600;
-  color: #666;
+  color: var(--gray-700);
   cursor: pointer;
   position: relative;
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
 
   &.active {
-    color: #000;
-    border-bottom-color: #000;
+    color: var(--text);
+    border-bottom-color: var(--text);
   }
 }
 
@@ -303,7 +303,7 @@
   margin-left: -48px;
   padding-right: 48px;
   padding-left: 48px;
-  background: #fff;
+  background: var(--surface);
 
   &.is-stuck {
     &::after {
@@ -337,13 +337,13 @@
     height: 40px;
     border: 0;
     background: transparent;
-    color: #222;
+    color: var(--text);
     font-size: 1.8rem;
     line-height: 1;
     cursor: pointer;
 
     &:disabled {
-      color: #aaa;
+      color: var(--gray-500);
       cursor: default;
     }
   }
@@ -370,15 +370,15 @@
   justify-content: center;
   gap: 2px;
   padding: 5px 2px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--gray-300);
   border-radius: 12px;
-  background: #fff;
-  color: #222;
+  background: var(--surface);
+  color: var(--text);
   cursor: pointer;
 
   &:disabled {
-    color: #999;
-    background: #fafafa;
+    color: var(--gray-500);
+    background: var(--surface-raised);
     cursor: default;
   }
 }
@@ -395,7 +395,7 @@
 }
 
 .schedule-day-count {
-  color: #666;
+  color: var(--gray-700);
   font-size: 0.85rem;
 }
 
@@ -420,19 +420,19 @@
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #555;
-    border-bottom: 1px solid #ddd;
+    color: var(--gray-700);
+    border-bottom: 1px solid var(--gray-300);
   }
 
   tr {
-    background-color: #f9f9f9;
-    border-bottom: 1px solid #eee;
+    background-color: var(--surface-raised);
+    border-bottom: 1px solid var(--gray-300);
   }
 }
 
 .league-matchup-table {
   thead tr {
-    background-color: #fff;
+    background-color: var(--surface);
   }
 
   thead th:first-child {
@@ -440,10 +440,10 @@
   }
 
   tbody tr {
-    background-color: #fff;
+    background-color: var(--surface);
 
     &:nth-child(even) {
-      background-color: #f9f9f9;
+      background-color: var(--surface-raised);
     }
   }
 }
@@ -520,13 +520,13 @@
       height: 34px;
       border: 0;
       background: transparent;
-      color: #222;
+      color: var(--text);
       font-size: 1.8rem;
       line-height: 1;
       cursor: pointer;
 
       &:disabled {
-        color: #aaa;
+        color: var(--gray-500);
         cursor: default;
       }
     }
@@ -551,15 +551,15 @@
     justify-content: center;
     gap: 1px;
     padding: 3px 1px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--gray-300);
     border-radius: 12px;
-    background: #fff;
-    color: #222;
+    background: var(--surface);
+    color: var(--text);
     cursor: pointer;
 
     &:disabled {
-      color: #999;
-      background: #fafafa;
+      color: var(--gray-500);
+      background: var(--surface-raised);
       cursor: default;
     }
   }
@@ -576,7 +576,7 @@
   }
 
   .schedule-day-count {
-    color: #666;
+    color: var(--gray-700);
     font-size: 0.7rem;
   }
 
@@ -595,10 +595,10 @@
       display: flex;
       flex-direction: column;
       padding: 8px 0 14px;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid var(--gray-300);
 
       &:nth-child(even) {
-        background-color: #f9f9f9;
+        background-color: var(--surface-raised);
       }
 
       td {
@@ -622,14 +622,14 @@
       .division-cell {
         order: 3;
         padding-top: 0;
-        color: #666;
+        color: var(--gray-700);
         font-size: 0.9rem;
       }
 
       .location-cell {
         order: 4;
         padding-top: 0;
-        color: #666;
+        color: var(--gray-700);
         font-size: 0.9rem;
       }
     }

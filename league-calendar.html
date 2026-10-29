@@ -63,7 +63,7 @@ permalink: /league-calendar/
     width: 65px;
     height: 65px;
     border-radius: 50%;
-    background-color: color-mix(in srgb, var(--rink-color, var(--training-bg-light)) 12%, white);
+    background-color: color-mix(in srgb, var(--rink-color, var(--training-bg-light)) 12%, var(--surface));
     border: 2px solid var(--rink-color, var(--gray-300));
     display: flex;
     align-items: center;
@@ -80,7 +80,7 @@ permalink: /league-calendar/
   .custom-event-card .game-time {
     font-size: 0.7rem;
     font-weight: 700;
-    color: #111;
+    color: var(--text);
     line-height: 1.1;
     margin-top: 2px;
     white-space: nowrap;
@@ -108,7 +108,7 @@ permalink: /league-calendar/
   .custom-event-card.multi-game-card .at-symbol {
     font-size: 0.65rem;
     font-weight: 600;
-    color: #555;
+    color: var(--gray-700);
   }
 
   .custom-event-card.multi-game-card .game-time {

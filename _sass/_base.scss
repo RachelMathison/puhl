@@ -1,9 +1,9 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body {
-  background:var(--green-deep);
+  background:var(--page-background);
   font-family:'Inter',-apple-system,sans-serif;
-  color:var(--black);
+  color:var(--text);
   -webkit-font-smoothing:antialiased;
 }
 a {
@@ -31,12 +31,12 @@ select {
   font-family: inherit;
   font-size: 16px;
   font-weight: 700;
-  color: var(--black);
-  background-color: var(--white);
+  color: var(--text);
+  background-color: var(--surface);
 
   // 3. Dimensions & Borders
   padding: 12px 48px 12px 16px;
-  border: 2px solid var(--green);
+  border: 2px solid var(--primary);
   border-radius: 10px;
   outline: none;
   cursor: pointer;
@@ -53,8 +53,8 @@ select {
   option {
     font-weight: 600;
     padding: 12px 16px;
-    color: var(--black);
-    background-color: var(--white);
+    color: var(--text);
+    background-color: var(--surface);
 
     // Selected state background matching the gray bar in your image
     &:checked {
@@ -67,6 +67,6 @@ select {
   }
 
   &:focus {
-    border-color: var(--green-deep);
+    border-color: var(--primary-deep);
   }
 }

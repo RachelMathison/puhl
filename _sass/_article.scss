@@ -19,12 +19,12 @@
     &.accent {
       background: var(--accent);
       border-color: var(--accent);
-      color: var(--black);
+      color: var(--text);
     }
 
     &.green {
-      background: var(--green);
-      border-color: var(--green);
+      background: var(--primary);
+      border-color: var(--primary);
       color: var(--white);
     }
   }
@@ -34,7 +34,7 @@
     color: var(--gray-700);
 
     &:hover {
-      color: var(--black);
+      color: var(--text);
     }
   }
 }
@@ -78,7 +78,7 @@ h1.headline {
 
   .who {
     strong {
-      color: var(--black);
+      color: var(--text);
     }
   }
 
@@ -105,7 +105,7 @@ h1.headline {
 }
 
 .cta {
-  background: linear-gradient(100deg, var(--green-deep), var(--green) 100%);
+  background: linear-gradient(100deg, var(--primary-deep), var(--primary) 100%);
   border-top: 4px solid var(--accent);
   border-radius: 2px;
   padding: 34px 32px;
@@ -188,7 +188,7 @@ article {
 
   strong {
     font-weight: 600;
-    color: var(--black);
+    color: var(--text);
   }
 
   em {
@@ -217,7 +217,7 @@ article {
 }
 
 .pullquote {
-  background: linear-gradient(120deg, var(--green-deep), var(--black) 75%);
+  background: linear-gradient(120deg, var(--primary-deep), var(--black) 75%);
   color: var(--white);
   padding: 30px 32px;
   border-radius: 2px;

@@ -102,9 +102,12 @@ function getLightTint(hex) {
   let c = hex.replace('#', '');
   if (c.length === 3) c = c.split('').map(x => x + x).join('');
   const num = parseInt(c, 16);
-  const r = (num >> 16) + Math.round((255 - (num >> 16)) * 0.88);
-  const g = ((num >> 8) & 0x00ff) + Math.round((255 - ((num >> 8) & 0x00ff)) * 0.88);
-  const b = (num & 0x0000ff) + Math.round((255 - (num & 0x0000ff)) * 0.88);
+  const darkMode = document.documentElement.dataset.colorMode === 'dark';
+  const base = darkMode ? 43 : 255;
+  const colorWeight = darkMode ? 0.18 : 0.12;
+  const r = Math.round(base + (((num >> 16) & 0xff) - base) * colorWeight);
+  const g = Math.round(base + (((num >> 8) & 0xff) - base) * colorWeight);
+  const b = Math.round(base + ((num & 0xff) - base) * colorWeight);
   return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -203,8 +206,8 @@ function initCalendar() {
       const eventEnd = arg.event.end || arg.event.start;
       const isPast = eventEnd && new Date(eventEnd) < now;
 
-      const lightBg = isPast ? '#f1f1f1' : getLightTint(eventColor);
-      const borderColor = isPast ? '#d1d1d1' : eventColor;
+      const lightBg = isPast ? 'var(--gray-100)' : getLightTint(eventColor);
+      const borderColor = isPast ? 'var(--gray-300)' : eventColor;
       const isMobile = window.innerWidth < 768;
 
       const timeStr = formatTimeString(arg.event.start, isMobile);
@@ -298,10 +301,10 @@ function renderListView(events) {
   for (const date in grouped) {
     html += `
       <div class="date-group" style="margin-bottom: 20px;">
-        <h3 class="date-header" style="font-size: 1.1em; border-bottom: 2px solid #ddd; padding-bottom: 5px;">${date}</h3>
+        <h3 class="date-header" style="font-size: 1.1em; border-bottom: 2px solid var(--gray-300); padding-bottom: 5px;">${date}</h3>
         <table class="schedule-table" style="width: 100%; border-collapse: collapse; margin-top: 8px;">
           <thead>
-            <tr style="text-align: left; background: #f4f4f4;">
+            <tr style="text-align: left; background: var(--gray-100);">
               <th style="padding: 8px; width: 30%;">Time</th>
               <th style="padding: 8px; width: 35%;">Session</th>
               <th style="padding: 8px; width: 35%;">Location</th>
@@ -334,7 +337,7 @@ function renderListView(events) {
       const displayTitle = formatSessionTitle(event.title || 'Stick & Puck', false);
 
       html += `
-        <tr style="border-bottom: 1px solid #eee;">
+        <tr style="border-bottom: 1px solid var(--gray-300);">
           <td style="padding: 8px; font-weight: bold;">
             <span class="legend-dot" style="background-color: ${eventColor};"></span>
             ${timeStr}
@@ -342,7 +345,7 @@ function renderListView(events) {
           <td style="padding: 8px;">${displayTitle}</td>
           <td style="padding: 8px;">
             ${location} 
-            ${targetUrl ? `<br><a href="${targetUrl}" target="_blank" style="font-size: 0.85em; color: #0066cc;">Register / Info</a>` : ''}
+            ${targetUrl ? `<br><a href="${targetUrl}" target="_blank" style="font-size: 0.85em; color: var(--primary);">Register / Info</a>` : ''}
           </td>
         </tr>
       `;

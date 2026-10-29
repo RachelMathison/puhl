@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  try {
+    const savedTheme = localStorage.getItem('puhl_site_theme');
+    if (savedTheme && savedTheme !== 'green') {
+      document.documentElement.dataset.siteTheme = savedTheme;
+    }
+    if (localStorage.getItem('puhl_color_mode') === 'dark') {
+      document.documentElement.dataset.colorMode = 'dark';
+    }
+  } catch (error) {}
+</script>
 <meta property="og:type" content="website" />
 {% if page.header_image %}
   <meta property="og:image" content="{{ page.header_image | absolute_url }}" />
@@ -25,7 +36,7 @@
   {% include masthead.html %}
 
   <div class="page-stage">
-    <img class="page-stage-watermark{% if page.layout == 'home' %} left{% endif %}" src="{{ '/assets/images/site/puhl_logo.png' | relative_url }}" alt="">
+    <div class="page-stage-watermark{% if page.layout == 'home' %} left{% endif %}" aria-hidden="true"></div>
 
     <div class="card">
       {{ content }}

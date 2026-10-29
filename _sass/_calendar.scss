@@ -1,11 +1,11 @@
 // ==========================================
 // Calendar & League Theme Variables
 // ==========================================
-$league-bg: #0d543c;
+$league-bg: var(--primary);
 $league-text: #ffffff;
 
-$bushtits-bg: #ffffff;
-$bushtits-text: #0d543c;
+$bushtits-bg: var(--surface);
+$bushtits-text: var(--primary);
 
 // ==========================================
 // Calendar Container & Legend
@@ -27,7 +27,7 @@ $bushtits-text: #0d543c;
     width: 14px;
     height: 14px;
     border-radius: 3px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--gray-300);
 
     &.legend-knights { background: $league-bg; }
     &.legend-bushtits { background: $bushtits-bg; }
@@ -61,7 +61,7 @@ $bushtits-text: #0d543c;
   .fc-daygrid-day-number {
     font-weight: 600;
     font-size: 1.1rem;
-    color: #1f2937;
+    color: var(--text);
     text-decoration: none !important;
   }
   // Optional: removes the outer container border if visible
@@ -82,7 +82,7 @@ $bushtits-text: #0d543c;
 
   // Default empty card
   .fc-daygrid-day-frame {
-    background-color: #ededed;
+    background-color: var(--surface-raised);
     border-radius: 12px;
     min-height: 160px;
     padding: 8px;
@@ -95,8 +95,8 @@ $bushtits-text: #0d543c;
 
   // Days WITH events (fallback white card)
   &:has(.fc-event) .fc-daygrid-day-frame {
-    background-color: #ffffff;
-    box-shadow: 0 0 0 1px #e5e7eb;
+    background-color: var(--surface);
+    box-shadow: 0 0 0 1px var(--gray-300);
   }
 
   // Days in adjacent months
@@ -117,14 +117,14 @@ $bushtits-text: #0d543c;
     }
     .logo-circle {
       border: 1px solid #3E3E3E;
-      background-color: #1A1A1A;
+      background-color: var(--gray-100);
     }
   }
 
   &.league-bushtits {
     .fc-daygrid-day-frame {
       background-color: $bushtits-bg !important;
-      border: 1px solid #e5e7eb !important;
+      border: 1px solid var(--gray-300) !important;
     }
     .fc-daygrid-day-number,
     .game-time {
@@ -160,8 +160,8 @@ $bushtits-text: #0d543c;
     width: 65px;
     height: 65px;
     border-radius: 50%;
-    border: 1px solid #E0E0E0;
-    background-color: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-300);
+    background-color: var(--surface-raised);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -181,7 +181,7 @@ $bushtits-text: #0d543c;
   .game-time {
     font-size: 0.8rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--text);
     text-transform: uppercase;
     text-align: center;
 
