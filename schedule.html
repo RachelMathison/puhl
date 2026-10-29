@@ -77,25 +77,35 @@ function saveFiltersToStorage() {
 }
 
 // Initialize structure lookups
-Object.values(LEAGUE_STRUCTURE).forEach(league => {
+Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
   league.teams.forEach(team => {
     allTeamConfigs.push({
       displayName: team.name,
       id: String(team.id).toLowerCase(),
+      leagueKey,
       imagePath: team.imagePath || teamLogos[team.name] || teamLogos.default
     });
   });
 });
 
-// Identify team match details using string contains (includes) check
-function getMatchupDetails(title) {
+// Match team IDs as whole words so an ID that happens to be part of another
+// event title cannot make that event pass the selected-team filter.
+function getMatchupDetails(title, leagueKey) {
   if (!title) return { selfLogo: teamLogos.default, oppLogo: teamLogos.default, team1Name: null, team2Name: null };
 
   const lowerTitle = title.toLowerCase();
-  let matches = [];
+  const teams = leagueKey
+    ? allTeamConfigs.filter(team => team.leagueKey === leagueKey)
+    : allTeamConfigs;
+  const matches = [];
 
-  allTeamConfigs.forEach(team => {
-    const idx = lowerTitle.indexOf(team.id);
+  teams.forEach(team => {
+    const idPattern = team.id
+      .split(/\s+/)
+      .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('[\\s_-]+');
+    const match = new RegExp(`(^|[^a-z0-9])(${idPattern})(?=$|[^a-z0-9])`).exec(lowerTitle);
+    const idx = match ? match.index + match[1].length : -1;
     if (idx !== -1) {
       matches.push({
         index: idx,
@@ -121,7 +131,7 @@ function getMatchupDetails(title) {
 // Check if an event is active based on current selection
 function isEventActive(leagueKey, title) {
   if (!activeLeagues.has(leagueKey)) return false;
-  const matchup = getMatchupDetails(title);
+  const matchup = getMatchupDetails(title, leagueKey);
   return (matchup.team1Name && activeTeams.has(matchup.team1Name)) ||
          (matchup.team2Name && activeTeams.has(matchup.team2Name));
 }
@@ -158,9 +168,10 @@ function buildFilterUI() {
     league.teams.forEach(team => {
       const imgPath = team.imagePath || teamLogos[team.name] || teamLogos.default;
       const teamChecked = activeTeams.has(team.name) ? 'checked' : '';
+      const teamNameArgument = team.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       html += `
         <label class="filter-label">
-          <input type="checkbox" class="team-cb-${leagueKey}" value="${team.name}" ${teamChecked} onchange="toggleTeam('${team.name}', this.checked)">
+          <input type="checkbox" class="team-cb-${leagueKey}" value="${team.name}" ${teamChecked} onchange="toggleTeam('${teamNameArgument}', this.checked)">
           <span class="filter-check-indicator" aria-hidden="true"></span>
           <img src="${imgPath}" alt="${team.name}" class="filter-team-icon" />
           <span class="filter-team-name">${team.name}</span>
@@ -367,7 +378,7 @@ function renderListView() {
 
     grouped[dateKey].forEach(event => {
       const timeStr = new Date(event.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      const matchup = getMatchupDetails(event.title);
+      const matchup = getMatchupDetails(event.title, event.leagueKey);
 
       html += `
         <tr>

@@ -2,8 +2,10 @@
 :root {
   --primary:#0d543c;
   --primary-deep:#083b2b;
+  --on-primary:#ffffff;
   --accent:#68b24a;
-  --page-background:var(--primary-deep);
+  // --page-background:var(--primary-deep);
+  --page-background: linear-gradient(150deg, var(--primary-deep) 0%, var(--primary) 65%, var(--accent) 100%);
   --surface:#ffffff;
   --surface-raised:#f1f2f2;
   --text:#000000;
@@ -11,7 +13,7 @@
 }
 
 :root[data-color-mode="dark"] {
-  --page-background:color-mix(in srgb, var(--primary-deep) 24%, #202325);
+ // --page-background:color-mix(in srgb, var(--primary-deep) 24%, #202325);
   --surface:#292d2f;
   --surface-raised:#34393b;
   --text:#e8ecee;
@@ -29,6 +31,7 @@
 :root[data-site-theme="penguins"] {
   --primary:#167fbf;
   --primary-deep:#0b4568;
+  --on-primary:#ffffff;
   --accent:#c2e2da;
   --watermark-image:#{'url("../images/teams/penguins.png")'};
 }
@@ -36,6 +39,7 @@
 :root[data-site-theme="twocans"] {
   --primary:#187dbd;
   --primary-deep:#452576;
+  --on-primary:#ffffff;
   --accent:#0eb29f;
   --watermark-image:#{'url("../images/teams/two-cans.png")'};
 }
@@ -43,6 +47,7 @@
 :root[data-site-theme="coqs"] {
   --primary:#f7bd1a;
   --primary-deep:#cb2227;
+  --on-primary:#111111;
   --accent:#f05820;
   --watermark-image:#{'url("../images/teams/coqs.png")'};
 }
@@ -50,6 +55,7 @@
 :root[data-site-theme="honkers"] {
   --primary:#252c62;
   --primary-deep:#ce2027;
+  --on-primary:#ffffff;
   --accent:#ede0b0;
   --watermark-image:#{'url("../images/teams/honkers.png")'};
 }
@@ -57,6 +63,7 @@
 :root[data-site-theme="boobies"] {
   --primary:#c3e1db;
   --primary-deep:#252c62;
+  --on-primary:#15201e;
   --accent:#ce2121;
   --watermark-image:#{'url("../images/teams/boobies.png")'};
 }

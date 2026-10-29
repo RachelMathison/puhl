@@ -16,39 +16,48 @@ permalink: /standings/
 <h1>League Standings</h1>
 
 <div class="stats-container">
+  {% for division_entry in site.data.league_structure %}
+  {% assign division_key = division_entry[0] %}
+  {% assign division = division_entry[1] %}
+  <section class="stats-division">
+    <h2>{{ division.name }}</h2>
   <div class="stats-table-wrapper">
-    <table class="stats-table" id="standings-table">
+    <table class="stats-table" id="standings-table-{{ division_key }}">
       <thead>
         <tr>
-          <th onclick="sortTable('Team')">Team <span class="sort-icon" data-key="Team"></span></th>
-          <th class="highlight-col" onclick="sortTable('PTS')">PTS <span class="sort-icon" data-key="PTS"></span></th>
-          <th class="highlight-col" onclick="sortTable('GP')">GP <span class="sort-icon" data-key="GP"></span></th>
-          <th onclick="sortTable('W')">W <span class="sort-icon" data-key="W"></span></th>
-          <th onclick="sortTable('L')">L <span class="sort-icon" data-key="L"></span></th>
-          <th onclick="sortTable('T')">T <span class="sort-icon" data-key="T"></span></th>
-          <th onclick="sortTable('OTL')">OTL <span class="sort-icon" data-key="OTL"></span></th>
-          <th onclick="sortTable('SOL')">SOL <span class="sort-icon" data-key="SOL"></span></th>
-          <th onclick="sortTable('GF')">GF <span class="sort-icon" data-key="GF"></span></th>
-          <th onclick="sortTable('GA')">GA <span class="sort-icon" data-key="GA"></span></th>
-          <th onclick="sortTable('Division')">Division <span class="sort-icon" data-key="Division"></span></th>
+          <th onclick="sortTable('Team', '{{ division_key }}')">Team <span class="sort-icon" data-key="Team"></span></th>
+          <th class="highlight-col" onclick="sortTable('PTS', '{{ division_key }}')">PTS <span class="sort-icon" data-key="PTS"></span></th>
+          <th class="highlight-col" onclick="sortTable('GP', '{{ division_key }}')">GP <span class="sort-icon" data-key="GP"></span></th>
+          <th onclick="sortTable('W', '{{ division_key }}')">W <span class="sort-icon" data-key="W"></span></th>
+          <th onclick="sortTable('L', '{{ division_key }}')">L <span class="sort-icon" data-key="L"></span></th>
+          <th onclick="sortTable('T', '{{ division_key }}')">T <span class="sort-icon" data-key="T"></span></th>
+          <th onclick="sortTable('OTL', '{{ division_key }}')">OTL <span class="sort-icon" data-key="OTL"></span></th>
+          <th onclick="sortTable('SOL', '{{ division_key }}')">SOL <span class="sort-icon" data-key="SOL"></span></th>
+          <th onclick="sortTable('GF', '{{ division_key }}')">GF <span class="sort-icon" data-key="GF"></span></th>
+          <th onclick="sortTable('GA', '{{ division_key }}')">GA <span class="sort-icon" data-key="GA"></span></th>
+          <th onclick="sortTable('Division', '{{ division_key }}')">Division <span class="sort-icon" data-key="Division"></span></th>
         </tr>
       </thead>
-      <tbody id="standings-tbody">
+      <tbody id="standings-tbody-{{ division_key }}" data-division-key="{{ division_key }}" data-division-name="{{ division.name | escape }}">
         <tr><td colspan="11" style="text-align: center; color: var(--gray-500);">Loading standings...</td></tr>
       </tbody>
     </table>
   </div>
+  </section>
+  {% endfor %}
 </div>
 
 <script>
   // Site Configuration Injected via Jekyll Data File (_data/team_config.yml)
   const STANDINGS_API_URL = "{{ site.data.team_config.standings_api_url }}";
+  const DIVISIONS = {{ site.data.league_structure | jsonify }};
   const PRIMARY_TEAM_KEY = "{{ site.data.team_config.primary_team_key | default: 'default' }}";
   const DEFAULT_LOGO_PATH = "{{ site.data.team_config.default_logo_path | default: '/assets/images/default.png' }}";
   const PRIMARY_TEAM_KEYWORDS = {{ site.data.team_config.primary_team_keywords | jsonify | default: "[]" }};
 
-  let standingsData = [];
-  let currentSort = { key: 'PTS', ascending: false };
+  let standingsByDivision = {};
+  let divisionErrors = {};
+  const divisionSorts = Object.fromEntries(Object.keys(DIVISIONS).map(key => [key, { key: 'PTS', ascending: false }]));
   const columnKeys = ['Team', 'PTS', 'GP', 'W', 'L', 'T', 'OTL', 'SOL', 'GF', 'GA', 'Division'];
 
   function getLogoUrl(teamName) {
@@ -74,100 +83,130 @@ permalink: /standings/
   }
 
   async function fetchStandings() {
-    const tbody = document.getElementById('standings-tbody');
-    
     try {
-      const response = await fetch(STANDINGS_API_URL);
-      standingsData = await response.json();
-      
+      const configuredDivisionUrls = Object.entries(DIVISIONS).filter(([, division]) => division.standingsUrl);
+
+      if (configuredDivisionUrls.length === 0) {
+        const response = await fetch(STANDINGS_API_URL);
+        const allStandings = await response.json();
+        Object.entries(DIVISIONS).forEach(([divisionKey, division]) => {
+          standingsByDivision[divisionKey] = allStandings.filter(row => rowBelongsToDivision(row, divisionKey, division));
+        });
+      } else {
+        await Promise.all(Object.entries(DIVISIONS).map(async ([divisionKey, division]) => {
+          const hasDivisionUrl = Boolean(division.standingsUrl);
+          const divisionUrl = division.standingsUrl || STANDINGS_API_URL;
+          try {
+            const response = await fetch(divisionUrl);
+            const rows = await response.json();
+            standingsByDivision[divisionKey] = hasDivisionUrl
+              ? rows.map(row => ({ ...row, Division: row.Division || division.name }))
+              : rows.filter(row => rowBelongsToDivision(row, divisionKey, division));
+          } catch (error) {
+            divisionErrors[divisionKey] = true;
+            console.error(`Error fetching ${division.name} standings:`, error);
+          }
+        }));
+      }
+
       executeSort();
     } catch (error) {
       console.error('Error fetching standings:', error);
-      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: red;">Failed to load standings data.</td></tr>`;
+      Object.keys(DIVISIONS).forEach(divisionKey => { divisionErrors[divisionKey] = true; });
+      updateUI();
     }
   }
 
-  function sortTable(key) {
+  function rowBelongsToDivision(row, divisionKey, division) {
+    const rowDivision = String(row.Division || '').trim().toLowerCase();
+    return rowDivision === division.name.toLowerCase() || rowDivision === divisionKey.toLowerCase();
+  }
+
+  function sortTable(key, divisionKey) {
+    const currentSort = divisionSorts[divisionKey];
     if (currentSort.key === key) {
       currentSort.ascending = !currentSort.ascending;
     } else {
       currentSort.key = key;
       currentSort.ascending = (key === 'Team' || key === 'Division');
     }
-    executeSort();
+    updateUI();
   }
 
   function executeSort() {
-    const key = currentSort.key;
-    const asc = currentSort.ascending;
+    Object.entries(standingsByDivision).forEach(([divisionKey, rows]) => {
+      const { key, ascending } = divisionSorts[divisionKey];
+      rows.sort((a, b) => {
+        let valA = a[key] !== undefined ? a[key] : '';
+        let valB = b[key] !== undefined ? b[key] : '';
 
-    standingsData.sort((a, b) => {
-      let valA = a[key] !== undefined ? a[key] : '';
-      let valB = b[key] !== undefined ? b[key] : '';
+        if (!isNaN(valA) && !isNaN(valB) && valA !== '' && valB !== '') {
+          valA = Number(valA);
+          valB = Number(valB);
+        } else if (typeof valA === 'string' && typeof valB === 'string') {
+          valA = valA.toLowerCase();
+          valB = valB.toLowerCase();
+        }
 
-      if (!isNaN(valA) && !isNaN(valB) && valA !== '' && valB !== '') {
-        valA = Number(valA);
-        valB = Number(valB);
-      } else if (typeof valA === 'string' && typeof valB === 'string') {
-        valA = valA.toLowerCase();
-        valB = valB.toLowerCase();
-      }
-
-      if (valA < valB) return asc ? -1 : 1;
-      if (valA > valB) return asc ? 1 : -1;
-      return 0;
+        if (valA < valB) return ascending ? -1 : 1;
+        if (valA > valB) return ascending ? 1 : -1;
+        return 0;
+      });
     });
-
     updateUI();
   }
 
   function updateUI() {
-    const activeIndex = columnKeys.indexOf(currentSort.key);
+    Object.entries(DIVISIONS).forEach(([divisionKey, division]) => {
+      const activeSort = divisionSorts[divisionKey];
+      const activeIndex = columnKeys.indexOf(activeSort.key);
+      const table = document.getElementById(`standings-table-${divisionKey}`);
+      const tbody = document.getElementById(`standings-tbody-${divisionKey}`);
 
-    document.querySelectorAll('#standings-table th').forEach((th, index) => {
-      const icon = th.querySelector('.sort-icon');
-      if (icon) {
-        icon.textContent = '';
-        if (index === activeIndex) {
-          th.classList.add('active-sort-col');
-          icon.textContent = currentSort.ascending ? '▲' : '▼';
-        } else {
-          th.classList.remove('active-sort-col');
-        }
+      table.querySelectorAll('th').forEach((th, index) => {
+        const icon = th.querySelector('.sort-icon');
+        if (!icon) return;
+        icon.textContent = index === activeIndex ? (activeSort.ascending ? '▲' : '▼') : '';
+        th.classList.toggle('active-sort-col', index === activeIndex);
+      });
+
+      if (divisionErrors[divisionKey]) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--gray-500);">Failed to load standings data.</td></tr>';
+        return;
       }
+
+      const standingsData = standingsByDivision[divisionKey] || [];
+      if (standingsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--gray-500);">No standings found for this division.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = standingsData.map(row => {
+        const teamName = row['Team'] || '';
+        const logoUrl = getLogoUrl(teamName);
+
+        return `
+          <tr>
+            <td ${activeIndex === 0 ? 'class="active-sort-col"' : ''}>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <img src="${logoUrl}" alt="${teamName}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.style.display='none'">
+                <strong>${teamName}</strong>
+              </div>
+            </td>
+            <td ${activeIndex === 1 ? 'class="active-sort-col highlight-col"' : 'class="highlight-col"'}><strong>${row['PTS'] || 0}</strong></td>
+            <td ${activeIndex === 2 ? 'class="active-sort-col highlight-col"' : 'class="highlight-col"'}>${row['GP'] || 0}</td>
+            <td ${activeIndex === 3 ? 'class="active-sort-col"' : ''}>${row['W'] || 0}</td>
+            <td ${activeIndex === 4 ? 'class="active-sort-col"' : ''}>${row['L'] || 0}</td>
+            <td ${activeIndex === 5 ? 'class="active-sort-col"' : ''}>${row['T'] || 0}</td>
+            <td ${activeIndex === 6 ? 'class="active-sort-col"' : ''}>${row['OTL'] || 0}</td>
+            <td ${activeIndex === 7 ? 'class="active-sort-col"' : ''}>${row['SOL'] || 0}</td>
+            <td ${activeIndex === 8 ? 'class="active-sort-col"' : ''}>${row['GF'] || 0}</td>
+            <td ${activeIndex === 9 ? 'class="active-sort-col"' : ''}>${row['GA'] || 0}</td>
+            <td ${activeIndex === 10 ? 'class="active-sort-col"' : ''}>${row['Division'] || ''}</td>
+          </tr>
+        `;
+      }).join('');
     });
-
-    const tbody = document.getElementById('standings-tbody');
-    if (standingsData.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center;">No standings found.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = standingsData.map(row => {
-      const teamName = row['Team'] || '';
-      const logoUrl = getLogoUrl(teamName);
-
-      return `
-        <tr>
-          <td ${activeIndex === 0 ? 'class="active-sort-col"' : ''}>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <img src="${logoUrl}" alt="${teamName}" style="width: 24px; height: 24px; object-fit: contain;" onerror="this.style.display='none'">
-              <strong>${teamName}</strong>
-            </div>
-          </td>
-          <td ${activeIndex === 1 ? 'class="active-sort-col highlight-col"' : 'class="highlight-col"'}><strong>${row['PTS'] || 0}</strong></td>
-          <td ${activeIndex === 2 ? 'class="active-sort-col highlight-col"' : 'class="highlight-col"'}>${row['GP'] || 0}</td>
-          <td ${activeIndex === 3 ? 'class="active-sort-col"' : ''}>${row['W'] || 0}</td>
-          <td ${activeIndex === 4 ? 'class="active-sort-col"' : ''}>${row['L'] || 0}</td>
-          <td ${activeIndex === 5 ? 'class="active-sort-col"' : ''}>${row['T'] || 0}</td>
-          <td ${activeIndex === 6 ? 'class="active-sort-col"' : ''}>${row['OTL'] || 0}</td>
-          <td ${activeIndex === 7 ? 'class="active-sort-col"' : ''}>${row['SOL'] || 0}</td>
-          <td ${activeIndex === 8 ? 'class="active-sort-col"' : ''}>${row['GF'] || 0}</td>
-          <td ${activeIndex === 9 ? 'class="active-sort-col"' : ''}>${row['GA'] || 0}</td>
-          <td ${activeIndex === 10 ? 'class="active-sort-col"' : ''}>${row['Division'] || ''}</td>
-        </tr>
-      `;
-    }).join('');
   }
 
   fetchStandings();

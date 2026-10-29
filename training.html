@@ -10,6 +10,24 @@ permalink: /training/
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js" defer></script>
 
 <div class="training-page">
+  <div class="training-session-filters" role="group" aria-label="Session type filters">
+    <label class="training-switch" for="public-skate-toggle">
+      <input type="checkbox" id="public-skate-toggle" checked>
+      <span class="training-switch-track" aria-hidden="true"><span></span></span>
+      <span>Public Skate</span>
+    </label>
+    <label class="training-switch" for="stick-puck-toggle">
+      <input type="checkbox" id="stick-puck-toggle" checked>
+      <span class="training-switch-track" aria-hidden="true"><span></span></span>
+      <span>Stick &amp; Puck</span>
+    </label>
+    <label class="training-switch" for="clinics-toggle">
+      <input type="checkbox" id="clinics-toggle" checked>
+      <span class="training-switch-track" aria-hidden="true"><span></span></span>
+      <span>Clinics</span>
+    </label>
+  </div>
+
   <!-- Navigation Tabs -->
   <div class="schedule-tabs" style="margin-bottom: 15px;">
     <button class="tab-btn active" onclick="switchView('calendar')">Calendar</button>
@@ -18,13 +36,19 @@ permalink: /training/
 
   <!-- Tab 1: Calendar View -->
   <div id="calendar-view" class="view-content active">
-    <h2 class="list-section-title">Stick & Puck Calendar</h2>
+    <h2 class="list-section-title">Training & Public Skate Calendar</h2>
 
     <!-- Dynamic Legend / Toggles -->
     <div id="schedule-legend" class="legend"></div>
 
-    <div id="calendar">
-      <div class="calendar-loading">Loading schedule data...</div>
+    <div class="training-calendar-shell">
+      <div id="calendar-refresh-indicator" class="training-calendar-refresh" role="status" aria-live="polite" hidden>
+        <span class="training-calendar-spinner" aria-hidden="true"></span>
+        <span>Loading sessions...</span>
+      </div>
+      <div id="calendar">
+        <div class="calendar-loading">Loading schedule data...</div>
+      </div>
     </div>
   </div>
 
@@ -48,15 +72,35 @@ calendarsConfig.forEach(calendar => {
 });
 
 let calendarInstance = null;
+const sessionFilters = {
+  publicSkate: true,
+  stickAndPuck: true,
+  clinics: true
+};
+const sessionFilterControls = [
+  { id: 'public-skate-toggle', key: 'publicSkate', storageKey: 'puhl_show_public_skate' },
+  { id: 'stick-puck-toggle', key: 'stickAndPuck', storageKey: 'puhl_show_stick_puck' },
+  { id: 'clinics-toggle', key: 'clinics', storageKey: 'puhl_show_clinics' }
+];
 
 function getRinkConfig(id) {
   return calendarsConfig.find(c => c.id === id) || null;
 }
 
+function setCalendarLoading(isLoading) {
+  const indicator = document.getElementById('calendar-refresh-indicator');
+  const calendar = document.getElementById('calendar');
+  if (indicator) indicator.hidden = !isLoading;
+  if (calendar) calendar.setAttribute('aria-busy', String(isLoading));
+}
+
 function isRelevantEvent(title) {
   if (!title) return false;
-  const t = title.toLowerCase();
-  return t.includes('stick') || t.includes('clinic');
+  const t = title.toLowerCase().replace(/[-_]/g, ' ');
+  if (t.includes('public skate') || t.includes('public skating')) return sessionFilters.publicSkate;
+  if (t.includes('clinic')) return sessionFilters.clinics;
+  if (t.includes('stick')) return sessionFilters.stickAndPuck;
+  return false;
 }
 
 function getEventUrl(event) {
@@ -77,9 +121,10 @@ function getEventUrl(event) {
 
 function formatSessionTitle(title, isMobile) {
   if (!title) return 'Stick & Puck';
-  const lower = title.toLowerCase();
+  const lower = title.toLowerCase().replace(/[-_]/g, ' ');
 
   if (isMobile) {
+    if (lower.includes('public skate') || lower.includes('public skating')) return 'Public Skate';
     if (lower.includes('clinic')) return 'Clinic';
     if (lower.includes('stick')) return 'S&P';
   }
@@ -155,6 +200,25 @@ function toggleRink(rinkId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  sessionFilterControls.forEach(({ id, key, storageKey }) => {
+    const toggle = document.getElementById(id);
+    try {
+      const savedPreference = localStorage.getItem(storageKey);
+      sessionFilters[key] = savedPreference === null || savedPreference === 'true';
+    } catch (error) {
+      sessionFilters[key] = true;
+    }
+    toggle.checked = sessionFilters[key];
+    toggle.addEventListener('change', function() {
+      sessionFilters[key] = toggle.checked;
+      try {
+        localStorage.setItem(storageKey, String(toggle.checked));
+      } catch (error) {}
+
+      if (calendarInstance) calendarInstance.refetchEvents();
+    });
+  });
+
   renderLegend();
 
   const initInterval = setInterval(() => {
@@ -191,6 +255,9 @@ function initCalendar() {
         format: 'ics'
       };
     }),
+    loading: function(isLoading) {
+      setCalendarLoading(isLoading);
+    },
     eventClassNames: function(arg) {
       if (!isRelevantEvent(arg.event.title)) {
         return ['hidden-event'];

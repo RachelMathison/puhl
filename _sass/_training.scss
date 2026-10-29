@@ -6,7 +6,108 @@ $color-past-border: var(--gray-300);
 
 $breakpoint-mobile: 768px;
 
+.training-session-filters {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0 0 14px;
+}
+
+.training-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 13px;
+  border: 1px solid var(--gray-300);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .training-switch-track {
+    display: inline-flex;
+    align-items: center;
+    width: 36px;
+    height: 21px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--gray-500);
+    transition: background-color 0.18s ease;
+
+    span {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      transform: translateX(0);
+      transition: transform 0.18s ease;
+    }
+  }
+
+  input:checked + .training-switch-track {
+    background: var(--primary);
+
+    span {
+      transform: translateX(15px);
+    }
+  }
+
+  input:focus-visible + .training-switch-track {
+    outline: 3px solid color-mix(in srgb, var(--primary) 38%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+.training-calendar-shell {
+  position: relative;
+}
+
+.training-calendar-refresh {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 100px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  color: var(--text);
+  font-weight: 600;
+  backdrop-filter: blur(2px);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.training-calendar-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--gray-300);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: training-calendar-spin 0.75s linear infinite;
+}
+
+@keyframes training-calendar-spin {
+  to { transform: rotate(360deg); }
+}
+
 .training-page {
+
   // --- Legend Styles ---
   .legend {
     display: flex;
@@ -109,6 +210,10 @@ $breakpoint-mobile: 768px;
 
   // --- FullCalendar Overrides ---
   .fc-daygrid-day {
+    &.fc-day-today {
+      background-color: color-mix(in srgb, var(--accent) 20%, var(--surface)) !important;
+    }
+
     &:has(.fc-event) .fc-daygrid-day-frame {
       height: 100%;
       justify-content: flex-start;
@@ -124,6 +229,11 @@ $breakpoint-mobile: 768px;
     &:not(.fc-day-past):has(.fc-event) .fc-daygrid-day-frame {
       background-color: var(--surface) !important;
       border: 1px solid $color-past-border !important;
+    }
+
+    &.fc-day-today .fc-daygrid-day-frame {
+      background-color: color-mix(in srgb, var(--accent) 20%, var(--surface)) !important;
+      box-shadow: inset 0 0 0 2px var(--accent);
     }
 
     .fc-daygrid-day-frame {

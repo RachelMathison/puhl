@@ -1,7 +1,7 @@
 /* ---------- masthead ---------- */
 .masthead {
-  background: linear-gradient(90deg, var(--black) 0%, var(--primary-deep) 70%, var(--primary) 100%);
-  border-bottom: 3px solid var(--gray-500);
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 3px solid var(--gray-100);
 
   &-inner {
     max-width: 1200px;
@@ -40,7 +40,7 @@
     line-height: 1;
 
     span {
-      color: var(--gray-300);
+      color: #d2d4d5;
     }
   }
 

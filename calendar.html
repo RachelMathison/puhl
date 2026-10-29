@@ -1,0 +1,491 @@
+---
+layout: default
+title: Calendar
+permalink: /calendar/
+---
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.11/index.global.min.js" defer></script>
+
+<div class="training-page combined-calendar-page">
+  <h1>Calendar</h1>
+
+  <div class="training-session-filters calendar-controls" role="group" aria-label="Calendar filters">
+    <label class="training-switch" for="games-toggle">
+      <input type="checkbox" id="games-toggle" checked>
+      <span class="training-switch-track" aria-hidden="true"><span></span></span>
+      <span>Games</span>
+    </label>
+    <label class="training-switch" for="stick-puck-toggle">
+      <input type="checkbox" id="stick-puck-toggle" checked>
+      <span class="training-switch-track" aria-hidden="true"><span></span></span>
+      <span>Stick &amp; Puck</span>
+    </label>
+    <label class="training-switch" for="clinics-toggle">
+      <input type="checkbox" id="clinics-toggle" checked>
+      <span class="training-switch-track" aria-hidden="true"><span></span></span>
+      <span>Skills Clinics</span>
+    </label>
+    <label class="training-switch" for="public-skate-toggle">
+      <input type="checkbox" id="public-skate-toggle" checked>
+      <span class="training-switch-track" aria-hidden="true"><span></span></span>
+      <span>Public Skate</span>
+    </label>
+  </div>
+
+  <section id="game-filters" class="combined-calendar-game-filters" aria-label="Game team filters">
+    <label id="show-all-teams-control" class="show-all-teams-control">
+      <input type="checkbox" id="show-all-teams" checked aria-controls="filter-controls">
+      <span>Show all teams</span>
+    </label>
+    <div class="league-filter-container" id="filter-controls" hidden></div>
+  </section>
+
+  <div id="combined-calendar-legend" class="legend" aria-label="Calendar locations"></div>
+  <div class="training-calendar-shell">
+    <div id="calendar-refresh-indicator" class="training-calendar-refresh" role="status" aria-live="polite" hidden>
+      <span class="training-calendar-spinner" aria-hidden="true"></span>
+      <span>Refreshing calendar...</span>
+    </div>
+    <div id="combined-calendar"></div>
+  </div>
+</div>
+
+<script>
+const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
+const calendarsConfig = {{ site.data.training_calendar | jsonify }};
+const teamLogos = window.pageTeamLogos || {};
+const GAME_STORAGE_KEY = 'puhl_show_games';
+const STORAGE_KEY_LEAGUES = 'puhl_selected_leagues';
+const STORAGE_KEY_TEAMS = 'puhl_selected_teams';
+const STORAGE_KEY_SHOW_ALL_TEAMS = 'puhl_show_all_teams';
+
+calendarsConfig.forEach(calendar => {
+  calendar.color = getComputedStyle(document.documentElement)
+    .getPropertyValue(`--rink-${calendar.id}`).trim() || 'var(--primary)';
+});
+
+const activeLeagues = new Set();
+const activeTeams = new Set();
+const allTeamConfigs = [];
+const sessionFilters = { publicSkate: true, stickAndPuck: true, clinics: true };
+const sessionFilterControls = [
+  { id: 'public-skate-toggle', key: 'publicSkate', storageKey: 'puhl_show_public_skate' },
+  { id: 'stick-puck-toggle', key: 'stickAndPuck', storageKey: 'puhl_show_stick_puck' },
+  { id: 'clinics-toggle', key: 'clinics', storageKey: 'puhl_show_clinics' }
+];
+let showAllTeamsMode = true;
+let showGames = true;
+let calendarInstance = null;
+let masterGameEvents = [];
+
+Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
+  league.teams.forEach(team => allTeamConfigs.push({
+    displayName: team.name,
+    id: String(team.id).toLowerCase(),
+    leagueKey,
+    imagePath: team.imagePath || teamLogos[team.name] || teamLogos.default
+  }));
+});
+
+function loadSavedTeamFilters() {
+  try {
+    const savedLeagues = localStorage.getItem(STORAGE_KEY_LEAGUES);
+    const savedTeams = localStorage.getItem(STORAGE_KEY_TEAMS);
+    if (savedLeagues !== null) JSON.parse(savedLeagues).forEach(key => activeLeagues.add(key));
+    else Object.keys(LEAGUE_STRUCTURE).forEach(key => activeLeagues.add(key));
+
+    if (savedTeams !== null) JSON.parse(savedTeams).forEach(name => activeTeams.add(name));
+    else Object.values(LEAGUE_STRUCTURE).forEach(league => league.teams.forEach(team => activeTeams.add(team.name)));
+
+    const count = Object.values(LEAGUE_STRUCTURE).reduce((total, league) => total + league.teams.length, 0);
+    const savedShowAll = localStorage.getItem(STORAGE_KEY_SHOW_ALL_TEAMS);
+    showAllTeamsMode = savedShowAll === null
+      ? activeTeams.size === count && activeLeagues.size === Object.keys(LEAGUE_STRUCTURE).length
+      : savedShowAll === 'true';
+    const savedGames = localStorage.getItem(GAME_STORAGE_KEY);
+    showGames = savedGames === null || savedGames === 'true';
+  } catch (error) {
+    Object.keys(LEAGUE_STRUCTURE).forEach(key => activeLeagues.add(key));
+    Object.values(LEAGUE_STRUCTURE).forEach(league => league.teams.forEach(team => activeTeams.add(team.name)));
+  }
+}
+
+function saveTeamFilters() {
+  try {
+    localStorage.setItem(STORAGE_KEY_LEAGUES, JSON.stringify(Array.from(activeLeagues)));
+    localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(Array.from(activeTeams)));
+  } catch (error) {}
+}
+
+function getMatchupDetails(title, leagueKey) {
+  const fallback = { selfLogo: teamLogos.default, oppLogo: teamLogos.default, team1Name: null, team2Name: null };
+  if (!title) return fallback;
+  const teams = allTeamConfigs.filter(team => team.leagueKey === leagueKey);
+  const matches = [];
+  teams.forEach(team => {
+    const idPattern = team.id.split(/\s+/)
+      .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('[\\s_-]+');
+    const match = new RegExp(`(^|[^a-z0-9])(${idPattern})(?=$|[^a-z0-9])`, 'i').exec(title);
+    if (match) matches.push({ index: match.index + match[1].length, displayName: team.displayName, logo: team.imagePath });
+  });
+  matches.sort((a, b) => a.index - b.index);
+  const first = matches[0] || { displayName: null, logo: teamLogos.default };
+  const second = matches[1] || { displayName: null, logo: teamLogos.default };
+  return { selfLogo: first.logo, oppLogo: second.logo, team1Name: first.displayName, team2Name: second.displayName };
+}
+
+function gameEventIsSelected(title, leagueKey, location) {
+  if (!activeLeagues.has(leagueKey)) return false;
+  const locationConfig = getRinkConfigForLocation(location);
+  if (locationConfig && !locationConfig.enabled) return false;
+  const matchup = getMatchupDetails(title, leagueKey);
+  return Boolean((matchup.team1Name && activeTeams.has(matchup.team1Name)) ||
+    (matchup.team2Name && activeTeams.has(matchup.team2Name)));
+}
+
+function isRelevantSession(title) {
+  const normalized = String(title || '').toLowerCase().replace(/[-_]/g, ' ');
+  if (normalized.includes('public skate') || normalized.includes('public skating')) return sessionFilters.publicSkate;
+  if (normalized.includes('clinic')) return sessionFilters.clinics;
+  if (normalized.includes('stick')) return sessionFilters.stickAndPuck;
+  return false;
+}
+
+function getRinkConfig(id) {
+  return calendarsConfig.find(config => config.id === id) || null;
+}
+
+function getRinkConfigForLocation(location) {
+  const rinkByGameLocation = {
+    'sherwood': 'sherwood',
+    'beaverton': 'wsc',
+    'veterans memorial coliseum': 'vmc'
+  };
+  const rinkId = rinkByGameLocation[String(location || '').trim().toLowerCase()];
+  return rinkId ? getRinkConfig(rinkId) : null;
+}
+
+function getRinkColor(location) {
+  const rinkConfig = getRinkConfigForLocation(location);
+  return rinkConfig ? `var(--rink-${rinkConfig.id})` : 'var(--training-bg-light)';
+}
+
+function buildFilterUI() {
+  const container = document.getElementById('filter-controls');
+  let html = '';
+  Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
+    const checked = activeLeagues.has(leagueKey) ? 'checked' : '';
+    const hidden = activeLeagues.has(leagueKey) ? '' : 'hidden';
+    html += `<div class="filter-section"><div class="filter-title">
+      <input type="checkbox" id="league-${leagueKey}" ${checked} onchange="toggleLeague('${leagueKey}', this.checked)">
+      <label for="league-${leagueKey}">${league.name}</label></div>
+      <div class="team-checkboxes ${hidden}" id="teams-group-${leagueKey}">`;
+    league.teams.forEach(team => {
+      const image = team.imagePath || teamLogos[team.name] || teamLogos.default;
+      const teamChecked = activeTeams.has(team.name) ? 'checked' : '';
+      const teamNameArgument = team.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      html += `<label class="filter-label"><input type="checkbox" class="team-cb-${leagueKey}" value="${team.name}" ${teamChecked} onchange="toggleTeam('${teamNameArgument}', this.checked)">
+        <span class="filter-check-indicator" aria-hidden="true"></span><img src="${image}" alt="" class="filter-team-icon"><span class="filter-team-name">${team.name}</span></label>`;
+    });
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function setGameFilterVisibility() {
+  const gameFilters = document.getElementById('game-filters');
+  const toggle = document.getElementById('games-toggle');
+  if (toggle) toggle.checked = showGames;
+  if (gameFilters) gameFilters.hidden = !showGames;
+}
+
+function toggleLeague(leagueKey, isChecked) {
+  if (isChecked) activeLeagues.add(leagueKey);
+  else activeLeagues.delete(leagueKey);
+  document.querySelectorAll(`.team-cb-${leagueKey}`).forEach(input => {
+    input.checked = isChecked;
+    if (isChecked) activeTeams.add(input.value);
+    else activeTeams.delete(input.value);
+  });
+  const group = document.getElementById(`teams-group-${leagueKey}`);
+  if (group) group.hidden = !isChecked;
+  saveTeamFilters();
+  if (calendarInstance) calendarInstance.refetchEvents();
+}
+
+function toggleTeam(name, isChecked) {
+  if (isChecked) activeTeams.add(name);
+  else activeTeams.delete(name);
+  saveTeamFilters();
+  if (calendarInstance) calendarInstance.refetchEvents();
+}
+
+function toggleShowAllTeams(showAll) {
+  showAllTeamsMode = showAll;
+  try { localStorage.setItem(STORAGE_KEY_SHOW_ALL_TEAMS, String(showAll)); } catch (error) {}
+  document.getElementById('filter-controls').hidden = showAll;
+  if (showAll) {
+    activeLeagues.clear();
+    activeTeams.clear();
+    Object.entries(LEAGUE_STRUCTURE).forEach(([key, league]) => {
+      activeLeagues.add(key);
+      league.teams.forEach(team => activeTeams.add(team.name));
+    });
+    saveTeamFilters();
+    buildFilterUI();
+    if (calendarInstance) calendarInstance.refetchEvents();
+  }
+}
+
+function makeGameSource() {
+  return {
+    id: 'league-games',
+    events: (fetchInfo, successCallback) => {
+      const selectedEvents = masterGameEvents
+        .filter(event => gameEventIsSelected(event.title, event.leagueKey, event.location))
+        .map(event => ({
+          id: event.id,
+          title: event.title,
+          start: event.start,
+          end: event.end,
+          extendedProps: {
+            leagueKey: event.leagueKey,
+            eventType: 'game',
+            location: event.location
+          }
+        }));
+      successCallback(selectedEvents);
+    }
+  };
+}
+
+async function loadGameEvents() {
+  const leagueFeeds = Object.entries(LEAGUE_STRUCTURE).map(async ([leagueKey, league]) => {
+    try {
+      const response = await fetch(league.icsUrl);
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
+      const component = new ICAL.Component(ICAL.parse(await response.text()));
+      component.getAllSubcomponents('vevent').forEach((vevent, index) => {
+        const event = new ICAL.Event(vevent);
+        masterGameEvents.push({
+          id: `${leagueKey}-${event.uid || index}`,
+          title: event.summary,
+          start: event.startDate.toJSDate(),
+          end: event.endDate ? event.endDate.toJSDate() : null,
+          location: event.location || '',
+          leagueKey
+        });
+      });
+    } catch (error) {
+      console.error(`Unable to load ${league.name} games:`, error);
+    }
+  });
+  await Promise.all(leagueFeeds);
+  if (calendarInstance) calendarInstance.refetchEvents();
+}
+
+function makeTrainingSource(config) {
+  return {
+    id: config.id,
+    url: config.icsUrl,
+    format: 'ics',
+    eventDataTransform: event => isRelevantSession(event.title)
+      ? { ...event, extendedProps: { ...event.extendedProps, eventType: 'training' } }
+      : false
+  };
+}
+
+function refreshSources() {
+  if (!calendarInstance) return;
+  const desired = new Map();
+  if (showGames) {
+    desired.set('league-games', makeGameSource());
+  }
+  calendarsConfig.filter(config => config.enabled).forEach(config => desired.set(config.id, makeTrainingSource(config)));
+
+  calendarInstance.getEventSources().forEach(source => {
+    if (!desired.has(source.id)) source.remove();
+    else desired.delete(source.id);
+  });
+  desired.forEach(source => calendarInstance.addEventSource(source));
+}
+
+function renderCalendarLegend() {
+  const legend = document.getElementById('combined-calendar-legend');
+  const rinkLegend = calendarsConfig.map(config =>
+    `<label class="combined-calendar-legend-item ${config.enabled ? '' : 'disabled'}"><input type="checkbox" data-rink-id="${config.id}" ${config.enabled ? 'checked' : ''}><span class="combined-calendar-legend-dot" style="background:${config.color}"></span>${config.name}</label>`
+  ).join('');
+  legend.innerHTML = rinkLegend;
+}
+
+function getEventUrl(event) {
+  if (event.url) return event.url;
+  const description = event.extendedProps.description || '';
+  const match = description.match(/(https?:\/\/[^\s"<]+)/i);
+  return match ? match[1] : null;
+}
+
+function getEventTime(date) {
+  return date ? date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+}
+
+function initializeCalendar() {
+  const calendarEl = document.getElementById('combined-calendar');
+  calendarInstance = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    aspectRatio: window.innerWidth < 768 ? 0.9 : 1.35,
+    dayMaxEvents: true,
+    headerToolbar: { left: 'title', center: '', right: 'prev,next today' },
+    eventSources: [],
+    loading: isLoading => {
+      const indicator = document.getElementById('calendar-refresh-indicator');
+      indicator.hidden = !isLoading;
+      calendarEl.setAttribute('aria-busy', String(isLoading));
+    },
+    eventContent: arg => {
+      const isGame = arg.event.extendedProps.eventType === 'game';
+      const time = getEventTime(arg.event.start);
+      if (isGame) {
+        const leagueKey = arg.event.extendedProps.leagueKey;
+        const matchup = getMatchupDetails(arg.event.title, leagueKey);
+        const team1Selected = matchup.team1Name && activeTeams.has(matchup.team1Name);
+        const team2Selected = matchup.team2Name && activeTeams.has(matchup.team2Name);
+        const image = team1Selected && !team2Selected ? matchup.oppLogo : matchup.selfLogo;
+        const secondImage = team1Selected && !team2Selected ? matchup.selfLogo : matchup.oppLogo;
+        const rinkColor = getRinkColor(arg.event.extendedProps.location);
+        return { html: `<div class="custom-event-card combined-game-card" style="--game-rink-color:${rinkColor}"><div class="combined-game-logos"><span class="logo-circle"><img src="${image}" alt=""></span><span class="at-symbol">@</span><span class="logo-circle"><img src="${secondImage}" alt=""></span></div><div class="game-time">${time}</div></div>` };
+      }
+
+      const rink = getRinkConfig(arg.event.source && arg.event.source.id);
+      const color = rink ? rink.color : 'var(--primary)';
+      const url = getEventUrl(arg.event);
+      const title = arg.event.title || 'Hockey session';
+      const titleHtml = url ? `<a href="${url}" target="_blank" rel="noopener">${title}</a>` : title;
+      return { html: `<div class="custom-event-card combined-session-card" style="--session-color:${color}"><div class="game-time">${time}</div><div class="session-title">${titleHtml}</div></div>` };
+    }
+  });
+  calendarInstance.render();
+  refreshSources();
+  loadGameEvents();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSavedTeamFilters();
+  buildFilterUI();
+  setGameFilterVisibility();
+  document.getElementById('show-all-teams').checked = showAllTeamsMode;
+  document.getElementById('filter-controls').hidden = showAllTeamsMode;
+  document.getElementById('show-all-teams').addEventListener('change', event => toggleShowAllTeams(event.target.checked));
+  document.getElementById('games-toggle').addEventListener('change', event => {
+    showGames = event.target.checked;
+    try { localStorage.setItem(GAME_STORAGE_KEY, String(showGames)); } catch (error) {}
+    setGameFilterVisibility();
+    renderCalendarLegend();
+    refreshSources();
+  });
+
+  sessionFilterControls.forEach(({ id, key, storageKey }) => {
+    const input = document.getElementById(id);
+    try {
+      const saved = localStorage.getItem(storageKey);
+      sessionFilters[key] = saved === null || saved === 'true';
+    } catch (error) {}
+    input.checked = sessionFilters[key];
+    input.addEventListener('change', () => {
+      sessionFilters[key] = input.checked;
+      try { localStorage.setItem(storageKey, String(input.checked)); } catch (error) {}
+      if (calendarInstance) calendarInstance.refetchEvents();
+    });
+  });
+
+  calendarsConfig.forEach(config => {
+    config.enabled = config.enabled !== false;
+  });
+  renderCalendarLegend();
+  document.getElementById('combined-calendar-legend').addEventListener('change', event => {
+    const item = event.target.closest('input[data-rink-id]');
+    if (!item) return;
+    const config = getRinkConfig(item.dataset.rinkId);
+    if (!config) return;
+    config.enabled = item.checked;
+    renderCalendarLegend();
+    refreshSources();
+    if (calendarInstance) calendarInstance.refetchEvents();
+  });
+  const poll = setInterval(() => {
+    if (typeof FullCalendar === 'undefined') return;
+    clearInterval(poll);
+    initializeCalendar();
+  }, 50);
+});
+</script>
+
+<style>
+  .combined-calendar-page .fc-daygrid-day-frame { overflow: hidden; position: relative; }
+  .combined-calendar-page .fc-daygrid-day-events {
+    position: static !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 0 !important;
+  }
+  .combined-calendar-page .fc-daygrid-event-harness,
+  .combined-calendar-page .fc-daygrid-event-harness-abs {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    margin: 1px 0 !important;
+  }
+  .combined-calendar-page .fc .fc-event,
+  .combined-calendar-page .fc .fc-event-main {
+    display: block !important;
+    width: 100%;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .combined-calendar-game-filters {
+    margin: 0 0 1rem;
+    padding: 1rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+
+  .combined-calendar-game-filters[hidden] { display: none; }
+  .combined-calendar-page .calendar-controls { justify-content: flex-start; }
+  .combined-calendar-page .legend { display: flex; flex-wrap: wrap; gap: 1rem; }
+  .combined-calendar-legend-item { display: inline-flex; align-items: center; gap: .45rem; font-size: .9rem; }
+  .combined-calendar-legend-item.disabled { opacity: .45; text-decoration: line-through; }
+  .combined-calendar-legend-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--rink-color, var(--primary)); }
+  .combined-calendar-legend-dot.game { background: var(--primary); }
+  .combined-game-logos { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .combined-game-card {
+    width: 100%;
+    padding: 2px 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+  .combined-game-card .logo-circle {
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--game-rink-color) !important;
+    background-color: color-mix(in srgb, var(--game-rink-color) 12%, var(--surface));
+  }
+  .combined-game-card .logo-circle img { max-width: 85%; height: 65%; object-fit: contain; }
+  .combined-game-card .at-symbol { font-size: .7rem; font-weight: 700; }
+  .combined-session-card { box-sizing: border-box; padding: 4px; border: 1px solid var(--session-color); border-radius: 6px; background: color-mix(in srgb, var(--session-color) 14%, var(--surface)); text-align: center; }
+  .combined-session-card .session-title { font-size: .72rem; line-height: 1.2; white-space: normal; }
+  .combined-session-card a { color: inherit; }
+  @media (max-width: 700px) {
+    .combined-game-card .logo-circle { width: 27px; height: 27px; }
+    .combined-game-logos { gap: 2px; }
+    .combined-session-card .session-title { font-size: .62rem; }
+  }
+</style>
