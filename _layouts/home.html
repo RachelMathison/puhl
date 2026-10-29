@@ -13,6 +13,7 @@ layout: default
   <label for="site-theme-select">Site theme</label>
   <select id="site-theme-select">
     <option value="green">PUHL Green</option>
+    <option value="pride">PUHL Pride</option>
     <option value="penguins">Penguins</option>
     <option value="twocans">Two Cans</option>
     <option value="coqs">Golden Coqs</option>
@@ -146,95 +147,109 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.addEventListener('DOMContentLoaded', async function() {
   // --- 1. SCHEDULE LOGIC ---
-  const teamsConfig = window.pageTeamsConfig || [];
+  const leagueStructure = {{ site.data.league_structure | jsonify }};
   const mobileContainer = document.querySelector('#next-game-mobile .game-feed-list');
   const desktopContainer = document.getElementById('upcoming-games-sidebar');
-  
-  if (teamsConfig.length === 0) {
-    const errorMsg = '<div class="game-feed-empty">No calendars configured.</div>';
+
+  if (!leagueStructure || Object.keys(leagueStructure).length === 0) {
+    const errorMsg = '<div class="game-feed-empty">No league schedules configured.</div>';
     if (mobileContainer) mobileContainer.innerHTML = errorMsg;
     if (desktopContainer) desktopContainer.innerHTML = errorMsg;
   } else {
-    let allEvents = [];
-
-    const promises = teamsConfig.map(async team => {
+    const leagueEvents = {};
+    const promises = Object.entries(leagueStructure).map(async ([leagueKey, league]) => {
       try {
-        const response = await fetch(team.url);
+        const response = await fetch(league.icsUrl);
+        if (!response.ok) throw new Error(`Schedule request failed (${response.status})`);
         const icsText = await response.text();
         const jcalData = ICAL.parse(icsText);
         const comp = new ICAL.Component(jcalData);
         const vevents = comp.getAllSubcomponents('vevent');
 
+        leagueEvents[leagueKey] = [];
         vevents.forEach(ve => {
           const event = new ICAL.Event(ve);
-          allEvents.push({
+          leagueEvents[leagueKey].push({
             title: event.summary,
             start: event.startDate.toJSDate(),
-            location: event.location,
-            teamName: team.teamName || '',
-            teamId: team.id || ''
+            location: event.location || '',
+            leagueKey,
+            leagueName: league.name,
+            teams: league.teams
           });
         });
       } catch (err) {
-        console.error(`Error fetching ICS for ${team.name}:`, err);
+        console.error(`Error fetching ${league.name} schedule:`, err);
+        leagueEvents[leagueKey] = [];
       }
     });
 
     await Promise.all(promises);
 
     const now = new Date();
-    const upcomingEvents = allEvents
-      .filter(e => e.start && e.start > now)
-      .sort((a, b) => a.start - b.start);
+    const nextGamesByLeague = Object.entries(leagueStructure).map(([leagueKey, league]) => ({
+      leagueKey,
+      leagueName: league.name,
+      games: (leagueEvents[leagueKey] || []).filter(event => event.start && event.start > now)
+        .sort((a, b) => a.start - b.start)
+        .slice(0, 2)
+    }));
+    const nextGame = nextGamesByLeague
+      .flatMap(league => league.games)
+      .sort((a, b) => a.start - b.start)[0];
 
-    if (upcomingEvents.length === 0) {
+    if (!nextGame) {
       const emptyMsg = '<div class="game-feed-empty">No upcoming games scheduled.</div>';
       if (mobileContainer) mobileContainer.innerHTML = emptyMsg;
       if (desktopContainer) desktopContainer.innerHTML = emptyMsg;
     } else {
-      function getOpponentLogo(title, teamName, teamId) {
-        if (!title) return teamLogos.default || '';
-        const lowerTitle = title.toLowerCase();
-
-        // Identify self-team string position to avoid matching own logo
-        const selfName = (teamName || teamId || '').toLowerCase();
-
-        // Sort keys by length descending to match specific team names first
-        const logoKeys = Object.keys(teamLogos)
-          .filter(k => k !== 'default')
-          .sort((a, b) => b.length - a.length);
-
-        for (const key of logoKeys) {
-          const lowerKey = key.toLowerCase();
-          // Match if key appears in title and isn't our own team name
-          if (lowerTitle.includes(lowerKey) && lowerKey !== selfName) {
-            return teamLogos[key];
-          }
-        }
-        return teamLogos.default || '';
+      function getGameTeams(game) {
+        const title = String(game.title || '').toLowerCase();
+        return game.teams.map(team => {
+          const idPattern = String(team.id || '').toLowerCase().split(/\s+/)
+            .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .join('[\\s_-]+');
+          const match = idPattern
+            ? new RegExp(`(^|[^a-z0-9])(${idPattern})(?=$|[^a-z0-9])`).exec(title)
+            : null;
+          return match ? { team, index: match.index + match[1].length } : null;
+        }).filter(Boolean).sort((a, b) => a.index - b.index).slice(0, 2).map(match => match.team);
       }
 
       function buildGameCardHTML(e) {
         const dateStr = e.start.toLocaleDateString([], { month: 'short', day: 'numeric' });
         const timeStr = e.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         const locationStr = e.location ? ` · ${e.location}` : '';
-        const logoUrl = getOpponentLogo(e.title, e.teamName, e.teamId);
+        const gameTeams = getGameTeams(e);
+        const teamLogosHtml = gameTeams.length
+          ? `<div class="game-card-matchup-logos">${gameTeams.map(team => `<span class="game-card-logo"><img src="${team.imagePath || teamLogos[team.name] || teamLogos.default || ''}" alt="${team.name}"></span>`).join('<span class="game-card-at">@</span>')}</div>`
+          : `<div class="game-card-logo"><img src="${teamLogos.default || ''}" alt=""></div>`;
 
         return `
-          <div class="game-card">
-            <div class="game-card-logo">
-              <img src="${logoUrl}" alt="">
-            </div>
-            <div class="game-card-body">
-              <div class="game-card-matchup">${e.title || 'Game'}</div>
-              <div class="game-card-meta">${dateStr} · ${timeStr}${locationStr}</div>
+          <div class="game-card" data-league="${e.leagueKey}">
+            <div class="game-card-matchup">${e.title || 'Game'}</div>
+            <div class="game-card-details">
+              ${teamLogosHtml}
+              <div class="game-card-body">
+                <div class="game-card-meta">${dateStr} · ${timeStr}${locationStr}</div>
+              </div>
             </div>
           </div>
         `;
       }
 
-      if (mobileContainer) mobileContainer.innerHTML = buildGameCardHTML(upcomingEvents[0]);
-      if (desktopContainer) desktopContainer.innerHTML = upcomingEvents.slice(0, 5).map(buildGameCardHTML).join('');
+      if (mobileContainer) mobileContainer.innerHTML = buildGameCardHTML(nextGame);
+      if (desktopContainer) {
+        const hasGames = nextGamesByLeague.some(league => league.games.length);
+        desktopContainer.innerHTML = hasGames
+          ? nextGamesByLeague.filter(league => league.games.length).map(league => `
+              <section class="home-game-division">
+                <h3>${league.leagueName}</h3>
+                ${league.games.map(buildGameCardHTML).join('')}
+              </section>
+            `).join('')
+          : '<div class="game-feed-empty">No upcoming games scheduled.</div>';
+      }
     }
   }
 

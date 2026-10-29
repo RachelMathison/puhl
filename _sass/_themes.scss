@@ -4,8 +4,7 @@
   --primary-deep:#083b2b;
   --on-primary:#ffffff;
   --accent:#68b24a;
-  // --page-background:var(--primary-deep);
-  --page-background: linear-gradient(150deg, var(--primary-deep) 0%, var(--primary) 65%, var(--accent) 100%);
+  --page-background: linear-gradient(150deg, var(--primary-deep) 0%, var(--primary) 55%, var(--accent) 100%);
   --surface:#ffffff;
   --surface-raised:#f1f2f2;
   --text:#000000;
@@ -13,7 +12,6 @@
 }
 
 :root[data-color-mode="dark"] {
- // --page-background:color-mix(in srgb, var(--primary-deep) 24%, #202325);
   --surface:#292d2f;
   --surface-raised:#34393b;
   --text:#e8ecee;
@@ -58,6 +56,8 @@
   --on-primary:#ffffff;
   --accent:#ede0b0;
   --watermark-image:#{'url("../images/teams/honkers.png")'};
+
+  --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 45%, var(--primary-deep) 75%, var(--accent) 100%);
 }
 
 :root[data-site-theme="boobies"] {
@@ -66,4 +66,15 @@
   --on-primary:#15201e;
   --accent:#ce2121;
   --watermark-image:#{'url("../images/teams/boobies.png")'};
+  --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 40%, var(--primary-deep) 80%, var(--accent) 100%);
+  
+}
+
+:root[data-site-theme="pride"] {
+  --primary:#46296b;
+  --primary-deep:#252c62;
+  --on-primary:#15201e;
+  --accent:#167dbc;
+  --watermark-image:#{'url("../images/teams/puhl_logo.png")'};
+  --page-background: linear-gradient(150deg, #ce2324 0%, #f5743b 20%, #eba433 40%, #11b19d 60%, #167dbc 80%, #46296b 100%);
 }
