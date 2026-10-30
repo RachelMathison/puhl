@@ -55,6 +55,7 @@ permalink: /calendar/
 <script>
 const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
 const calendarsConfig = {{ site.data.training_calendar | jsonify }};
+const extraIceConfig = {{ site.data.extra_ice | jsonify }};
 const teamLogos = window.pageTeamLogos || {};
 const GAME_STORAGE_KEY = 'puhl_show_games';
 const STORAGE_KEY_LEAGUES = 'puhl_selected_leagues';
@@ -79,6 +80,7 @@ let showAllTeamsMode = true;
 let showGames = true;
 let calendarInstance = null;
 let masterGameEvents = [];
+let masterExtraIceEvents = [];
 
 Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
   league.teams.forEach(team => allTeamConfigs.push({
@@ -154,6 +156,14 @@ function isRelevantSession(title) {
   return false;
 }
 
+function isExtraIceSessionEnabled(title) {
+  const normalized = String(title || '').toLowerCase().replace(/[-_]/g, ' ');
+  if (normalized.includes('public skate') || normalized.includes('public skating')) return sessionFilters.publicSkate;
+  if (normalized.includes('clinic')) return sessionFilters.clinics;
+  if (normalized.includes('stick')) return sessionFilters.stickAndPuck;
+  return true;
+}
+
 function getRinkConfig(id) {
   return calendarsConfig.find(config => config.id === id) || null;
 }
@@ -166,6 +176,15 @@ function getRinkConfigForLocation(location) {
   };
   const rinkId = rinkByGameLocation[String(location || '').trim().toLowerCase()];
   return rinkId ? getRinkConfig(rinkId) : null;
+}
+
+function getTrainingRinkConfigForLocation(location) {
+  const value = String(location || '').trim().toLowerCase();
+  if (value.includes('sherwood')) return getRinkConfig('sherwood');
+  if (value.includes('mountain view')) return getRinkConfig('mv');
+  if (value.includes('veterans') || value.includes('coliseum')) return getRinkConfig('vmc');
+  if (value.includes('beaverton') || value.includes('winterhawks')) return getRinkConfig('wsc');
+  return null;
 }
 
 function getRinkColor(location) {
@@ -298,6 +317,54 @@ function makeTrainingSource(config) {
   };
 }
 
+function makeExtraIceSource() {
+  return {
+    id: 'extra-ice',
+    events: (fetchInfo, successCallback) => {
+      const events = masterExtraIceEvents
+        .filter(event => {
+          if (!isExtraIceSessionEnabled(event.title)) return false;
+          const rink = getTrainingRinkConfigForLocation(event.location);
+          return !rink || rink.enabled;
+        })
+        .map(event => ({
+          id: event.id,
+          title: event.title,
+          start: event.start,
+          end: event.end,
+          extendedProps: {
+            eventType: 'training',
+            location: event.location,
+            description: event.description
+          }
+        }));
+      successCallback(events);
+    }
+  };
+}
+
+async function loadExtraIceEvents() {
+  try {
+    const response = await fetch(extraIceConfig.icsUrl);
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
+    const component = new ICAL.Component(ICAL.parse(await response.text()));
+    masterExtraIceEvents = component.getAllSubcomponents('vevent').map((vevent, index) => {
+      const event = new ICAL.Event(vevent);
+      return {
+        id: `extra-ice-${event.uid || index}`,
+        title: event.summary,
+        start: event.startDate.toJSDate(),
+        end: event.endDate ? event.endDate.toJSDate() : null,
+        location: event.location || '',
+        description: event.description || ''
+      };
+    });
+  } catch (error) {
+    console.error('Unable to load extra ice calendar:', error);
+  }
+  if (calendarInstance) calendarInstance.refetchEvents();
+}
+
 function refreshSources() {
   if (!calendarInstance) return;
   const desired = new Map();
@@ -305,6 +372,7 @@ function refreshSources() {
     desired.set('league-games', makeGameSource());
   }
   calendarsConfig.filter(config => config.enabled).forEach(config => desired.set(config.id, makeTrainingSource(config)));
+  desired.set('extra-ice', makeExtraIceSource());
 
   calendarInstance.getEventSources().forEach(source => {
     if (!desired.has(source.id)) source.remove();
@@ -348,6 +416,9 @@ function initializeCalendar() {
     },
     eventContent: arg => {
       const isGame = arg.event.extendedProps.eventType === 'game';
+      const eventEnd = arg.event.end || arg.event.start;
+      const isPast = eventEnd && eventEnd < new Date();
+      const pastClass = isPast ? ' past-event' : '';
       const time = getEventTime(arg.event.start);
       if (isGame) {
         const leagueKey = arg.event.extendedProps.leagueKey;
@@ -357,20 +428,22 @@ function initializeCalendar() {
         const image = team1Selected && !team2Selected ? matchup.oppLogo : matchup.selfLogo;
         const secondImage = team1Selected && !team2Selected ? matchup.selfLogo : matchup.oppLogo;
         const rinkColor = getRinkColor(arg.event.extendedProps.location);
-        return { html: `<div class="custom-event-card combined-game-card" style="--game-rink-color:${rinkColor}"><div class="combined-game-logos"><span class="logo-circle"><img src="${image}" alt=""></span><span class="at-symbol">@</span><span class="logo-circle"><img src="${secondImage}" alt=""></span></div><div class="game-time">${time}</div></div>` };
+        return { html: `<div class="custom-event-card combined-game-card${pastClass}" style="--game-rink-color:${rinkColor}"><div class="combined-game-logos"><span class="logo-circle"><img src="${image}" alt=""></span><span class="at-symbol">@</span><span class="logo-circle"><img src="${secondImage}" alt=""></span></div><div class="game-time">${time}</div></div>` };
       }
 
-      const rink = getRinkConfig(arg.event.source && arg.event.source.id);
+      const rink = getRinkConfig(arg.event.source && arg.event.source.id) ||
+        getTrainingRinkConfigForLocation(arg.event.extendedProps.location);
       const color = rink ? rink.color : 'var(--primary)';
       const url = getEventUrl(arg.event);
       const title = arg.event.title || 'Hockey session';
       const titleHtml = url ? `<a href="${url}" target="_blank" rel="noopener">${title}</a>` : title;
-      return { html: `<div class="custom-event-card combined-session-card" style="--session-color:${color}"><div class="game-time">${time}</div><div class="session-title">${titleHtml}</div></div>` };
+      return { html: `<div class="custom-event-card combined-session-card${pastClass}" style="--session-color:${color}"><div class="game-time">${time}</div><div class="session-title">${titleHtml}</div></div>` };
     }
   });
   calendarInstance.render();
   refreshSources();
   loadGameEvents();
+  loadExtraIceEvents();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -472,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
     background: transparent !important;
     overflow: visible !important;
   }
+  .combined-game-card.past-event { opacity: .55; filter: grayscale(.85); }
   .combined-game-card .logo-circle {
     width: 42px;
     height: 42px;
