@@ -1,0 +1,58 @@
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
+  padding: 12px 48px 12px 16px;
+  border: 2px solid var(--primary);
+  border-radius: 10px;
+  outline: none;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(to bottom, var(--gray-300) 0%, var(--gray-300) 100%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d0d0d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-size: 1px 22px, 14px 14px;
+  background-repeat: no-repeat, no-repeat;
+  background-position: right 40px center, right 14px center;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover,
+  &:focus,
+  &:active {
+    border-color: var(--primary);
+  }
+
+  option {
+    padding: 12px 16px;
+    background-color: var(--surface);
+    color: var(--text);
+    font-weight: 600;
+
+    &:checked {
+      background-color: var(--gray-300);
+    }
+
+    &:hover {
+      background-color: var(--gray-100);
+    }
+  }
+}
+
+.site-theme-control select {
+  min-width: 170px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 14px;
+}
+
+.stats-filters select {
+  min-width: 220px;
+}
+
+#season-select {
+  width: 170px;
+}

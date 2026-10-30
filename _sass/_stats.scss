@@ -2,7 +2,7 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text);
   max-width: 100%;
-  margin: 2rem 0;
+  margin: 0 0 2rem 0;
 
   .stats-division + .stats-division {
     margin-top: 2.5rem;
@@ -110,11 +110,7 @@
     text-transform: uppercase;
   }
 
-  select {
-    min-width: 220px;
-  }
-
-  button {
+  button:not(.stats-filter-reset) {
     min-height: 46px;
     padding: 0 24px;
     border: 1px solid var(--primary);
@@ -130,6 +126,24 @@
       background: var(--gray-100);
       color: var(--gray-500);
       cursor: not-allowed;
+    }
+  }
+
+  .stats-filter-reset {
+    align-self: center;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--primary-deep);
     }
   }
 }
@@ -208,6 +222,22 @@
   font: inherit;
   line-height: 1;
   cursor: pointer;
+}
+
+.stats-heading-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--primary);
+  }
 }
 
 .stats-metric-tabs {

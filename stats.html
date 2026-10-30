@@ -1,12 +1,12 @@
 ---
 layout: default
-title: Team Statistics
+title: Statistics
 permalink: /stats/
 ---
 
 <h1>Statistics</h1>
 
-<form class="stats-filters" id="stats-filter-form">
+<div class="stats-filters" id="stats-filter-controls">
   <label for="stats-division">Division</label>
   <select id="stats-division" name="division">
     <option value="">All divisions</option>
@@ -18,8 +18,8 @@ permalink: /stats/
   </select>
   <label for="stats-team">Team</label>
   <select id="stats-team" name="team"><option value="">All teams</option></select>
-  <button type="submit" id="get-stats-button">Refresh Stats</button>
-</form>
+  <button type="button" class="stats-filter-reset" id="reset-stats-filters">Reset filters</button>
+</div>
 
 <p class="stats-status" id="stats-status" role="status">Loading statistics for all teams...</p>
 
@@ -33,7 +33,7 @@ permalink: /stats/
   <section class="stats-view active" id="stats-view-home" role="tabpanel">
     <div class="stats-leaders-grid">
       <section class="stats-leader-panel">
-        <h2>Skaters <button type="button" class="stats-view-link" data-open-stats-view="skaters" aria-label="View all skater statistics">&rsaquo;</button></h2>
+        <h2><button type="button" class="stats-heading-link" data-open-stats-view="skaters">Skaters</button><button type="button" class="stats-view-link" data-open-stats-view="skaters" aria-label="View all skater statistics">&rsaquo;</button></h2>
         <div class="stats-metric-tabs" role="tablist" aria-label="Skater leader category">
           <button type="button" class="active" data-leader-category="skater" data-leader-metric="pts">Points</button>
           <button type="button" data-leader-category="skater" data-leader-metric="g">Goals</button>
@@ -45,7 +45,7 @@ permalink: /stats/
       </section>
 
       <section class="stats-leader-panel">
-        <h2>Goalies <button type="button" class="stats-view-link" data-open-stats-view="goalies" aria-label="View all goalie statistics">&rsaquo;</button></h2>
+        <h2><button type="button" class="stats-heading-link" data-open-stats-view="goalies">Goalies</button><button type="button" class="stats-view-link" data-open-stats-view="goalies" aria-label="View all goalie statistics">&rsaquo;</button></h2>
         <div class="stats-metric-tabs" role="tablist" aria-label="Goalie leader category">
           <button type="button" class="active" data-leader-category="goalie" data-leader-metric="gaa">GAA</button>
           <button type="button" data-leader-category="goalie" data-leader-metric="svPct">SV%</button>
@@ -87,8 +87,18 @@ permalink: /stats/
       <table class="stats-table" id="goalies-table">
         <thead>
           <tr>
-            <th>#</th><th>Player</th><th>GP</th><th>MIN</th><th>W</th><th>L</th><th>T</th>
-            <th>GA</th><th>SV</th><th>GAA</th><th>SV%</th><th>SO</th>
+            <th onclick="sortGoalies('number')"># <span class="sort-icon" data-key="number"></span></th>
+            <th onclick="sortGoalies('name')">Player <span class="sort-icon" data-key="name"></span></th>
+            <th onclick="sortGoalies('gp')">GP <span class="sort-icon" data-key="gp"></span></th>
+            <th onclick="sortGoalies('min')">MIN <span class="sort-icon" data-key="min"></span></th>
+            <th onclick="sortGoalies('w')">W <span class="sort-icon" data-key="w"></span></th>
+            <th onclick="sortGoalies('l')">L <span class="sort-icon" data-key="l"></span></th>
+            <th onclick="sortGoalies('t')">T <span class="sort-icon" data-key="t"></span></th>
+            <th onclick="sortGoalies('ga')">GA <span class="sort-icon" data-key="ga"></span></th>
+            <th onclick="sortGoalies('sv')">SV <span class="sort-icon" data-key="sv"></span></th>
+            <th onclick="sortGoalies('gaa')">GAA <span class="sort-icon" data-key="gaa"></span></th>
+            <th onclick="sortGoalies('svPct')">SV% <span class="sort-icon" data-key="svPct"></span></th>
+            <th onclick="sortGoalies('so')">SO <span class="sort-icon" data-key="so"></span></th>
           </tr>
         </thead>
         <tbody id="goalies-tbody"><tr><td colspan="12" class="stats-table-message">Loading statistics...</td></tr></tbody>
@@ -98,6 +108,7 @@ permalink: /stats/
 </div>
 
 <script>
+  const STATS_API_URL = "{{ site.data.team_config.stats_api_url }}";
   const DIVISIONS = {{ site.data.league_structure | jsonify }};
   const TEAM_LOGOS = {{ site.data.team_logos | jsonify }};
   const DEFAULT_LOGO_PATH = "{{ site.data.team_config.default_logo_path | default: '/assets/images/teams/default.png' }}";
@@ -121,12 +132,13 @@ permalink: /stats/
   let currentSkaterMetric = 'pts';
   let currentGoalieMetric = 'gaa';
   let currentSort = { key: 'pts', ascending: false };
+  let currentGoalieSort = { key: 'svPct', ascending: false };
 
-  const statsForm = document.getElementById('stats-filter-form');
   const divisionSelect = document.getElementById('stats-division');
   const teamSelect = document.getElementById('stats-team');
-  const getStatsButton = document.getElementById('get-stats-button');
   const statsStatus = document.getElementById('stats-status');
+  const STATS_DIVISION_STORAGE_KEY = 'puhl_stats_division';
+  const STATS_TEAM_STORAGE_KEY = 'puhl_stats_team';
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -154,6 +166,57 @@ permalink: /stats/
     return logoKey ? TEAM_LOGOS[logoKey] : (TEAM_LOGOS.default || DEFAULT_LOGO_PATH);
   }
 
+  function normalizeTeamIdentifier(value) {
+    return String(value ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function getPlayerTeamIdentifiers(player) {
+    const values = [
+      player.teamName, player.team_name, player.team, player.Team,
+      player.teamId, player.team_id, player.franchise, player.franchiseName,
+      player.teamAbbreviation
+    ];
+    const identifiers = [];
+
+    values.forEach(value => {
+      if (value && typeof value === 'object') {
+        identifiers.push(value.name, value.fullName, value.teamName, value.id, value.abbreviation, value.code);
+      } else {
+        identifiers.push(value);
+      }
+    });
+
+    return [...new Set(identifiers.map(normalizeTeamIdentifier).filter(Boolean))];
+  }
+
+  function addTeamMetadata(player) {
+    const teamValues = getPlayerTeamIdentifiers(player);
+    if (!teamValues.length) return player;
+
+    for (const [divisionKey, division] of Object.entries(DIVISIONS)) {
+      const team = (division.teams || []).find(candidate => {
+        const name = normalizeTeamIdentifier(candidate.name);
+        const id = normalizeTeamIdentifier(candidate.id);
+        const aliases = (candidate.statsAliases || []).map(normalizeTeamIdentifier);
+        return teamValues.some(value => value === name || value === id || aliases.includes(value) ||
+          (value.length >= 5 && (value.includes(id) || name.includes(value))));
+      });
+      if (team) {
+        return {
+          ...player,
+          teamName: team.name,
+          teamId: team.id,
+          teamKey: `${divisionKey}:${team.id}`,
+          divisionKey,
+          division: division.name,
+          imagePath: team.imagePath || DEFAULT_LOGO_PATH
+        };
+      }
+    }
+
+    return player;
+  }
+
   function playerNameMarkup(player) {
     const name = escapeHtml(player.name || 'Unknown player');
     if (!player.profileUrl) return name;
@@ -165,6 +228,15 @@ permalink: /stats/
     if (metricKey === 'gaa') return number.toFixed(2);
     if (metricKey === 'svPct') return `${(number <= 1 ? number * 100 : number).toFixed(1)}%`;
     return Number.isInteger(number) ? number : number.toFixed(2);
+  }
+
+  function formatLeaderMetric(value, metricKey) {
+    if (metricKey === 'svPct') {
+      let percentage = Number(value || 0);
+      if (percentage > 1) percentage /= 100;
+      return percentage.toFixed(3).replace(/^0/, '');
+    }
+    return formatMetric(value, metricKey);
   }
 
   function showStatsView(viewName) {
@@ -203,6 +275,26 @@ permalink: /stats/
     teamSelect.value = selectedTeamKey;
   }
 
+  function saveStatsFilters() {
+    try {
+      localStorage.setItem(STATS_DIVISION_STORAGE_KEY, divisionSelect.value);
+      localStorage.setItem(STATS_TEAM_STORAGE_KEY, teamSelect.value);
+    } catch (error) {}
+  }
+
+  function restoreStatsFilters() {
+    try {
+      const savedDivision = localStorage.getItem(STATS_DIVISION_STORAGE_KEY) || '';
+      selectedDivisionKey = DIVISIONS[savedDivision] ? savedDivision : '';
+      divisionSelect.value = selectedDivisionKey;
+      selectedTeamKey = localStorage.getItem(STATS_TEAM_STORAGE_KEY) || '';
+    } catch (error) {
+      selectedDivisionKey = '';
+      selectedTeamKey = '';
+    }
+    populateTeamFilter();
+  }
+
   function applyStatsFilters() {
     selectedDivisionKey = divisionSelect.value;
     selectedTeamKey = teamSelect.value;
@@ -226,70 +318,55 @@ permalink: /stats/
   }
 
   async function loadAllTeamStats() {
-    getStatsButton.disabled = true;
-    statsStatus.textContent = 'Loading statistics for all configured teams...';
-    const teamRequests = Object.entries(DIVISIONS).flatMap(([divisionKey, division]) =>
-      (division.teams || []).map(async team => {
-        if (!team.statsUrl) return { team, divisionKey, division, skipped: true };
-        try {
-          const response = await fetch(team.statsUrl);
-          if (!response.ok) throw new Error(`Stats request failed: ${response.status}`);
-          const data = await response.json();
-          const metadata = {
-            teamName: team.name,
-            team: team.name,
-            teamId: team.id,
-            teamKey: `${divisionKey}:${team.id}`,
-            divisionKey,
-            division: division.name,
-            imagePath: team.imagePath || DEFAULT_LOGO_PATH
-          };
-          return {
-            team,
-            divisionKey,
-            skaters: (data.skaters || []).map(player => ({ ...player, ...metadata })),
-            goalies: (data.goalies || []).map(player => ({ ...player, ...metadata }))
-          };
-        } catch (error) {
-          console.error(`Error fetching ${team.name} statistics:`, error);
-          return { team, divisionKey, error };
-        }
-      })
-    );
+    statsStatus.textContent = 'Loading league statistics...';
 
-    const results = await Promise.all(teamRequests);
-    allSkaterStats = results.flatMap(result => result.skaters || []);
-    allGoalieStats = results.flatMap(result => result.goalies || []);
-    const configuredCount = results.filter(result => !result.skipped).length;
-    const failureCount = results.filter(result => result.error).length;
-    populateTeamFilter();
-    applyStatsFilters();
+    try {
+      const response = await fetch(STATS_API_URL);
+      if (!response.ok) throw new Error(`Stats request failed: ${response.status}`);
+      const data = await response.json();
+      allSkaterStats = (data.skaters || []).map(addTeamMetadata);
+      allGoalieStats = (data.goalies || []).map(addTeamMetadata);
+      populateTeamFilter();
+      applyStatsFilters();
 
-    if (!configuredCount) {
-      statsStatus.textContent = 'Add a statsUrl for each team in _data/league_structure.yml to load player stats.';
-      setStatsMessage('skaters-tbody', 10, 'No team statistics URLs are configured.');
-      setStatsMessage('goalies-tbody', 12, 'No team statistics URLs are configured.');
-      document.getElementById('skater-leaders').innerHTML = '<p class="stats-empty">No team statistics URLs are configured.</p>';
-      document.getElementById('goalie-leaders').innerHTML = '<p class="stats-empty">No team statistics URLs are configured.</p>';
-    } else if (failureCount) {
-      statsStatus.textContent += ` · ${failureCount} team feed${failureCount === 1 ? '' : 's'} failed to load`;
+      const errors = Array.isArray(data.errors) ? data.errors : [];
+      if (errors.length) {
+        statsStatus.textContent += ` · ${errors.length} source${errors.length === 1 ? '' : 's'} failed to load`;
+        console.error('Some stats sources failed:', errors);
+      }
+      if (!allSkaterStats.length && !allGoalieStats.length) {
+        statsStatus.textContent = errors.length ? 'No statistics could be loaded.' : 'No player statistics were returned.';
+      }
+    } catch (error) {
+      console.error('Error fetching league statistics:', error);
+      statsStatus.textContent = 'Could not load league statistics.';
+      setStatsMessage('skaters-tbody', 10, 'Failed to load skater statistics.');
+      setStatsMessage('goalies-tbody', 12, 'Failed to load goalie statistics.');
+      document.getElementById('skater-leaders').innerHTML = '<p class="stats-empty">Statistics could not be loaded.</p>';
+      document.getElementById('goalie-leaders').innerHTML = '<p class="stats-empty">Statistics could not be loaded.</p>';
     }
-    getStatsButton.disabled = false;
   }
 
   divisionSelect.addEventListener('change', () => {
     selectedDivisionKey = divisionSelect.value;
     populateTeamFilter();
+    saveStatsFilters();
     applyStatsFilters();
   });
-  teamSelect.addEventListener('change', applyStatsFilters);
-  statsForm.addEventListener('submit', event => {
-    event.preventDefault();
-    loadAllTeamStats();
+  teamSelect.addEventListener('change', () => {
+    saveStatsFilters();
+    applyStatsFilters();
+  });
+  document.getElementById('reset-stats-filters').addEventListener('click', () => {
+    selectedDivisionKey = '';
+    selectedTeamKey = '';
+    divisionSelect.value = '';
+    populateTeamFilter();
+    saveStatsFilters();
+    applyStatsFilters();
   });
 
-  selectedDivisionKey = '';
-  populateTeamFilter();
+  restoreStatsFilters();
   loadAllTeamStats();
 
   document.querySelectorAll('[data-leader-category]').forEach(button => {
@@ -317,6 +394,15 @@ permalink: /stats/
       currentSort.ascending = key === 'name' || key === 'number';
     }
     executeSkaterSort();
+  }
+
+  function sortGoalies(key) {
+    if (currentGoalieSort.key === key) currentGoalieSort.ascending = !currentGoalieSort.ascending;
+    else {
+      currentGoalieSort.key = key;
+      currentGoalieSort.ascending = key === 'name' || key === 'number' || key === 'gaa';
+    }
+    renderGoalies();
   }
 
   function executeSkaterSort() {
@@ -364,6 +450,35 @@ permalink: /stats/
   }
 
   function renderGoalies() {
+    const { key, ascending } = currentGoalieSort;
+    const minToSeconds = value => {
+      if (typeof value !== 'string' || !value.includes(':')) return Number(value || 0);
+      const [minutes, seconds] = value.split(':').map(Number);
+      return (minutes || 0) * 60 + (seconds || 0);
+    };
+    goalieStats.sort((a, b) => {
+      let comparison;
+      if (key === 'name' || key === 'number') {
+        comparison = String(a[key] ?? '').localeCompare(String(b[key] ?? ''), undefined, {
+          sensitivity: 'base',
+          numeric: true
+        });
+      } else if (key === 'min') {
+        comparison = minToSeconds(a[key]) - minToSeconds(b[key]);
+      } else {
+        comparison = Number(a[key] || 0) - Number(b[key] || 0);
+      }
+      return ascending ? comparison : -comparison;
+    });
+
+    document.querySelectorAll('#goalies-table th').forEach(th => {
+      const icon = th.querySelector('.sort-icon');
+      if (!icon) return;
+      const active = icon.dataset.key === key;
+      icon.textContent = active ? (ascending ? '▲' : '▼') : '';
+      th.classList.toggle('active-sort-col', active);
+    });
+
     if (!goalieStats.length) {
       setStatsMessage('goalies-tbody', 12, 'No goalie stats match the current filters.');
       return;
@@ -371,13 +486,18 @@ permalink: /stats/
 
     document.getElementById('goalies-tbody').innerHTML = goalieStats.map(goalie => `
       <tr>
-        <td><strong>${escapeHtml(goalie.number ?? '')}</strong></td>
-        <td><div class="stats-player-cell"><img src="${escapeHtml(getTeamLogo(goalie))}" alt="" />${playerNameMarkup(goalie)}</div></td>
-        <td>${escapeHtml(goalie.gp ?? 0)}</td><td>${escapeHtml(goalie.min ?? 0)}</td>
-        <td>${escapeHtml(goalie.w ?? 0)}</td><td>${escapeHtml(goalie.l ?? 0)}</td>
-        <td>${escapeHtml(goalie.t ?? 0)}</td><td>${escapeHtml(goalie.ga ?? 0)}</td>
-        <td>${escapeHtml(goalie.sv ?? 0)}</td><td>${formatMetric(goalie.gaa, 'gaa')}</td>
-        <td>${formatMetric(goalie.svPct, 'svPct')}</td><td>${escapeHtml(goalie.so ?? 0)}</td>
+        <td ${key === 'number' ? 'class="active-sort-col"' : ''}><strong>${escapeHtml(goalie.number ?? '')}</strong></td>
+        <td ${key === 'name' ? 'class="active-sort-col"' : ''}><div class="stats-player-cell"><img src="${escapeHtml(getTeamLogo(goalie))}" alt="" />${playerNameMarkup(goalie)}</div></td>
+        <td ${key === 'gp' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.gp ?? 0)}</td>
+        <td ${key === 'min' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.min ?? 0)}</td>
+        <td ${key === 'w' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.w ?? 0)}</td>
+        <td ${key === 'l' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.l ?? 0)}</td>
+        <td ${key === 't' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.t ?? 0)}</td>
+        <td ${key === 'ga' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.ga ?? 0)}</td>
+        <td ${key === 'sv' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.sv ?? 0)}</td>
+        <td ${key === 'gaa' ? 'class="active-sort-col"' : ''}>${formatMetric(goalie.gaa, 'gaa')}</td>
+        <td ${key === 'svPct' ? 'class="active-sort-col"' : ''}>${formatMetric(goalie.svPct, 'svPct')}</td>
+        <td ${key === 'so' ? 'class="active-sort-col"' : ''}>${escapeHtml(goalie.so ?? 0)}</td>
       </tr>
     `).join('');
   }
@@ -423,7 +543,7 @@ permalink: /stats/
               <span class="stats-leader-rank">${rankLabel}</span>
               <img src="${escapeHtml(getTeamLogo(player))}" alt="" loading="lazy">
               <span class="stats-leader-name">${playerNameMarkup(player)}</span>
-              <strong>${formatMetric(player[metric.key], metricKey)}</strong>
+              <strong>${formatLeaderMetric(player[metric.key], metricKey)}</strong>
             </li>
           `).join('')}
         </ol>
@@ -439,7 +559,7 @@ permalink: /stats/
         <p class="stats-featured-team ${hasGamesPlayed ? '' : 'stats-featured-last-meta'}">${player.teamName ? escapeHtml(player.teamName) : 'Team'}${player.number ? ` &middot; #${escapeHtml(player.number)}` : ''}</p>
         ${hasGamesPlayed ? `<p class="stats-featured-games">GP: ${escapeHtml(player.gp)}</p>` : ''}
         <span class="stats-featured-label">${metric.label}</span>
-        <strong class="stats-featured-value">${formatMetric(player[metric.key], metricKey)}</strong>
+        <strong class="stats-featured-value">${formatLeaderMetric(player[metric.key], metricKey)}</strong>
       `;
     };
     showFeaturedPlayer(featured);

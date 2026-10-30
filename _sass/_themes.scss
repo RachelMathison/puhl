@@ -9,6 +9,7 @@
   --surface:#ffffff;
   --surface-raised:#f1f2f2;
   --text:#000000;
+  --header-logo-image:#{'url("../images/site/puhl_logo.png")'};
   --watermark-image:#{'url("../images/site/puhl_logo.png")'};
 }
 
@@ -39,6 +40,7 @@
   --on-primary:#ffffff;
   --accent:#c2e2da;
   --on-accent:#15201e;
+  --header-logo-image:#{'url("../images/teams/penguins.png")'};
   --watermark-image:#{'url("../images/teams/penguins.png")'};
 }
 
@@ -48,6 +50,7 @@
   --on-primary:#ffffff;
   --accent:#0eb29f;
   --on-accent:#10201d;
+  --header-logo-image:#{'url("../images/teams/two-cans.png")'};
   --watermark-image:#{'url("../images/teams/two-cans.png")'};
 }
 
@@ -57,6 +60,7 @@
   --on-primary:#111111;
   --accent:#f05820;
   --on-accent:#111111;
+  --header-logo-image:#{'url("../images/teams/coqs.png")'};
   --watermark-image:#{'url("../images/teams/coqs.png")'};
 }
 
@@ -66,6 +70,7 @@
   --on-primary:#ffffff;
   --accent:#ede0b0;
   --on-accent:#111111;
+  --header-logo-image:#{'url("../images/teams/honkers.png")'};
   --watermark-image:#{'url("../images/teams/honkers.png")'};
 
   --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 45%, var(--primary-deep) 75%, var(--accent) 100%);
@@ -77,6 +82,7 @@
   --on-primary:#15201e;
   --accent:#ce2121;
   --on-accent:#ffffff;
+  --header-logo-image:#{'url("../images/teams/boobies.png")'};
   --watermark-image:#{'url("../images/teams/boobies.png")'};
   --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 40%, var(--primary-deep) 80%, var(--accent) 100%);
 }
@@ -87,6 +93,7 @@
   --on-primary:#15201e;
   --accent:#5BCEFA;
   --on-accent:#111111;
+  --header-logo-image:#{'url("../images/site/puhl_pride.jpeg")'};
   --watermark-image:#{'url("../images/site/puhl_logo.png")'};
   --page-background: linear-gradient(150deg, #ce2324 0%, #f5743b 20%, #eba433 40%, #11b19d 60%, #167dbc 80%, #46296b 100%);
 }

@@ -4,6 +4,8 @@ comp:
   teams:
     - name: "Bushtits"
       id: "bushtits"
+      statsAliases:
+        - "Bush"
       imagePath: "/assets/images/teams/bushtits.png"
       statsUrl: "https://puhl-stats-players-bushtits.xarria.workers.dev/"
     - name: "Eagles"
@@ -12,6 +14,8 @@ comp:
       statsUrl: "https://puhl-stats-players-eagles.xarria.workers.dev/"
     - name: "Hooters"
       id: "hooters"
+      statsAliases:
+        - "Hoot"
       imagePath: "/assets/images/teams/hooters.png"
       statsUrl: "https://puhl-stats-players-hooters.xarria.workers.dev/"
     - name: "Imperial Shags"
@@ -25,6 +29,8 @@ rec:
   teams:
     - name: "Boobies"
       id: "boobies"
+      statsAliases:
+        - "Boob"
       imagePath: "/assets/images/teams/boobies.png"
       statsUrl: "https://puhl-stats-players-boobies.xarria.workers.dev/"
     - name: "Golden Coqs"
@@ -37,6 +43,8 @@ rec:
       statsUrl: "https://puhl-stats-players-flamingos.xarria.workers.dev/"
     - name: "Flying V's"
       id: "flying"
+      statsAliases:
+        - "V's"
       imagePath: "/assets/images/teams/flying_vs.png"
       statsUrl: "https://puhl-stats-players-flyingvs.xarria.workers.dev/"
 

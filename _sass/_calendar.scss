@@ -42,6 +42,15 @@ $bushtits-text: var(--primary);
     // Make all grid borders invisible
   --fc-border-color: transparent;
 
+  .fc-col-header-cell {
+    background-color: var(--surface-raised) !important;
+  }
+
+  .fc-col-header-cell-cushion {
+    color: var(--text) !important;
+    text-decoration: none !important;
+  }
+
   .fc-theme-standard td,
   .fc-theme-standard th,
   .fc-scrollgrid {

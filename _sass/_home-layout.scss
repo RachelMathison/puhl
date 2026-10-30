@@ -26,18 +26,6 @@
     }
   }
 
-  select {
-    min-width: 170px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    font-size: 14px;
-    border-color: var(--primary);
-
-    &:focus {
-      border-color: var(--primary);
-    }
-  }
-
   @media (max-width: 480px) {
     justify-content: space-between;
   }
