@@ -255,9 +255,14 @@
   }
 
   p {
-    margin: 0 0 18px;
+    margin: 0 0 6px;
     color: var(--gray-500);
     font-size: 0.88rem;
+  }
+
+  .stats-featured-last-meta,
+  .stats-featured-games {
+    margin-bottom: 18px;
   }
 
   .stats-featured-label {
@@ -298,14 +303,31 @@
     background: var(--surface);
     color: var(--text);
     font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    &:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+    }
 
     &.leader-first {
-      border-color: var(--primary);
-      background: var(--primary);
-      color: var(--on-primary);
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--on-accent);
 
       a {
-        color: var(--on-primary);
+        color: var(--on-accent);
+      }
+    }
+
+    &:hover {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--on-accent);
+
+      a {
+        color: var(--on-accent);
       }
     }
 

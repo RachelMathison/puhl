@@ -7,19 +7,21 @@ permalink: /stats/
 <h1>Statistics</h1>
 
 <form class="stats-filters" id="stats-filter-form">
-  <label for="stats-division">Division <span aria-hidden="true">*</span></label>
-  <select id="stats-division" name="division" required>
-    <option value="">Select a division</option>
+  <label for="stats-division">Division</label>
+  <select id="stats-division" name="division">
+    <option value="">All divisions</option>
     {% for division_entry in site.data.league_structure %}
     {% assign division_key = division_entry[0] %}
     {% assign division = division_entry[1] %}
     <option value="{{ division_key }}">{{ division.name }}</option>
     {% endfor %}
   </select>
-  <button type="submit" id="get-stats-button" disabled>Get Stats</button>
+  <label for="stats-team">Team</label>
+  <select id="stats-team" name="team"><option value="">All teams</option></select>
+  <button type="submit" id="get-stats-button">Refresh Stats</button>
 </form>
 
-<p class="stats-status" id="stats-status" role="status">Select a division to load statistics.</p>
+<p class="stats-status" id="stats-status" role="status">Loading statistics for all teams...</p>
 
 <nav class="stats-tabs" aria-label="Statistics views" role="tablist">
   <button type="button" class="active" role="tab" aria-selected="true" data-stats-view="home">Home</button>
@@ -38,7 +40,7 @@ permalink: /stats/
           <button type="button" data-leader-category="skater" data-leader-metric="a">Assists</button>
         </div>
         <div class="stats-leader-content" id="skater-leaders">
-          <p class="stats-empty">Choose a division to see skater leaders.</p>
+          <p class="stats-empty">Loading skater statistics...</p>
         </div>
       </section>
 
@@ -50,7 +52,7 @@ permalink: /stats/
           <button type="button" data-leader-category="goalie" data-leader-metric="so">Shutouts</button>
         </div>
         <div class="stats-leader-content" id="goalie-leaders">
-          <p class="stats-empty">Choose a division to see goalie leaders.</p>
+          <p class="stats-empty">Loading goalie statistics...</p>
         </div>
       </section>
     </div>
@@ -74,7 +76,7 @@ permalink: /stats/
             <th onclick="sortSkaters('gw')">GWG <span class="sort-icon" data-key="gw"></span></th>
           </tr>
         </thead>
-        <tbody id="skaters-tbody"><tr><td colspan="10" class="stats-table-message">Select a division to load stats.</td></tr></tbody>
+        <tbody id="skaters-tbody"><tr><td colspan="10" class="stats-table-message">Loading statistics...</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -89,14 +91,13 @@ permalink: /stats/
             <th>GA</th><th>SV</th><th>GAA</th><th>SV%</th><th>SO</th>
           </tr>
         </thead>
-        <tbody id="goalies-tbody"><tr><td colspan="12" class="stats-table-message">Select a division to load stats.</td></tr></tbody>
+        <tbody id="goalies-tbody"><tr><td colspan="12" class="stats-table-message">Loading statistics...</td></tr></tbody>
       </table>
     </div>
   </section>
 </div>
 
 <script>
-  const STATS_API_URL = "{{ site.data.team_config.stats_api_url }}";
   const DIVISIONS = {{ site.data.league_structure | jsonify }};
   const TEAM_LOGOS = {{ site.data.team_logos | jsonify }};
   const DEFAULT_LOGO_PATH = "{{ site.data.team_config.default_logo_path | default: '/assets/images/teams/default.png' }}";
@@ -113,13 +114,17 @@ permalink: /stats/
 
   let skaterStats = [];
   let goalieStats = [];
+  let allSkaterStats = [];
+  let allGoalieStats = [];
   let selectedDivisionKey = '';
+  let selectedTeamKey = '';
   let currentSkaterMetric = 'pts';
   let currentGoalieMetric = 'gaa';
   let currentSort = { key: 'pts', ascending: false };
 
   const statsForm = document.getElementById('stats-filter-form');
   const divisionSelect = document.getElementById('stats-division');
+  const teamSelect = document.getElementById('stats-team');
   const getStatsButton = document.getElementById('get-stats-button');
   const statsStatus = document.getElementById('stats-status');
 
@@ -130,6 +135,7 @@ permalink: /stats/
   }
 
   function getTeamLogo(player) {
+    if (player.imagePath) return player.imagePath;
     const values = [player.teamName, player.team, player.teamId, player.franchise]
       .map(value => typeof value === 'string' ? value.toLowerCase() : value?.name?.toLowerCase())
       .filter(Boolean);
@@ -161,14 +167,6 @@ permalink: /stats/
     return Number.isInteger(number) ? number : number.toFixed(2);
   }
 
-  function rowsForDivision(rows, divisionKey) {
-    const division = DIVISIONS[divisionKey];
-    return (rows || []).filter(row => {
-      const rowDivision = String(row.division || row.Division || '').trim().toLowerCase();
-      return !rowDivision || rowDivision === divisionKey.toLowerCase() || rowDivision === division.name.toLowerCase();
-    });
-  }
-
   function showStatsView(viewName) {
     document.querySelectorAll('[data-stats-view]').forEach(button => {
       const selected = button.dataset.statsView === viewName;
@@ -190,43 +188,109 @@ permalink: /stats/
     button.addEventListener('click', () => showStatsView(button.dataset.openStatsView));
   });
 
-  divisionSelect.addEventListener('change', () => {
-    getStatsButton.disabled = !divisionSelect.value;
-  });
+  function populateTeamFilter() {
+    const previousTeam = selectedTeamKey;
+    const teams = Object.entries(DIVISIONS).flatMap(([divisionKey, division]) =>
+      (!selectedDivisionKey || selectedDivisionKey === divisionKey)
+        ? (division.teams || []).map(team => ({ ...team, divisionKey }))
+        : []
+    );
+    teamSelect.innerHTML = '<option value="">All teams</option>' + teams.map(team => {
+      const key = `${team.divisionKey}:${team.id}`;
+      return `<option value="${escapeHtml(key)}">${escapeHtml(team.name)}</option>`;
+    }).join('');
+    selectedTeamKey = teams.some(team => `${team.divisionKey}:${team.id}` === previousTeam) ? previousTeam : '';
+    teamSelect.value = selectedTeamKey;
+  }
 
-  statsForm.addEventListener('submit', async event => {
-    event.preventDefault();
-    if (!statsForm.reportValidity()) return;
-
+  function applyStatsFilters() {
     selectedDivisionKey = divisionSelect.value;
-    const division = DIVISIONS[selectedDivisionKey];
-    const statsUrl = division.statsUrl || STATS_API_URL;
-    statsStatus.textContent = `Loading ${division.name} statistics...`;
-    getStatsButton.disabled = true;
+    selectedTeamKey = teamSelect.value;
+    skaterStats = allSkaterStats.filter(player =>
+      (!selectedDivisionKey || player.divisionKey === selectedDivisionKey) &&
+      (!selectedTeamKey || player.teamKey === selectedTeamKey)
+    );
+    goalieStats = allGoalieStats.filter(player =>
+      (!selectedDivisionKey || player.divisionKey === selectedDivisionKey) &&
+      (!selectedTeamKey || player.teamKey === selectedTeamKey)
+    );
 
-    try {
-      const response = await fetch(statsUrl);
-      if (!response.ok) throw new Error(`Stats request failed: ${response.status}`);
-      const data = await response.json();
-      skaterStats = rowsForDivision(data.skaters, selectedDivisionKey);
-      goalieStats = rowsForDivision(data.goalies, selectedDivisionKey);
-      statsStatus.textContent = `${division.name} statistics`;
-      executeSkaterSort();
-      renderGoalies();
-      renderLeaders('skater');
-      renderLeaders('goalie');
-      showStatsView('home');
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      statsStatus.textContent = `Could not load ${division.name} statistics.`;
-      setStatsMessage('skaters-tbody', 10, 'Failed to load skater statistics.');
-      setStatsMessage('goalies-tbody', 12, 'Failed to load goalie statistics.');
-      document.getElementById('skater-leaders').innerHTML = '<p class="stats-empty">Statistics could not be loaded.</p>';
-      document.getElementById('goalie-leaders').innerHTML = '<p class="stats-empty">Statistics could not be loaded.</p>';
-    } finally {
-      getStatsButton.disabled = !divisionSelect.value;
+    const filterLabel = selectedTeamKey
+      ? teamSelect.options[teamSelect.selectedIndex].text
+      : selectedDivisionKey ? DIVISIONS[selectedDivisionKey].name : 'all teams and divisions';
+    statsStatus.textContent = `${skaterStats.length} skaters and ${goalieStats.length} goalies · ${filterLabel}`;
+    executeSkaterSort();
+    renderGoalies();
+    renderLeaders('skater');
+    renderLeaders('goalie');
+  }
+
+  async function loadAllTeamStats() {
+    getStatsButton.disabled = true;
+    statsStatus.textContent = 'Loading statistics for all configured teams...';
+    const teamRequests = Object.entries(DIVISIONS).flatMap(([divisionKey, division]) =>
+      (division.teams || []).map(async team => {
+        if (!team.statsUrl) return { team, divisionKey, division, skipped: true };
+        try {
+          const response = await fetch(team.statsUrl);
+          if (!response.ok) throw new Error(`Stats request failed: ${response.status}`);
+          const data = await response.json();
+          const metadata = {
+            teamName: team.name,
+            team: team.name,
+            teamId: team.id,
+            teamKey: `${divisionKey}:${team.id}`,
+            divisionKey,
+            division: division.name,
+            imagePath: team.imagePath || DEFAULT_LOGO_PATH
+          };
+          return {
+            team,
+            divisionKey,
+            skaters: (data.skaters || []).map(player => ({ ...player, ...metadata })),
+            goalies: (data.goalies || []).map(player => ({ ...player, ...metadata }))
+          };
+        } catch (error) {
+          console.error(`Error fetching ${team.name} statistics:`, error);
+          return { team, divisionKey, error };
+        }
+      })
+    );
+
+    const results = await Promise.all(teamRequests);
+    allSkaterStats = results.flatMap(result => result.skaters || []);
+    allGoalieStats = results.flatMap(result => result.goalies || []);
+    const configuredCount = results.filter(result => !result.skipped).length;
+    const failureCount = results.filter(result => result.error).length;
+    populateTeamFilter();
+    applyStatsFilters();
+
+    if (!configuredCount) {
+      statsStatus.textContent = 'Add a statsUrl for each team in _data/league_structure.yml to load player stats.';
+      setStatsMessage('skaters-tbody', 10, 'No team statistics URLs are configured.');
+      setStatsMessage('goalies-tbody', 12, 'No team statistics URLs are configured.');
+      document.getElementById('skater-leaders').innerHTML = '<p class="stats-empty">No team statistics URLs are configured.</p>';
+      document.getElementById('goalie-leaders').innerHTML = '<p class="stats-empty">No team statistics URLs are configured.</p>';
+    } else if (failureCount) {
+      statsStatus.textContent += ` · ${failureCount} team feed${failureCount === 1 ? '' : 's'} failed to load`;
     }
+    getStatsButton.disabled = false;
+  }
+
+  divisionSelect.addEventListener('change', () => {
+    selectedDivisionKey = divisionSelect.value;
+    populateTeamFilter();
+    applyStatsFilters();
   });
+  teamSelect.addEventListener('change', applyStatsFilters);
+  statsForm.addEventListener('submit', event => {
+    event.preventDefault();
+    loadAllTeamStats();
+  });
+
+  selectedDivisionKey = '';
+  populateTeamFilter();
+  loadAllTeamStats();
 
   document.querySelectorAll('[data-leader-category]').forEach(button => {
     button.addEventListener('click', () => {
@@ -279,7 +343,7 @@ permalink: /stats/
     });
 
     if (!skaterStats.length) {
-      setStatsMessage('skaters-tbody', 10, 'No skater stats found for this division.');
+      setStatsMessage('skaters-tbody', 10, 'No skater stats match the current filters.');
       return;
     }
 
@@ -301,7 +365,7 @@ permalink: /stats/
 
   function renderGoalies() {
     if (!goalieStats.length) {
-      setStatsMessage('goalies-tbody', 12, 'No goalie stats found for this division.');
+      setStatsMessage('goalies-tbody', 12, 'No goalie stats match the current filters.');
       return;
     }
 
@@ -326,31 +390,37 @@ permalink: /stats/
     const container = document.getElementById(isSkater ? 'skater-leaders' : 'goalie-leaders');
 
     if (!players.length) {
-      container.innerHTML = `<p class="stats-empty">Select a division to see ${isSkater ? 'skater' : 'goalie'} leaders.</p>`;
+      container.innerHTML = `<p class="stats-empty">No ${isSkater ? 'skater' : 'goalie'} stats match the current filters.</p>`;
       return;
     }
 
-    const ranked = [...players].sort((a, b) => {
+    const sortedPlayers = [...players].sort((a, b) => {
       const valueA = Number(a[metric.key] || 0);
       const valueB = Number(b[metric.key] || 0);
       return metric.ascending ? valueA - valueB : valueB - valueA;
-    }).slice(0, 11);
-    const featured = ranked[0];
+    });
+    const ranked = sortedPlayers.slice(0, 11).map((player, index) => {
+      const value = Number(player[metric.key] || 0);
+      let tieStart = index;
+      let tieEnd = index;
+      while (tieStart > 0 && Number(sortedPlayers[tieStart - 1][metric.key] || 0) === value) tieStart--;
+      while (tieEnd + 1 < sortedPlayers.length && Number(sortedPlayers[tieEnd + 1][metric.key] || 0) === value) tieEnd++;
+      const tied = tieEnd > tieStart;
+      return {
+        player,
+        rankLabel: tied ? `T${tieStart + 1}.` : `${index + 1}.`
+      };
+    });
+    const featured = ranked[0].player;
     const playerCount = isSkater ? 'skaters' : 'goalies';
 
     container.innerHTML = `
       <div class="stats-leader-layout">
-        <article class="stats-featured-player">
-          <img src="${escapeHtml(getTeamLogo(featured))}" alt="" class="stats-featured-logo">
-          <h3>${playerNameMarkup(featured)}</h3>
-          <p>${featured.teamName ? escapeHtml(featured.teamName) : 'Team'}${featured.number ? ` &middot; #${escapeHtml(featured.number)}` : ''}</p>
-          <span class="stats-featured-label">${metric.label}</span>
-          <strong class="stats-featured-value">${formatMetric(featured[metric.key], metricKey)}</strong>
-        </article>
+        <article class="stats-featured-player" data-featured-player></article>
         <ol class="stats-leader-list" aria-label="Top ${playerCount} by ${metric.label}">
-          ${ranked.map((player, index) => `
-            <li class="${index === 0 ? 'leader-first' : ''}">
-              <span class="stats-leader-rank">${index + 1}.</span>
+          ${ranked.map(({ player, rankLabel }, index) => `
+            <li class="${index === 0 ? 'leader-first' : ''}" tabindex="0" data-player-index="${index}">
+              <span class="stats-leader-rank">${rankLabel}</span>
               <img src="${escapeHtml(getTeamLogo(player))}" alt="" loading="lazy">
               <span class="stats-leader-name">${playerNameMarkup(player)}</span>
               <strong>${formatMetric(player[metric.key], metricKey)}</strong>
@@ -359,5 +429,29 @@ permalink: /stats/
         </ol>
       </div>
     `;
+
+    const featuredPanel = container.querySelector('[data-featured-player]');
+    const showFeaturedPlayer = player => {
+      const hasGamesPlayed = player.gp !== undefined && player.gp !== null && player.gp !== '';
+      featuredPanel.innerHTML = `
+        <img src="${escapeHtml(getTeamLogo(player))}" alt="" class="stats-featured-logo">
+        <h3>${playerNameMarkup(player)}</h3>
+        <p class="stats-featured-team ${hasGamesPlayed ? '' : 'stats-featured-last-meta'}">${player.teamName ? escapeHtml(player.teamName) : 'Team'}${player.number ? ` &middot; #${escapeHtml(player.number)}` : ''}</p>
+        ${hasGamesPlayed ? `<p class="stats-featured-games">GP: ${escapeHtml(player.gp)}</p>` : ''}
+        <span class="stats-featured-label">${metric.label}</span>
+        <strong class="stats-featured-value">${formatMetric(player[metric.key], metricKey)}</strong>
+      `;
+    };
+    showFeaturedPlayer(featured);
+    container.querySelectorAll('.stats-leader-list li').forEach((item, index) => {
+      const player = ranked[index].player;
+      const selectLeader = () => {
+        container.querySelectorAll('.stats-leader-list li').forEach(row => row.classList.remove('leader-first'));
+        item.classList.add('leader-first');
+        showFeaturedPlayer(player);
+      };
+      item.addEventListener('mouseenter', selectLeader);
+      item.addEventListener('focusin', selectLeader);
+    });
   }
 </script>
