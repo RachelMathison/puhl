@@ -54,10 +54,14 @@ novice:
   teams:
     - name: "Penguins"
       id: "penguins"
+      statsAliases:
+        - "Pens"
       imagePath: "/assets/images/teams/penguins.png"
       statsUrl: "https://puhl-stats-players-penguins.xarria.workers.dev/"
     - name: "Two Cans"
       id: "two cans"
+      statsAliases:
+        - "Cans"
       imagePath: "/assets/images/teams/two-cans.png"
       statsUrl: "https://puhl-stats-players-two-cans.xarria.workers.dev/"
     - name: "Pigeons"
@@ -66,5 +70,7 @@ novice:
       statsUrl: "https://puhl-stats-players-pigeons.xarria.workers.dev/"
     - name: "Honkers"
       id: "honkers"
+      statsAliases:
+        - "Honk"
       imagePath: "/assets/images/teams/honkers.png"
       statsUrl: "https://puhl-stats-players-honkers.xarria.workers.dev/"
