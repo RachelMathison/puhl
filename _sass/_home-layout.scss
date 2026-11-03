@@ -1,36 +1,4 @@
 /* ---------- homepage: two-column layout with upcoming games ---------- */
-.site-theme-control {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin: 12px 0 24px;
-
-  label {
-    display: flex;
-    align-items: center;
-    color: var(--gray-700);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .dark-mode-toggle {
-    gap: 8px;
-    cursor: pointer;
-
-    input {
-      accent-color: var(--primary);
-    }
-  }
-
-  @media (max-width: 480px) {
-    justify-content: space-between;
-  }
-}
-
 .home-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
@@ -40,6 +8,34 @@
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+}
+
+.home-theme-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 0 0 24px;
+
+  > label:first-child {
+    color: var(--gray-700);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  select {
+    min-width: 170px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    justify-content: space-between;
   }
 }
 

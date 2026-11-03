@@ -60,6 +60,10 @@ permalink: /stats/
 
   <section class="stats-view" id="stats-view-skaters" role="tabpanel" hidden>
     <h2>Skater Statistics</h2>
+    <div class="stats-player-search">
+      <label for="skater-name-search">Search skaters</label>
+      <input id="skater-name-search" data-player-search type="search" placeholder="Enter a player name" autocomplete="off">
+    </div>
     <div class="stats-table-wrapper">
       <table class="stats-table" id="skaters-table">
         <thead>
@@ -83,6 +87,10 @@ permalink: /stats/
 
   <section class="stats-view" id="stats-view-goalies" role="tabpanel" hidden>
     <h2>Goalie Statistics</h2>
+    <div class="stats-player-search">
+      <label for="goalie-name-search">Search goalies</label>
+      <input id="goalie-name-search" data-player-search type="search" placeholder="Enter a player name" autocomplete="off">
+    </div>
     <div class="stats-table-wrapper">
       <table class="stats-table" id="goalies-table">
         <thead>
@@ -129,6 +137,7 @@ permalink: /stats/
   let allGoalieStats = [];
   let selectedDivisionKey = '';
   let selectedTeamKey = '';
+  let playerNameQuery = '';
   let currentSkaterMetric = 'pts';
   let currentGoalieMetric = 'gaa';
   let currentSort = { key: 'pts', ascending: false };
@@ -136,6 +145,7 @@ permalink: /stats/
 
   const divisionSelect = document.getElementById('stats-division');
   const teamSelect = document.getElementById('stats-team');
+  const playerSearchInputs = [...document.querySelectorAll('[data-player-search]')];
   const statsStatus = document.getElementById('stats-status');
   const STATS_DIVISION_STORAGE_KEY = 'puhl_stats_division';
   const STATS_TEAM_STORAGE_KEY = 'puhl_stats_team';
@@ -298,13 +308,21 @@ permalink: /stats/
   function applyStatsFilters() {
     selectedDivisionKey = divisionSelect.value;
     selectedTeamKey = teamSelect.value;
+    const normalizedQuery = playerNameQuery.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const matchesName = player => {
+      if (!normalizedQuery) return true;
+      const name = String(player.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      return name.includes(normalizedQuery);
+    };
     skaterStats = allSkaterStats.filter(player =>
       (!selectedDivisionKey || player.divisionKey === selectedDivisionKey) &&
-      (!selectedTeamKey || player.teamKey === selectedTeamKey)
+      (!selectedTeamKey || player.teamKey === selectedTeamKey) &&
+      matchesName(player)
     );
     goalieStats = allGoalieStats.filter(player =>
       (!selectedDivisionKey || player.divisionKey === selectedDivisionKey) &&
-      (!selectedTeamKey || player.teamKey === selectedTeamKey)
+      (!selectedTeamKey || player.teamKey === selectedTeamKey) &&
+      matchesName(player)
     );
 
     const filterLabel = selectedTeamKey
@@ -360,10 +378,22 @@ permalink: /stats/
   document.getElementById('reset-stats-filters').addEventListener('click', () => {
     selectedDivisionKey = '';
     selectedTeamKey = '';
+    playerNameQuery = '';
     divisionSelect.value = '';
     populateTeamFilter();
+    playerSearchInputs.forEach(input => { input.value = ''; });
     saveStatsFilters();
     applyStatsFilters();
+  });
+
+  playerSearchInputs.forEach(input => {
+    input.addEventListener('input', () => {
+      playerNameQuery = input.value.trim();
+      playerSearchInputs.forEach(searchInput => {
+        if (searchInput !== input) searchInput.value = input.value;
+      });
+      applyStatsFilters();
+    });
   });
 
   restoreStatsFilters();

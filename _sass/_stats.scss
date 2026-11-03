@@ -148,6 +148,50 @@
   }
 }
 
+.stats-player-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(100%, 360px);
+  margin: 0 0 14px;
+
+  label {
+    color: var(--gray-700);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid var(--gray-300);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+
+    &:focus {
+      border-color: var(--primary);
+      outline: 2px solid color-mix(in srgb, var(--primary) 22%, transparent);
+      outline-offset: 1px;
+    }
+
+    &::-webkit-search-cancel-button {
+      width: 16px;
+      height: 16px;
+      margin-left: 8px;
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: var(--primary);
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 6l12 12M18 6L6 18' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+      cursor: pointer;
+    }
+  }
+}
+
 .stats-status {
   min-height: 1.4em;
   margin: 0 0 18px;

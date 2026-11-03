@@ -1,0 +1,16 @@
+<div class="site-theme-controls {{ include.variant }}">
+  <label for="{{ include.id_prefix }}-site-theme-select">Site theme</label>
+  <select id="{{ include.id_prefix }}-site-theme-select" data-theme-select>
+    <option value="green">PUHL Green</option>
+    <option value="pride">PUHL Pride</option>
+    <option value="penguins">Penguins</option>
+    <option value="twocans">Two Cans</option>
+    <option value="coqs">Golden Coqs</option>
+    <option value="honkers">Honkers</option>
+    <option value="boobies">Boobies</option>
+  </select>
+  <label class="dark-mode-toggle" for="{{ include.id_prefix }}-dark-mode-toggle">
+    <span>Dark mode</span>
+    <input id="{{ include.id_prefix }}-dark-mode-toggle" data-dark-mode-toggle type="checkbox">
+  </label>
+</div>

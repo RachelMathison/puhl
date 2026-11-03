@@ -19,15 +19,66 @@
       <a href="{{ '/calendar/' | relative_url }}"{% if page.url == '/calendar/' %} class="active"{% endif %}>Calendar</a>
       <a href="{{ '/stats/' | relative_url }}"{% if page.url == '/stats/' %} class="active"{% endif %}>Stats</a>
       <a href="{{ '/standings/' | relative_url }}"{% if page.url == '/standings/' %} class="active"{% endif %}>Standings</a>
+      <div class="nav-dropdown nav-settings">
+        <button type="button" class="nav-settings-trigger" aria-label="Site settings" aria-expanded="false" aria-controls="site-settings-menu">
+          <span class="material-symbols-rounded" aria-hidden="true">settings</span>
+        </button>
+        <div class="nav-dropdown-panel nav-settings-panel" id="site-settings-menu">
+          {% include theme-controls.html id_prefix="nav" variant="nav-theme-controls" %}
+        </div>
       </div>
     </nav>
   </div>
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const settingsMenu = document.getElementById('site-settings-menu');
+    const settingsDropdown = settingsMenu?.closest('.nav-dropdown');
+    const settingsTrigger = settingsDropdown?.querySelector('.nav-settings-trigger');
+    const themeSelects = [...document.querySelectorAll('[data-theme-select]')];
+    const darkModeToggles = [...document.querySelectorAll('[data-dark-mode-toggle]')];
+
+    themeSelects.forEach(function (themeSelect) {
+      themeSelect.value = document.documentElement.dataset.siteTheme || 'green';
+      themeSelect.addEventListener('change', function () {
+        const selectedTheme = themeSelect.value;
+        if (selectedTheme === 'green') delete document.documentElement.dataset.siteTheme;
+        else document.documentElement.dataset.siteTheme = selectedTheme;
+        themeSelects.forEach(select => { select.value = selectedTheme; });
+        try { localStorage.setItem('puhl_site_theme', selectedTheme); } catch (error) {}
+      });
+    });
+
+    darkModeToggles.forEach(function (darkModeToggle) {
+      darkModeToggle.checked = document.documentElement.dataset.colorMode === 'dark';
+      darkModeToggle.addEventListener('change', function () {
+        if (darkModeToggle.checked) document.documentElement.dataset.colorMode = 'dark';
+        else delete document.documentElement.dataset.colorMode;
+        darkModeToggles.forEach(toggle => { toggle.checked = darkModeToggle.checked; });
+        try { localStorage.setItem('puhl_color_mode', darkModeToggle.checked ? 'dark' : 'light'); } catch (error) {}
+      });
+    });
+
+    settingsTrigger?.addEventListener('click', function () {
+      const isOpen = settingsDropdown.classList.toggle('open');
+      settingsTrigger.setAttribute('aria-expanded', String(isOpen));
+    });
+  });
+
   document.addEventListener('click', function (e) {
     document.querySelectorAll('.nav-dropdown.open').forEach(function (dd) {
-      if (!dd.contains(e.target)) dd.classList.remove('open');
+      if (!dd.contains(e.target)) {
+        dd.classList.remove('open');
+        dd.querySelector('[aria-expanded="true"]')?.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.nav-dropdown.open').forEach(function (dd) {
+      dd.classList.remove('open');
+      dd.querySelector('[aria-expanded="true"]')?.setAttribute('aria-expanded', 'false');
     });
   });
   window.pageTeamLogos = {{ site.data.team_logos | jsonify }};

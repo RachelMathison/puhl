@@ -63,6 +63,7 @@
 /* ---------- top nav ---------- */
 .site-nav {
   display: flex;
+  align-items: center;
   gap: 26px;
   flex-wrap: wrap;
 
@@ -161,6 +162,96 @@
     left: 0;
     transform: none;
     min-width: 200px;
+  }
+}
+
+.nav-settings {
+  margin-left: 4px;
+
+  &.open .nav-settings-panel {
+    display: grid;
+  }
+}
+
+.nav-settings-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-top: -2px;
+  padding: 3px;
+  color: var(--white);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  .material-symbols-rounded {
+    font-family: 'Material Symbols Rounded';
+    font-size: 20px;
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  &:hover,
+  &:focus-visible,
+  &[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--white);
+  }
+}
+
+.nav-dropdown-panel.nav-settings-panel {
+  left: auto;
+  right: 0;
+  transform: none;
+  min-width: 230px;
+  padding: 16px;
+  overflow: visible;
+
+  .nav-theme-controls {
+    display: grid;
+    gap: 10px;
+
+    > label:first-child {
+      color: var(--gray-700);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    select {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 40px 9px 12px;
+      font-size: 14px;
+    }
+
+    .dark-mode-toggle {
+      justify-content: space-between;
+      padding-top: 5px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+    }
+  }
+
+  @media (max-width: 700px) {
+    right: 0;
+    left: auto;
+    min-width: 220px;
   }
 }
 
