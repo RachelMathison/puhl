@@ -20,8 +20,8 @@
 
 title: Portland United Hockey League
 description: Portland United Hockey League (PUHL), Portland, Oregon
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://rachelmathison.github.io/puhl/" # Update when the league's production domain is set.
+baseurl: "/puhl" # GitHub Pages project path
+url: "https://rachelmathison.github.io"
 twitter_username: jekyllrb
 github_username:  jekyll
 
