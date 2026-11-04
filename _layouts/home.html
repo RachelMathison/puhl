@@ -6,7 +6,8 @@ layout: default
 
 <!-- Pass team configuration and logos from Jekyll to JavaScript -->
 <script>
-  const teamLogos = {{ site.data.team_logos | jsonify }};
+  const teamLogos = Object.fromEntries(Object.entries({{ site.data.team_logos | jsonify }})
+    .map(([key, path]) => [key, window.siteAssetUrl(path)]));
 </script>
 
 {% include theme-controls.html id_prefix="home" variant="home-theme-controls" %}
@@ -96,6 +97,11 @@ layout: default
 document.addEventListener('DOMContentLoaded', async function() {
   // --- 1. SCHEDULE LOGIC ---
   const leagueStructure = {{ site.data.league_structure | jsonify }};
+  Object.values(leagueStructure).forEach(league => {
+    (league.teams || []).forEach(team => {
+      team.imagePath = window.siteAssetUrl(team.imagePath || teamLogos[team.name] || teamLogos.default);
+    });
+  });
   const mobileContainer = document.querySelector('#next-game-mobile .game-feed-list');
   const desktopContainer = document.getElementById('upcoming-games-sidebar');
 

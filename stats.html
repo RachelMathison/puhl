@@ -119,7 +119,7 @@ permalink: /stats/
   const STATS_API_URL = "{{ site.data.team_config.stats_api_url }}";
   const DIVISIONS = {{ site.data.league_structure | jsonify }};
   const TEAM_LOGOS = {{ site.data.team_logos | jsonify }};
-  const DEFAULT_LOGO_PATH = "{{ site.data.team_config.default_logo_path | default: '/assets/images/teams/default.png' }}";
+  const DEFAULT_LOGO_PATH = window.siteAssetUrl({{ site.data.team_config.default_logo_path | default: '/assets/images/teams/default.png' | jsonify }});
   const skaterMetrics = {
     pts: { label: 'Points', key: 'pts', ascending: false },
     g: { label: 'Goals', key: 'g', ascending: false },
@@ -157,7 +157,7 @@ permalink: /stats/
   }
 
   function getTeamLogo(player) {
-    if (player.imagePath) return player.imagePath;
+    if (player.imagePath) return window.siteAssetUrl(player.imagePath);
     const values = [player.teamName, player.team, player.teamId, player.franchise]
       .map(value => typeof value === 'string' ? value.toLowerCase() : value?.name?.toLowerCase())
       .filter(Boolean);
@@ -166,14 +166,14 @@ permalink: /stats/
       for (const team of division.teams || []) {
         const identifiers = [team.id, team.name].map(value => value.toLowerCase());
         if (values.some(value => identifiers.some(identifier => value.includes(identifier) || identifier.includes(value)))) {
-          return team.imagePath || DEFAULT_LOGO_PATH;
+          return window.siteAssetUrl(team.imagePath || DEFAULT_LOGO_PATH);
         }
       }
     }
 
     const logoKey = Object.keys(TEAM_LOGOS).sort((a, b) => b.length - a.length)
       .find(key => key !== 'default' && values.some(value => value.includes(key.toLowerCase())));
-    return logoKey ? TEAM_LOGOS[logoKey] : (TEAM_LOGOS.default || DEFAULT_LOGO_PATH);
+    return window.siteAssetUrl(logoKey ? TEAM_LOGOS[logoKey] : (TEAM_LOGOS.default || DEFAULT_LOGO_PATH));
   }
 
   function normalizeTeamIdentifier(value) {

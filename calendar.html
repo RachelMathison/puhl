@@ -87,7 +87,7 @@ Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
     displayName: team.name,
     id: String(team.id).toLowerCase(),
     leagueKey,
-    imagePath: team.imagePath || teamLogos[team.name] || teamLogos.default
+    imagePath: window.siteAssetUrl(team.imagePath || teamLogos[team.name] || teamLogos.default)
   }));
 });
 

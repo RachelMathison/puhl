@@ -81,7 +81,16 @@
       dd.querySelector('[aria-expanded="true"]')?.setAttribute('aria-expanded', 'false');
     });
   });
-  window.pageTeamLogos = {{ site.data.team_logos | jsonify }};
+  const siteBasePath = {{ site.baseurl | jsonify }};
+  window.siteAssetUrl = function (path) {
+    const value = String(path || '');
+    if (!value || /^(?:[a-z][a-z\d+.-]*:|\/\/|data:)/i.test(value)) return value;
+    const normalizedPath = value.startsWith('/') ? value : `/${value}`;
+    if (!siteBasePath || normalizedPath === siteBasePath || normalizedPath.startsWith(`${siteBasePath}/`)) return normalizedPath;
+    return `${siteBasePath}${normalizedPath}`;
+  };
+  window.pageTeamLogos = Object.fromEntries(Object.entries({{ site.data.team_logos | jsonify }})
+    .map(([key, path]) => [key, window.siteAssetUrl(path)]));
   window.pageTeamsConfig = [
     {% for team in site.data.teams %}
     {
@@ -89,7 +98,7 @@
       name: "{{ team.name }}",
       teamName: "{{ team.teamName }}",
       url: "{{ team.url }}",
-      selfLogo: "{{ team.selfLogo }}",
+      selfLogo: window.siteAssetUrl({{ team.selfLogo | jsonify }}),
       opponents: {{ team.opponents | jsonify }}
     }{% unless forloop.last %},{% endunless %}
     {% endfor %}

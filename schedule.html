@@ -39,6 +39,11 @@ const STORAGE_KEY_SHOW_ALL_TEAMS = 'puhl_show_all_teams';
 const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
 
 const teamLogos = window.pageTeamLogos || {};
+Object.values(LEAGUE_STRUCTURE).forEach(league => {
+  (league.teams || []).forEach(team => {
+    team.imagePath = window.siteAssetUrl(team.imagePath || teamLogos[team.name] || teamLogos.default);
+  });
+});
 
 const activeLeagues = new Set();
 const activeTeams = new Set();
