@@ -148,6 +148,30 @@
   }
 }
 
+@media (max-width: 600px) {
+  .stats-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 6px;
+
+    label {
+      align-self: end;
+      margin-top: 6px;
+    }
+
+    select {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .stats-filter-reset {
+      justify-self: start;
+      margin-top: 8px;
+    }
+  }
+}
+
 .stats-player-search {
   display: flex;
   flex-direction: column;
