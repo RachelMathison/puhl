@@ -1,7 +1,9 @@
 // Theme tokens: palette and decorative watermark for each selectable site theme.
 :root {
   --primary:#0d543c;
+  --primary-text: var(--primary);
   --primary-deep:#083b2b;
+  --subtitle-color:#68b24a;
   --on-primary:#ffffff;
   --accent:#68b24a;
   --on-accent:#111111;
@@ -30,6 +32,7 @@
 
 :root:not([data-site-theme])[data-color-mode="dark"] {
   --primary:#68b24a;
+  --subtitle-color:#68b24a;
   --accent: #0d543c;
   //--primary-deep: #c3e1db;
 }
@@ -37,6 +40,7 @@
 :root[data-site-theme="penguins"] {
   --primary:#167fbf;
   --primary-deep:#0b4568;
+  --subtitle-color:#c2e2da;
   --on-primary:#ffffff;
   --accent:#4c4f4c;
   --on-accent:#c2e2da;
@@ -44,21 +48,27 @@
   --watermark-image:#{'url("../images/teams/penguins.png")'};
 }
 
+:root[data-site-theme="penguins"][data-color-mode="dark"] {
+  --primary-text:#c2e2da;
+}
+
 :root[data-site-theme="bushtits"] {
-  --primary:#596166;
-  --primary-deep:#252a2d;
+  --primary:#a9aeac;
+  --primary-deep:#616566;
+  --subtitle-color:#a9aeac;
   --on-primary:#ffffff;
-  --accent:#aeb5b8;
-  --on-accent:#171a1c;
+  --accent:#241f21;
+  --on-accent:#a9aeac;
   --header-logo-image:#{'url("../images/teams/bushtits.png")'};
   --watermark-image:#{'url("../images/teams/bushtits.png")'};
 }
 
 :root[data-site-theme="eagles"] {
-  --primary:#17654d;
-  --primary-deep:#0a3b34;
+  --primary:#1b8ba3;
+  --primary-deep:#0b5157;
+  --subtitle-color:#1b8ba3;
   --on-primary:#ffffff;
-  --accent:#e3ad37;
+  --accent:#dfb047;
   --on-accent:#17140b;
   --header-logo-image:#{'url("../images/teams/eagles.png")'};
   --watermark-image:#{'url("../images/teams/eagles.png")'};
@@ -67,6 +77,7 @@
 :root[data-site-theme="hooters"] {
   --primary:#ef6b24;
   --primary-deep:#29180f;
+  --subtitle-color:#ef6b24;
   --on-primary:#17110e;
   --accent:#ff9a50;
   --on-accent:#17110e;
@@ -77,6 +88,7 @@
 :root[data-site-theme="shags"] {
   --primary:#542b80;
   --primary-deep:#291743;
+  --subtitle-color:#542b80;
   --on-primary:#ffffff;
   --accent:#f0bd32;
   --on-accent:#1a1408;
@@ -87,6 +99,7 @@
 :root[data-site-theme="flamingos"] {
   --primary:#e77c9b;
   --primary-deep:#fff;
+  --subtitle-color:#e77c9b;
   --on-primary:#24151b;
   --accent:#75bfc0;
   --on-accent:#102020;
@@ -95,10 +108,11 @@
 }
 
 :root[data-site-theme="flying"] {
-  --primary:#397a48;
-  --primary-deep:#1b3827;
+  --primary:#068548;
+  --primary-deep:#e7a035;
+  --subtitle-color:#e7a035;
   --on-primary:#ffffff;
-  --accent:#68458b;
+  --accent:#5e2f7f;
   --on-accent:#ffffff;
   --header-logo-image:#{'url("../images/teams/flying_vs.png")'};
   --watermark-image:#{'url("../images/teams/flying_vs.png")'};
@@ -107,6 +121,7 @@
 :root[data-site-theme="pigeons"] {
   --primary:#277fab;
   --primary-deep:#0c405f;
+  --subtitle-color:#277fab;
   --on-primary:#ffffff;
   --accent:#e0b444;
   --on-accent:#171309;
@@ -117,6 +132,7 @@
 :root[data-site-theme="twocans"] {
   --primary:#187dbd;
   --primary-deep:#452576;
+  --subtitle-color:#187dbd;
   --on-primary:#ffffff;
   --accent:#0eb29f;
   --on-accent:#10201d;
@@ -127,6 +143,7 @@
 :root[data-site-theme="coqs"] {
   --primary:#f7bd1a;
   --primary-deep:#cb2227;
+  --subtitle-color:#f7bd1a;
   --on-primary:#111111;
   --accent:#f05820;
   --on-accent:#111111;
@@ -135,20 +152,27 @@
 }
 
 :root[data-site-theme="honkers"] {
-  --primary:#ce2027;
-  --primary-deep:#252c62;
+  --primary:#252c62;
+  --primary-deep:#ce2027;
+  --subtitle-color:#ede0b0;
   --on-primary:#ffffff;
   --accent:#ede0b0;
   --on-accent:#111111;
   --header-logo-image:#{'url("../images/teams/honkers.png")'};
   --watermark-image:#{'url("../images/teams/honkers.png")'};
-
   --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 45%, var(--primary-deep) 75%, var(--accent) 100%);
+}
+
+:root[data-site-theme="honkers"][data-color-mode="dark"] {
+  --primary:#ce2027;
+  --primary-deep:#252c62;
+  --page-background: linear-gradient(150deg, var(--primary-deep) 0%, var(--primary) 45%, var(--primary) 75%, var(--accent) 100%);
 }
 
 :root[data-site-theme="boobies"] {
   --primary:#c3e1db;
   --primary-deep:#252c62;
+  --subtitle-color:#c3e1db;
   --on-primary:#15201e;
   --accent:#ce2121;
   --on-accent:#ffffff;
@@ -160,6 +184,7 @@
 :root[data-site-theme="pride"] {
   --primary:#F5A9B8;
   --primary-deep:#252c62;
+  --subtitle-color:#F5A9B8;
   --on-primary:#15201e;
   --accent:#5BCEFA;
   --on-accent:#111111;

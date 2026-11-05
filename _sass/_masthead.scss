@@ -4,7 +4,7 @@
   border-bottom: 3px solid var(--gray-100);
 
   .masthead-sub {
-    color: var(--primary);
+    color: var(--subtitle-color);
   }
 
   &-inner {
@@ -232,10 +232,15 @@
       text-transform: uppercase;
     }
 
-    select {
+    select,
+    .custom-select {
       width: 100%;
       min-width: 0;
-      padding: 9px 40px 9px 12px;
+    }
+
+    select,
+    .custom-select-trigger {
+      padding: 9px 16px 9px 12px;
       font-size: 14px;
     }
 

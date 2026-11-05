@@ -1,4 +1,5 @@
 select {
+  color-scheme: light;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -10,10 +11,11 @@ select {
   background-color: var(--surface);
   background-image:
     linear-gradient(to bottom, var(--gray-300) 0%, var(--gray-300) 100%),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d0d0d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-  background-size: 1px 22px, 14px 14px;
-  background-repeat: no-repeat, no-repeat;
-  background-position: right 40px center, right 14px center;
+    linear-gradient(-45deg, transparent 45%, var(--primary) 45% 60%, transparent 60%),
+    linear-gradient(45deg, transparent 45%, var(--primary) 45% 60%, transparent 60%);
+  background-size: 1px 22px, 8px 8px, 8px 8px;
+  background-repeat: no-repeat;
+  background-position: right 40px center, right 15px center, right 20px center;
   color: var(--text);
   font-family: inherit;
   font-size: 16px;
@@ -39,6 +41,163 @@ select {
     &:hover {
       background-color: var(--gray-100);
     }
+  }
+
+  &:focus {
+    background-image:
+      linear-gradient(to bottom, var(--gray-300) 0%, var(--gray-300) 100%),
+      linear-gradient(45deg, transparent 45%, var(--primary) 45% 60%, transparent 60%),
+      linear-gradient(-45deg, transparent 45%, var(--primary) 45% 60%, transparent 60%);
+  }
+}
+
+:root[data-color-mode="dark"] select {
+  color-scheme: dark;
+}
+
+.custom-select {
+  position: relative;
+  display: inline-block;
+  width: 220px;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.custom-select-native {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+.custom-select-trigger {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px 10px 16px;
+  border: 2px solid var(--primary);
+  border-radius: 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible,
+  .custom-select.open > & {
+    outline: 2px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.custom-select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select-trigger::after {
+  content: '';
+  position: absolute;
+  top: 25%;
+  right: 39px;
+  height: 50%;
+  border-left: 1px solid var(--gray-300);
+}
+
+.custom-select-arrow {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  margin-top: -5px;
+  border-right: 3px solid var(--primary);
+  border-bottom: 3px solid var(--primary);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease, margin 0.15s ease;
+
+  .custom-select.open > & {
+    margin-top: 5px;
+    transform: rotate(225deg);
+  }
+}
+
+.custom-select-menu {
+  position: absolute;
+  z-index: 1200;
+  top: calc(100% + 5px);
+  left: 0;
+  display: none;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(420px, 90vw);
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--gray-300);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+
+  .custom-select.open > & {
+    display: block;
+  }
+}
+
+.custom-select-option {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 10px 14px 10px 42px;
+  border: 0;
+  border-radius: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: 0;
+    background: var(--gray-100);
+  }
+
+  &[aria-selected="true"] {
+    background: var(--gray-300);
+  }
+
+  &[aria-selected="true"]::before {
+    content: '✓';
+    position: absolute;
+    left: 14px;
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }
 
@@ -94,10 +253,13 @@ select {
   }
 }
 
-.stats-filters select {
+.stats-filters select,
+.stats-filters .custom-select {
+  width: 220px;
   min-width: 220px;
 }
 
-#season-select {
+.custom-select[data-select-id="season-select"] {
   width: 170px;
+  min-width: 0;
 }

@@ -613,8 +613,10 @@ permalink: /stats/
         <h3>${playerNameMarkup(player)}</h3>
         <p class="stats-featured-team ${hasGamesPlayed ? '' : 'stats-featured-last-meta'}">${player.teamName ? escapeHtml(player.teamName) : 'Team'}${player.number ? ` &middot; #${escapeHtml(player.number)}` : ''}</p>
         ${hasGamesPlayed ? `<p class="stats-featured-games">GP: ${escapeHtml(player.gp)}</p>` : ''}
-        <span class="stats-featured-label">${metric.label}</span>
-        <strong class="stats-featured-value">${formatLeaderMetric(player[metric.key], metricKey)}</strong>
+        <div class="stats-featured-metric">
+          <span class="stats-featured-label">${metric.label}</span>
+          <strong class="stats-featured-value">${formatLeaderMetric(player[metric.key], metricKey)}</strong>
+        </div>
       `;
     };
     showFeaturedPlayer(featured);

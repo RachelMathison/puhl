@@ -1,16 +1,4 @@
-/* ---------- homepage: two-column layout with upcoming games ---------- */
-.home-layout {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 44px;
-  align-items: stretch;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-}
-
+/* Homepage division cards */
 .home-theme-controls {
   display: flex;
   flex-wrap: wrap;
@@ -27,8 +15,14 @@
     text-transform: uppercase;
   }
 
-  select {
+  select,
+  .custom-select {
+    width: 170px;
     min-width: 170px;
+  }
+
+  select,
+  .custom-select-trigger {
     padding-top: 8px;
     padding-bottom: 8px;
     font-size: 14px;
@@ -39,216 +33,229 @@
   }
 }
 
-.game-feed {
-  border-right: 1px solid var(--gray-300);
-  padding-right: 28px;
+.home-division-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px;
 
-  @media (max-width: 900px) {
-    border-right: none;
-    border-bottom: 1px solid var(--gray-300);
-    padding-right: 0;
-    padding-bottom: 6px;
-    margin-bottom: 18px;
+  @media (max-width: 1050px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* Only the next game shows on mobile */
-  @media (max-width: 900px) {
-    .game-card:nth-child(n+2) {
-      display: none;
-    }
-  }
-
-  .game-feed-heading {
-    @media (max-width: 900px) {
-      margin-top: 0;
-    }
-  }
-}
-
-.game-feed-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.home-game-division {
-  > h3 {
-    margin: 14px 0 0;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--gray-300);
-    color: var(--gray-600);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  &:first-child > h3 {
-    margin-top: 0;
-  }
-
-  .game-card-matchup-logos {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .game-card-logo {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
-
-    img {
-      width: 76%;
-      height: 76%;
-    }
-  }
-
-  .game-card-at {
-    color: var(--gray-500);
-    font-size: 10px;
-    font-weight: 700;
-  }
-}
-
-.game-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--gray-300);
-
-  &:first-child {
-    padding-top: 0;
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &-logo {
-    width: 48px;
-    height: 48px;
-    flex: 0 0 48px;
-    border-radius: 50%;
-    border: 1px solid var(--gray-300);
-    background: var(--gray-100);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-
-    img {
-      width: 70%;
-      height: 70%;
-      object-fit: contain;
-    }
-  }
-
-  &-body {
-    min-width: 0;
-  }
-
-  &-details {
-    display: flex;
-    align-items: center;
+  @media (max-width: 700px) {
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
   }
+}
 
-  &-matchup {
-    font-family: 'Oswald', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    line-height: 1.3;
+.home-division-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--gray-300);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+
+  > section + section {
+    margin-top: 20px;
+  }
+}
+
+.home-division-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--accent);
+
+  h2 {
     margin: 0;
+    padding: 0;
+    border: 0;
     color: var(--text);
+    font-size: 1.35rem;
+    line-height: 1.15;
   }
 
-  &-meta {
-    font-size: 12px;
-    color: var(--gray-500);
-    letter-spacing: 0.02em;
+}
+
+.home-division-games,
+.home-division-standings {
+  > h3 {
+    margin: 0 0 8px;
+    padding: 0;
+    border: 0;
+    color: var(--gray-700);
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
   }
 }
 
-.game-feed-empty {
-  padding: 16px 0;
+.home-division-standings > h3 a {
+  color: inherit;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--primary-text);
+  }
+}
+
+.home-game-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-300);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.home-game-time {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: var(--gray-100);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.home-game-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.home-game-team {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.2;
+
+  img {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    object-fit: contain;
+  }
+
+  .home-game-team-name {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.home-game-record {
+  flex: 0 0 auto;
+  margin-left: auto;
   color: var(--gray-500);
-  font-size: 13px;
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
-/* Homepage section headers reuse the article h2 style, with a smaller top margin
-   since they sit at the top of the card rather than mid-article */
-.list-section-title {
-  &.first {
-    margin-top: 0;
-  }
+.home-game-fallback {
+  margin: 4px 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
 
-  .chevron {
+.home-game-location {
+  margin: 5px 0 0;
+  color: var(--gray-500);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.home-standings-table-wrap {
+  overflow-x: auto;
+}
+
+.home-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th {
+    padding: 0 4px 7px;
+    border-bottom: 1px solid var(--gray-300);
     color: var(--gray-500);
-    font-weight: 400;
-    margin-left: 4px;
-  }
-}
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: right;
+    text-transform: uppercase;
 
-/* By default, show mobile block and hide desktop block */
-.mobile-next-game {
-  display: block;
-
-  @media (min-width: 901px) {
-    display: none;
-  }
-}
-
-.desktop-upcoming-games {
-  display: none;
-
-  /* On wider screens (e.g., tablets and desktops 768px and up), swap them */
-  @media (min-width: 901px) {
-    display: block;
-  }
-}
-
-.desktop-standings {
-  margin-top: 1rem;
-
-  @media (max-width: 900px) {
-    display: none !important;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-
-    th {
+    &:nth-child(2) {
       text-align: left;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--gray-300);
-      text-transform: uppercase;
-      font-size: 0.8rem;
-      color: var(--gray-600);
-      letter-spacing: 0.05em;
-
-      &:last-child {
-        text-align: center;
-      }
-    }
-
-    td {
-      padding: 10px 0;
-      border-bottom: 1px solid var(--gray-300);
-      color: var(--text);
-
-      &:last-child {
-        text-align: center;
-        font-weight: bold;
-        color: var(--accent-color, var(--text));
-      }
-    }
-
-    tr:last-child td {
-      border-bottom: none;
     }
   }
+
+  td {
+    padding: 7px 4px;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--text);
+    text-align: right;
+    white-space: nowrap;
+
+    &:nth-child(2) {
+      width: 100%;
+      text-align: left;
+    }
+
+    &:last-child strong {
+      color: var(--primary-text);
+    }
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.home-standings-rank {
+  color: var(--gray-500) !important;
+}
+
+.home-standings-team {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+
+  img {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    object-fit: contain;
+  }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.home-data-message {
+  margin: 0;
+  padding: 10px 4px !important;
+  color: var(--gray-500) !important;
+  font-size: 0.78rem;
+  text-align: center !important;
+  white-space: normal !important;
 }

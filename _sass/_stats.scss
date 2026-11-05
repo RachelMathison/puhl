@@ -43,7 +43,7 @@
       /* Applied dynamically via JS to the active sort header */
       &.active-sort-col {
         background-color: rgba(28, 52, 87, 0.12);
-        color: var(--primary);
+        color: var(--primary-text);
       }
     }
 
@@ -78,7 +78,7 @@
 
     .player-name {
       font-weight: 600;
-      color: var(--primary);
+      color: var(--primary-text);
       text-decoration: none;
 
       &:hover {
@@ -90,7 +90,7 @@
   .sort-icon {
     font-size: 0.75rem;
     margin-left: 4px;
-    color: var(--primary);
+    color: var(--primary-text);
   }
 }
 
@@ -110,7 +110,7 @@
     text-transform: uppercase;
   }
 
-  button:not(.stats-filter-reset) {
+  button:not(.stats-filter-reset):not(.custom-select-trigger):not(.custom-select-option) {
     min-height: 46px;
     padding: 0 24px;
     border: 1px solid var(--primary);
@@ -136,7 +136,7 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: var(--primary);
+    color: var(--primary-text);
     font-size: 0.85rem;
     font-weight: 600;
     text-decoration: underline;
@@ -160,7 +160,8 @@
       margin-top: 6px;
     }
 
-    select {
+    select,
+    .custom-select {
       width: 100%;
       min-width: 0;
     }
@@ -286,7 +287,7 @@
 .stats-view-link {
   border: 0;
   background: transparent;
-  color: var(--primary);
+  color: var(--primary-text);
   font: inherit;
   line-height: 1;
   cursor: pointer;
@@ -304,7 +305,7 @@
   cursor: pointer;
 
   &:hover {
-    color: var(--primary);
+    color: var(--primary-text);
   }
 }
 
@@ -378,6 +379,114 @@
     font-size: clamp(2.75rem, 5vw, 4.5rem);
     font-weight: 800;
     line-height: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .stats-leader-panel {
+    h2 {
+      font-size: 1.65rem;
+    }
+  }
+
+  .stats-metric-tabs {
+    margin-bottom: 8px;
+
+    button {
+      padding: 9px 12px 7px;
+      font-size: 0.9rem;
+    }
+  }
+
+  .stats-leader-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .stats-featured-player {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    grid-template-rows: repeat(3, auto);
+    align-items: center;
+    gap: 2px 10px;
+    padding: 10px 4px 14px;
+    text-align: left;
+
+    .stats-featured-logo {
+      grid-column: 1;
+      grid-row: 1 / 4;
+      width: 56px;
+      height: 56px;
+      padding: 7px;
+    }
+
+    h3 {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+      margin: 0;
+      overflow: hidden;
+      font-size: 1.05rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stats-featured-team {
+      grid-column: 2;
+      grid-row: 2;
+      min-width: 0;
+      margin: 0;
+      overflow: hidden;
+      font-size: 0.78rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stats-featured-games {
+      grid-column: 2;
+      grid-row: 3;
+      margin: 0;
+      font-size: 0.72rem;
+    }
+
+    .stats-featured-last-meta {
+      margin: 0;
+    }
+
+    .stats-featured-metric {
+      grid-column: 3;
+      grid-row: 1 / 4;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: flex-end;
+      justify-content: center;
+      padding-left: 4px;
+      white-space: nowrap;
+    }
+
+    .stats-featured-label {
+      font-size: 0.68rem;
+    }
+
+    .stats-featured-value {
+      font-size: 2.35rem;
+    }
+  }
+
+  .stats-container .stats-leader-list {
+    gap: 6px;
+
+    li {
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 8px;
+      min-height: 48px;
+      padding: 6px 10px;
+      font-size: 0.92rem;
+
+      img {
+        display: none;
+      }
+    }
   }
 }
 
@@ -471,7 +580,7 @@
   }
 
   a {
-    color: var(--primary);
+    color: var(--primary-text);
     font-weight: 600;
   }
 }

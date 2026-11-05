@@ -4,7 +4,6 @@ layout: default
 
 <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
 
-<!-- Pass team configuration and logos from Jekyll to JavaScript -->
 <script>
   const teamLogos = Object.fromEntries(Object.entries({{ site.data.team_logos | jsonify }})
     .map(([key, path]) => [key, window.siteAssetUrl(path)]));
@@ -12,236 +11,201 @@ layout: default
 
 {% include theme-controls.html id_prefix="home" variant="home-theme-controls" %}
 
-<div class="home-layout">
-  <aside class="game-feed">
-    <!-- Mobile View: Next Game -->
-    <div id="next-game-mobile" class="mobile-next-game">
-      <h2 class="list-section-title first"><a href="{{ '/schedule/' | relative_url }}">Next Game</a></h2>
-      <div class="game-feed-list">
-        <div class="game-feed-empty">Loading schedule...</div>
-      </div>
-    </div>
+<main class="home-division-grid" aria-label="League divisions">
+  {% assign home_division_order = "novice,rec,comp" | split: "," %}
+  {% for division_key in home_division_order %}
+    {% assign division = site.data.league_structure[division_key] %}
+    {% if division %}
+    <article class="home-division-card">
+      <header class="home-division-card-header">
+        <h2>{{ division.name }}</h2>
+      </header>
 
-    <!-- Desktop View: Upcoming Games -->
-    <div id="upcoming-games-desktop" class="desktop-upcoming-games">
-      <h2 class="list-section-title first"><a href="{{ '/schedule/' | relative_url }}">Upcoming Games</a></h2>
-      <div id="upcoming-games-sidebar" class="game-feed-list">
-        <div class="game-feed-empty">Loading schedule...</div>
-      </div>
-    </div>
-
-    <!-- Mini Standings Widget (Desktop Only) -->
-    <div id="mini-standings-widget" class="desktop-standings">
-      <h2><a href="{{ '/standings/' | relative_url }}">Standings</a></h2>
-      <div class="game-feed-list">
-        <table>
-          <thead>
-            <tr>
-              <th>Team</th>
-              <th>PTS</th>
-            </tr>
-          </thead>
-          <tbody id="mini-standings-tbody">
-            <tr><td colspan="2" style="text-align: center; padding-top: 16px; color: var(--gray-500);">Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </aside>
-
-  <div class="home-main">
-    <h2 class="list-section-title first">Latest News</h2>
-    <div class="article-list">
-      {% assign recent_posts = site.posts | limit: 5 %}
-      {% for post in recent_posts %}
-      <a class="article-card" href="{{ post.url | relative_url }}">
-        {% if post.header_image %}
-        <div class="article-card-thumb">
-          <img src="{{ post.header_image | relative_url }}" alt="{{ post.header_image_alt | default: post.title }}">
-          <div class="article-card-thumb-icon"><span></span></div>
+      <section class="home-division-games" aria-labelledby="home-games-heading-{{ division_key }}">
+        <div class="home-games-list" data-home-games="{{ division_key }}">
+          <p class="home-data-message">Loading schedule...</p>
         </div>
-        {% endif %}
-        <div class="article-card-body">
-          <div class="article-card-tags">
-            {% for tag in post.tags %}
-              {% if forloop.first %}<span class="tag green">{{ tag }}</span>
-              {% elsif forloop.index == 2 %}<span class="tag accent">{{ tag }}</span>
-              {% else %}<span class="tag">{{ tag }}</span>
-              {% endif %}
-            {% endfor %}
-          </div>
-          <h3 class="article-card-title">{{ post.title }}</h3>
-          <p class="article-card-description">{{ post.description }}</p>
-          <div class="article-card-footer">
-            <div class="article-card-date">{{ post.date | date: "%B %-d, %Y" }}</div>
-            <div class="article-card-cta">Read Full Article &rarr;</div>
-          </div>
+      </section>
+
+      <section class="home-division-standings" aria-labelledby="home-standings-heading-{{ division_key }}">
+        <h3 id="home-standings-heading-{{ division_key }}"><a href="{{ '/standings/' | relative_url }}">Standings</a></h3>
+        <div class="home-standings-table-wrap">
+          <table class="home-standings-table">
+            <thead>
+              <tr><th>#</th><th>Team</th><th>PTS</th></tr>
+            </thead>
+            <tbody data-home-standings="{{ division_key }}">
+              <tr><td colspan="3" class="home-data-message">Loading standings...</td></tr>
+            </tbody>
+          </table>
         </div>
-      </a>
-      {% endfor %}
-
-      {% if site.posts.size == 0 %}
-      <div class="empty-state">No articles yet — add a post to _posts/.</div>
-      {% endif %}
-    </div>
-
-    {% if site.posts.size > 5 %}
-    <div class="archive-link-row">
-      <a class="archive-link" href="{{ '/archive/' | relative_url }}">View Full Archive &rarr;</a>
-    </div>
+      </section>
+    </article>
     {% endif %}
-  </div>
-</div>
+  {% endfor %}
+</main>
 
 <script>
-document.addEventListener('DOMContentLoaded', async function() {
-  // --- 1. SCHEDULE LOGIC ---
-  const leagueStructure = {{ site.data.league_structure | jsonify }};
-  Object.values(leagueStructure).forEach(league => {
-    (league.teams || []).forEach(team => {
-      team.imagePath = window.siteAssetUrl(team.imagePath || teamLogos[team.name] || teamLogos.default);
+document.addEventListener('DOMContentLoaded', function () {
+  const HOME_DIVISION_ORDER = ['novice', 'rec', 'comp'];
+  const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
+  const DEFAULT_TEAM_LOGO = teamLogos.default || '';
+  const standingsRequests = new Map();
+
+  Object.values(LEAGUE_STRUCTURE).forEach(division => {
+    (division.teams || []).forEach(team => {
+      team.imagePath = window.siteAssetUrl(team.imagePath || teamLogos[team.name] || DEFAULT_TEAM_LOGO);
     });
   });
-  const mobileContainer = document.querySelector('#next-game-mobile .game-feed-list');
-  const desktopContainer = document.getElementById('upcoming-games-sidebar');
 
-  if (!leagueStructure || Object.keys(leagueStructure).length === 0) {
-    const errorMsg = '<div class="game-feed-empty">No league schedules configured.</div>';
-    if (mobileContainer) mobileContainer.innerHTML = errorMsg;
-    if (desktopContainer) desktopContainer.innerHTML = errorMsg;
-  } else {
-    const leagueEvents = {};
-    const promises = Object.entries(leagueStructure).map(async ([leagueKey, league]) => {
-      try {
-        const response = await fetch(league.icsUrl);
-        if (!response.ok) throw new Error(`Schedule request failed (${response.status})`);
-        const icsText = await response.text();
-        const jcalData = ICAL.parse(icsText);
-        const comp = new ICAL.Component(jcalData);
-        const vevents = comp.getAllSubcomponents('vevent');
-
-        leagueEvents[leagueKey] = [];
-        vevents.forEach(ve => {
-          const event = new ICAL.Event(ve);
-          leagueEvents[leagueKey].push({
-            title: event.summary,
-            start: event.startDate.toJSDate(),
-            location: event.location || '',
-            leagueKey,
-            leagueName: league.name,
-            teams: league.teams
-          });
-        });
-      } catch (err) {
-        console.error(`Error fetching ${league.name} schedule:`, err);
-        leagueEvents[leagueKey] = [];
-      }
-    });
-
-    await Promise.all(promises);
-
-    const now = new Date();
-    const nextGamesByLeague = Object.entries(leagueStructure).map(([leagueKey, league]) => ({
-      leagueKey,
-      leagueName: league.name,
-      games: (leagueEvents[leagueKey] || []).filter(event => event.start && event.start > now)
-        .sort((a, b) => a.start - b.start)
-        .slice(0, 2)
-    }));
-    const nextGame = nextGamesByLeague
-      .flatMap(league => league.games)
-      .sort((a, b) => a.start - b.start)[0];
-
-    if (!nextGame) {
-      const emptyMsg = '<div class="game-feed-empty">No upcoming games scheduled.</div>';
-      if (mobileContainer) mobileContainer.innerHTML = emptyMsg;
-      if (desktopContainer) desktopContainer.innerHTML = emptyMsg;
-    } else {
-      function getGameTeams(game) {
-        const title = String(game.title || '').toLowerCase();
-        return game.teams.map(team => {
-          const idPattern = String(team.id || '').toLowerCase().split(/\s+/)
-            .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-            .join('[\\s_-]+');
-          const match = idPattern
-            ? new RegExp(`(^|[^a-z0-9])(${idPattern})(?=$|[^a-z0-9])`).exec(title)
-            : null;
-          return match ? { team, index: match.index + match[1].length } : null;
-        }).filter(Boolean).sort((a, b) => a.index - b.index).slice(0, 2).map(match => match.team);
-      }
-
-      function buildGameCardHTML(e) {
-        const dateStr = e.start.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        const timeStr = e.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        const locationStr = e.location ? ` · ${e.location}` : '';
-        const gameTeams = getGameTeams(e);
-        const teamLogosHtml = gameTeams.length
-          ? `<div class="game-card-matchup-logos">${gameTeams.map(team => `<span class="game-card-logo"><img src="${team.imagePath || teamLogos[team.name] || teamLogos.default || ''}" alt="${team.name}"></span>`).join('<span class="game-card-at">@</span>')}</div>`
-          : `<div class="game-card-logo"><img src="${teamLogos.default || ''}" alt=""></div>`;
-
-        return `
-          <div class="game-card" data-league="${e.leagueKey}">
-            <div class="game-card-matchup">${e.title || 'Game'}</div>
-            <div class="game-card-details">
-              ${teamLogosHtml}
-              <div class="game-card-body">
-                <div class="game-card-meta">${dateStr} · ${timeStr}${locationStr}</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      if (mobileContainer) mobileContainer.innerHTML = buildGameCardHTML(nextGame);
-      if (desktopContainer) {
-        const hasGames = nextGamesByLeague.some(league => league.games.length);
-        desktopContainer.innerHTML = hasGames
-          ? nextGamesByLeague.filter(league => league.games.length).map(league => `
-              <section class="home-game-division">
-                <h3>${league.leagueName}</h3>
-                ${league.games.map(buildGameCardHTML).join('')}
-              </section>
-            `).join('')
-          : '<div class="game-feed-empty">No upcoming games scheduled.</div>';
-      }
-    }
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
   }
 
-  // --- 2. MINI STANDINGS LOGIC ---
-  async function loadMiniStandings() {
-    const tbody = document.getElementById('mini-standings-tbody');
-    if (!tbody) return;
+  function decodeHtmlEntities(value) {
+    const decoder = document.createElement('textarea');
+    decoder.innerHTML = String(value ?? '');
+    return decoder.value;
+  }
 
-    try {
-      const res = await fetch('{{ site.data.team_config.standings_api_url }}');
-      const data = await res.json();
-      
-      // Sort by PTS descending
-      data.sort((a, b) => {
-        const ptsA = Number(a['PTS'] || 0);
-        const ptsB = Number(b['PTS'] || 0);
-        return ptsB - ptsA;
+  function normalizeTeamName(value) {
+    return decodeHtmlEntities(value).toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function getMatchedTeams(title, division) {
+    const normalizedTitle = decodeHtmlEntities(title).toLowerCase();
+    const matches = [];
+    (division.teams || []).forEach(team => {
+      const identifiers = [team.id, team.name, ...(team.statsAliases || [])].filter(Boolean);
+      identifiers.forEach(identifier => {
+        const pattern = String(identifier).toLowerCase().trim().split(/\s+/)
+          .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .join('[\\s_-]+');
+        const match = new RegExp(`(^|[^a-z0-9])(${pattern})(?=$|[^a-z0-9])`).exec(normalizedTitle);
+        if (match) matches.push({ team, index: match.index + match[1].length });
       });
+    });
+    matches.sort((a, b) => a.index - b.index);
+    return matches.filter((match, index) => matches.findIndex(item => item.team.id === match.team.id) === index)
+      .slice(0, 2).map(match => match.team);
+  }
 
-      tbody.innerHTML = data.map(row => {
-        const teamName = row['Team'] || 'Unknown';
-        const pts = row['PTS'] || 0;
-        
-        return `
-          <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-300);"><strong>${teamName}</strong></td>
-            <td style="padding: 10px 0; border-bottom: 1px solid var(--gray-300); text-align: center; font-weight: bold; color: var(--primary);">${pts}</td>
-          </tr>
-        `;
-      }).join('');
+  function findTeamStanding(team, rows) {
+    const identifiers = [team.name, team.id, ...(team.statsAliases || [])]
+      .map(normalizeTeamName).filter(Boolean);
+    return rows.find(row => {
+      const rowName = normalizeTeamName(row.Team);
+      return identifiers.some(identifier => rowName === identifier ||
+        (identifier.length >= 5 && rowName.includes(identifier)));
+    });
+  }
 
-    } catch (e) {
-      console.error('Error fetching mini standings:', e);
-      tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; padding-top: 16px; color: red;">Failed to load.</td></tr>`;
+  function formatGame(event, division, standingsRows) {
+    const teams = getMatchedTeams(event.title, division);
+    const teamRows = teams.length === 2
+      ? teams.map(team => {
+        const standing = findTeamStanding(team, standingsRows);
+        const record = standing
+          ? `${standing.W || 0}-${standing.L || 0}-${standing.T || 0}`
+          : '';
+        return `<div class="home-game-team"><img src="${escapeHtml(team.imagePath)}" alt=""><span class="home-game-team-name">${escapeHtml(team.name)}</span>${record ? `<span class="home-game-record">${escapeHtml(record)}</span>` : ''}</div>`;
+      }).join('')
+      : `<p class="home-game-fallback">${escapeHtml(decodeHtmlEntities(event.title || 'League game'))}</p>`;
+    const date = event.start.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const time = event.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const location = event.location || 'Location to be announced';
+
+    return `<article class="home-game-row">
+      <p class="home-game-time">${date} · ${time}</p>
+      <div class="home-game-teams">${teamRows}</div>
+      <p class="home-game-location">${escapeHtml(location)}</p>
+    </article>`;
+  }
+
+  async function loadDivisionGames(divisionKey, division) {
+    const container = document.querySelector(`[data-home-games="${divisionKey}"]`);
+    if (!container) return;
+    try {
+      const [response, standingsRows] = await Promise.all([
+        fetch(division.icsUrl),
+        getDivisionStandings(divisionKey, division).catch(error => {
+          console.error(`Could not load ${division.name} standings for game records:`, error);
+          return [];
+        })
+      ]);
+      if (!response.ok) throw new Error(`Schedule request failed (${response.status})`);
+      const component = new ICAL.Component(ICAL.parse(await response.text()));
+      const now = new Date();
+      const games = component.getAllSubcomponents('vevent').map(vevent => {
+        const game = new ICAL.Event(vevent);
+        return {
+          title: decodeHtmlEntities(game.summary),
+          start: game.startDate.toJSDate(),
+          location: game.location || ''
+        };
+      }).filter(game => game.start && game.start > now)
+        .sort((a, b) => a.start - b.start).slice(0, 2);
+
+      container.innerHTML = games.length
+        ? games.map(game => formatGame(game, division, standingsRows)).join('')
+        : '<p class="home-data-message">No upcoming games scheduled.</p>';
+    } catch (error) {
+      console.error(`Could not load ${division.name} games:`, error);
+      container.innerHTML = '<p class="home-data-message">Could not load upcoming games.</p>';
     }
   }
 
-  // Execute the standings fetch independently
-  loadMiniStandings();
+  function getStandingsLogo(teamName, division) {
+    const normalizedName = normalizeTeamName(teamName);
+    const team = (division.teams || []).find(candidate => {
+      const identifiers = [candidate.name, candidate.id, ...(candidate.statsAliases || [])]
+        .map(normalizeTeamName).filter(Boolean);
+      return identifiers.some(identifier => normalizedName === identifier ||
+        (identifier.length >= 5 && normalizedName.includes(identifier)));
+    });
+    return team?.imagePath || DEFAULT_TEAM_LOGO;
+  }
+
+  function getDivisionStandings(divisionKey, division) {
+    if (!standingsRequests.has(divisionKey)) {
+      standingsRequests.set(divisionKey, fetch(division.standingsUrl).then(async response => {
+        if (!response.ok) throw new Error(`Standings request failed (${response.status})`);
+        const rows = await response.json();
+        if (!Array.isArray(rows)) throw new Error('Unexpected standings response');
+        return rows;
+      }));
+    }
+    return standingsRequests.get(divisionKey);
+  }
+
+  async function loadDivisionStandings(divisionKey, division) {
+    const tbody = document.querySelector(`[data-home-standings="${divisionKey}"]`);
+    if (!tbody) return;
+    try {
+      const rows = await getDivisionStandings(divisionKey, division);
+      rows.sort((a, b) => Number(b.PTS || 0) - Number(a.PTS || 0));
+      tbody.innerHTML = rows.length ? rows.map((row, index) => {
+        const teamName = decodeHtmlEntities(row.Team || 'Unknown');
+        const logo = getStandingsLogo(teamName, division);
+        return `<tr>
+          <td class="home-standings-rank">${index + 1}</td>
+          <td><div class="home-standings-team"><img src="${escapeHtml(logo)}" alt=""><span>${escapeHtml(teamName)}</span></div></td>
+          <td><strong>${escapeHtml(row.PTS || 0)}</strong></td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="3" class="home-data-message">No standings available.</td></tr>';
+    } catch (error) {
+      console.error(`Could not load ${division.name} standings:`, error);
+      tbody.innerHTML = '<tr><td colspan="3" class="home-data-message">Could not load standings.</td></tr>';
+    }
+  }
+
+  HOME_DIVISION_ORDER.forEach(divisionKey => {
+    const division = LEAGUE_STRUCTURE[divisionKey];
+    if (!division) return;
+    loadDivisionGames(divisionKey, division);
+    loadDivisionStandings(divisionKey, division);
+  });
 });
 </script>

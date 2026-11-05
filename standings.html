@@ -4,15 +4,6 @@ title: League Standings
 permalink: /standings/
 ---
 
-<!-- Load Jekyll Data into Global Window Object -->
-<script>
-  window.pageTeamLogos = {
-    {% for item in site.data.team_logos %}
-    "{{ item[0] }}": "{{ item[1] }}"{% unless forloop.last %},{% endunless %}
-    {% endfor %}
-  };
-</script>
-
 <h1>League Standings</h1>
 
 <div class="stats-container">
@@ -51,8 +42,9 @@ permalink: /standings/
   // Site Configuration Injected via Jekyll Data File (_data/team_config.yml)
   const STANDINGS_API_URL = "{{ site.data.team_config.standings_api_url }}";
   const DIVISIONS = {{ site.data.league_structure | jsonify }};
+  const TEAM_LOGOS = window.pageTeamLogos || {};
   const PRIMARY_TEAM_KEY = "{{ site.data.team_config.primary_team_key | default: 'default' }}";
-  const DEFAULT_LOGO_PATH = "{{ site.data.team_config.default_logo_path | default: '/assets/images/default.png' }}";
+  const DEFAULT_LOGO_PATH = window.siteAssetUrl({{ site.data.team_config.default_logo_path | default: '/assets/images/default.png' | jsonify }});
   const PRIMARY_TEAM_KEYWORDS = {{ site.data.team_config.primary_team_keywords | jsonify | default: "[]" }};
 
   let standingsByDivision = {};
@@ -60,26 +52,39 @@ permalink: /standings/
   const divisionSorts = Object.fromEntries(Object.keys(DIVISIONS).map(key => [key, { key: 'PTS', ascending: false }]));
   const columnKeys = ['Team', 'PTS', 'GP', 'W', 'L', 'T', 'OTL', 'SOL', 'GF', 'GA', 'Division'];
 
+  function normalizeTeamName(name) {
+    return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
   function getLogoUrl(teamName) {
-    const fallbackLogo = window.pageTeamLogos['default'] || DEFAULT_LOGO_PATH;
+    const fallbackLogo = TEAM_LOGOS.default || DEFAULT_LOGO_PATH;
     if (!teamName) return fallbackLogo;
-    
-    const lower = teamName.toLowerCase();
-    
-    // 1. Check direct or partial match against keys in site.data.team_logos
-    for (const [key, path] of Object.entries(window.pageTeamLogos)) {
-      if (lower.includes(key.toLowerCase())) {
-        return path;
+
+    const normalizedName = normalizeTeamName(teamName);
+    for (const division of Object.values(DIVISIONS)) {
+      const team = (division.teams || []).find(candidate => {
+        const name = normalizeTeamName(candidate.name);
+        const id = normalizeTeamName(candidate.id);
+        return normalizedName === name || normalizedName === id ||
+          (name.length >= 5 && normalizedName.includes(name)) ||
+          (id.length >= 5 && normalizedName.includes(id));
+      });
+      if (team?.imagePath) {
+        return window.siteAssetUrl(team.imagePath);
       }
     }
-    
-    // 2. Dynamic check for primary team keywords defined in _config.yml
-    const matchesPrimaryTeam = PRIMARY_TEAM_KEYWORDS.some(keyword => lower.includes(keyword.toLowerCase()));
-    if (matchesPrimaryTeam && window.pageTeamLogos[PRIMARY_TEAM_KEY]) {
-      return window.pageTeamLogos[PRIMARY_TEAM_KEY];
+
+    const logoEntry = Object.entries(TEAM_LOGOS).find(([key]) =>
+      key !== 'default' && normalizedName.includes(normalizeTeamName(key))
+    );
+    if (logoEntry) return window.siteAssetUrl(logoEntry[1]);
+
+    const matchesPrimaryTeam = PRIMARY_TEAM_KEYWORDS.some(keyword => normalizedName.includes(normalizeTeamName(keyword)));
+    if (matchesPrimaryTeam && TEAM_LOGOS[PRIMARY_TEAM_KEY]) {
+      return window.siteAssetUrl(TEAM_LOGOS[PRIMARY_TEAM_KEY]);
     }
-    
-    return fallbackLogo;
+
+    return window.siteAssetUrl(fallbackLogo);
   }
 
   async function fetchStandings() {
@@ -98,6 +103,7 @@ permalink: /standings/
           const divisionUrl = division.standingsUrl || STANDINGS_API_URL;
           try {
             const response = await fetch(divisionUrl);
+            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
             const rows = await response.json();
             standingsByDivision[divisionKey] = hasDivisionUrl
               ? rows.map(row => ({ ...row, Division: row.Division || division.name }))

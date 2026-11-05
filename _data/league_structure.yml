@@ -1,6 +1,7 @@
 comp:
   name: "Competitive"
   icsUrl: "https://puhl-comp-schedule.xarria.workers.dev"
+  standingsUrl: "https://puhl-standings-comp.xarria.workers.dev/"
   teams:
     - name: "Bushtits"
       id: "bushtits"
@@ -26,6 +27,7 @@ comp:
 rec:
   name: "Recreational"
   icsUrl: "https://puhl-rec-schedule.xarria.workers.dev"
+  standingsUrl: "https://puhl-standings-rec.xarria.workers.dev/"
   teams:
     - name: "Boobies"
       id: "boobies"
@@ -51,6 +53,7 @@ rec:
 novice:
   name: "Novice"
   icsUrl: "https://puhl-novice-schedule.xarria.workers.dev"
+  standingsUrl: "https://puhl-standings-novice.xarria.workers.dev/"
   teams:
     - name: "Penguins"
       id: "penguins"

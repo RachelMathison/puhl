@@ -43,7 +43,7 @@
   /* Interactive state triggers on inner elements */
   &:hover {
     .article-card-title {
-      color: var(--primary);
+      color: var(--primary-text);
     }
 
     .article-card-cta {
@@ -187,7 +187,7 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--primary);
+    color: var(--primary-text);
     white-space: nowrap;
   }
 }
@@ -215,7 +215,7 @@
 
   &:hover {
     .archive-row-title {
-      color: var(--primary);
+      color: var(--primary-text);
     }
   }
 
@@ -250,7 +250,7 @@
   font-size: 13px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--primary);
+  color: var(--primary-text);
   border: 1px solid var(--gray-300);
   border-radius: 4px;
   padding: 10px 20px;
@@ -314,7 +314,7 @@
 
   &:hover:not(.active) {
     border-color: var(--primary);
-    color: var(--primary);
+    color: var(--primary-text);
   }
 
   &.active {
