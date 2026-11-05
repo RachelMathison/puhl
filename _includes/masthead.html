@@ -46,12 +46,23 @@
     const separator = theme.statsTeamKey.indexOf(':');
     const divisionKey = theme.statsTeamKey.slice(0, separator);
     const teamKey = theme.statsTeamKey;
+    const division = window.siteLeagueStructure?.[divisionKey];
+    const teamNames = (division?.teams || []).map(team => team.name);
     try {
       localStorage.setItem('puhl_stats_division', divisionKey);
       localStorage.setItem('puhl_stats_team', teamKey);
+      if (division) {
+        localStorage.setItem('puhl_selected_leagues', JSON.stringify([divisionKey]));
+        localStorage.setItem('puhl_selected_teams', JSON.stringify(teamNames));
+        localStorage.setItem('puhl_show_all_teams', 'false');
+      }
     } catch (error) {}
+    const detail = { divisionKey, teamKey, teamNames };
     window.dispatchEvent(new CustomEvent('puhl:stats-theme-team-change', {
-      detail: { divisionKey, teamKey }
+      detail
+    }));
+    window.dispatchEvent(new CustomEvent('puhl:schedule-theme-division-change', {
+      detail
     }));
   };
 
@@ -117,6 +128,7 @@
   };
   window.pageTeamLogos = Object.fromEntries(Object.entries({{ site.data.team_logos | jsonify }})
     .map(([key, path]) => [key, window.siteAssetUrl(path)]));
+  window.siteLeagueStructure = {{ site.data.league_structure | jsonify }};
   window.pageTeamsConfig = [
     {% for team in site.data.teams %}
     {

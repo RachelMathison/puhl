@@ -54,15 +54,24 @@ let showAllTeamsMode = true;
 function loadSavedFilters() {
   const savedLeagues = localStorage.getItem(STORAGE_KEY_LEAGUES);
   const savedTeams = localStorage.getItem(STORAGE_KEY_TEAMS);
+  const hasSavedFilters = savedLeagues !== null || savedTeams !== null;
+  const activeThemeKey = document.documentElement.dataset.siteTheme || 'green';
+  const activeTheme = (window.siteThemeMetadata || []).find(theme => theme.id === activeThemeKey);
+  const themeDivisionKey = activeTheme?.statsTeamKey?.split(':')[0];
+  const themeDivision = !hasSavedFilters ? LEAGUE_STRUCTURE[themeDivisionKey] : null;
 
   if (savedLeagues !== null) {
     JSON.parse(savedLeagues).forEach(key => activeLeagues.add(key));
+  } else if (themeDivision) {
+    activeLeagues.add(themeDivisionKey);
   } else {
     Object.keys(LEAGUE_STRUCTURE).forEach(key => activeLeagues.add(key));
   }
 
   if (savedTeams !== null) {
     JSON.parse(savedTeams).forEach(name => activeTeams.add(name));
+  } else if (themeDivision) {
+    themeDivision.teams.forEach(team => activeTeams.add(team.name));
   } else {
     Object.values(LEAGUE_STRUCTURE).forEach(league => {
       league.teams.forEach(team => activeTeams.add(team.name));
@@ -72,7 +81,7 @@ function loadSavedFilters() {
   const savedShowAllTeams = localStorage.getItem(STORAGE_KEY_SHOW_ALL_TEAMS);
   const totalTeamCount = Object.values(LEAGUE_STRUCTURE).reduce((total, league) => total + league.teams.length, 0);
   showAllTeamsMode = savedShowAllTeams === null
-    ? activeTeams.size === totalTeamCount && activeLeagues.size === Object.keys(LEAGUE_STRUCTURE).length
+    ? !themeDivision && activeTeams.size === totalTeamCount && activeLeagues.size === Object.keys(LEAGUE_STRUCTURE).length
     : savedShowAllTeams === 'true';
 }
 
@@ -245,6 +254,27 @@ function toggleShowAllTeams(showAll) {
     refreshViews();
   }
 }
+
+window.addEventListener('puhl:schedule-theme-division-change', event => {
+  const { divisionKey } = event.detail;
+  const division = LEAGUE_STRUCTURE[divisionKey];
+  if (!division) return;
+
+  activeLeagues.clear();
+  activeLeagues.add(divisionKey);
+  activeTeams.clear();
+  division.teams.forEach(team => activeTeams.add(team.name));
+  showAllTeamsMode = false;
+  localStorage.setItem(STORAGE_KEY_SHOW_ALL_TEAMS, 'false');
+
+  const showAllControl = document.getElementById('show-all-teams');
+  if (showAllControl) showAllControl.checked = false;
+  const filterPanel = document.getElementById('filter-controls');
+  if (filterPanel) filterPanel.hidden = false;
+  buildFilterUI();
+  saveFiltersToStorage();
+  refreshViews();
+});
 
 function toggleScheduleFilters() {
   const filterSection = document.getElementById('schedule-filters');
