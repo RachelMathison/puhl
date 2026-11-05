@@ -1,0 +1,235 @@
+---
+layout: default
+title: Game Details
+permalink: /game/
+---
+
+<main class="game-detail-page" id="game-detail-page">
+  <a class="game-detail-back" href="{{ '/scores/' | relative_url }}">&larr; Back to Scores</a>
+  <h1 id="game-detail-title">Game Details</h1>
+  <p class="game-detail-status" id="game-detail-status" role="status" aria-live="polite">Loading game sheet...</p>
+  <div id="game-detail-content"></div>
+</main>
+
+<script>
+(() => {
+  const API_URL = 'https://score-sheet.xarria.workers.dev/';
+  const params = new URLSearchParams(window.location.search);
+  const gameId = params.get('id');
+  const content = document.getElementById('game-detail-content');
+  const status = document.getElementById('game-detail-status');
+  const title = document.getElementById('game-detail-title');
+  const leagues = window.siteLeagueStructure || {};
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+  }
+
+  function normalize(value) {
+    return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function configuredTeam(name) {
+    const normalized = normalize(name);
+    const teams = Object.values(leagues).flatMap(league => league.teams || []);
+    return teams.find(team => [team.name, team.id, ...(team.statsAliases || [])].some(value => normalize(value) === normalized)) ||
+      teams.find(team => [team.name, team.id, ...(team.statsAliases || [])].some(value => {
+        const candidate = normalize(value);
+        return candidate && normalized && (normalized.includes(candidate) || candidate.includes(normalized));
+      }));
+  }
+
+  function teamLogo(team) {
+    const config = configuredTeam(team.name);
+    const path = config?.imagePath || window.pageTeamLogos?.[team.name] || window.pageTeamLogos?.default || '';
+    return window.siteAssetUrl(path);
+  }
+
+  function periodColumns(teams) {
+    const periods = [...new Set(teams.flatMap(team => Object.keys(team.periods || {})))];
+    return periods.sort((left, right) => {
+      const leftNumber = Number(left);
+      const rightNumber = Number(right);
+      if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) return leftNumber - rightNumber;
+      if (Number.isFinite(leftNumber)) return -1;
+      if (Number.isFinite(rightNumber)) return 1;
+      return left.localeCompare(right, undefined, { numeric: true });
+    });
+  }
+
+  function rosterTable(team, teamIndex, kind) {
+    const isSkater = kind === 'skaters';
+    const players = Array.isArray(team[kind]) ? team[kind] : [];
+    const columns = isSkater
+      ? [
+          ['number', '#', 'number'], ['name', 'Player', 'text'], ['goals', 'G', 'number'],
+          ['assists', 'A', 'number'], ['pim', 'PIM', 'number'], ['gwg', 'GWG', 'number']
+        ]
+      : [
+          ['number', '#', 'number'], ['name', 'Goalie', 'text'], ['minutes', 'MIN', 'time'],
+          ['shots', 'SH', 'number'], ['saves', 'SV', 'number'], ['decision', 'DEC', 'text']
+        ];
+    const tableKey = `${teamIndex}-${kind}`;
+    const rows = players.map(player => `<tr>${columns.map(([key]) => {
+      const value = player[key] ?? '';
+      return `<td data-sort-value="${escapeHtml(value)}">${escapeHtml(value || '—')}</td>`;
+    }).join('')}</tr>`).join('');
+    const headers = columns.map(([key, label, type], index) => `
+      <th scope="col" aria-sort="${index === 0 ? 'ascending' : 'none'}">
+        <button type="button" class="stats-sort-button" data-roster-sort-key="${escapeHtml(key)}" data-roster-sort-type="${type}">
+          ${escapeHtml(label)}<span class="sort-icon" aria-hidden="true">${index === 0 ? '▲' : ''}</span>
+        </button>
+      </th>`).join('');
+
+    return `<section class="game-detail-roster-table">
+      <h4>${isSkater ? 'Skaters' : 'Goalies'}</h4>
+      <div class="stats-table-wrapper">
+        <table class="stats-table game-detail-player-table" data-roster-table="${tableKey}" data-sort-key="number" data-sort-direction="asc">
+          <thead><tr>${headers}</tr></thead>
+          <tbody>${rows || `<tr><td colspan="${columns.length}" class="stats-table-message">${players.length ? '' : 'Player statistics are unavailable.'}</td></tr>`}</tbody>
+        </table>
+      </div>
+    </section>`;
+  }
+
+  function sortRosterTable(button) {
+    const table = button.closest('[data-roster-table]');
+    if (!table) return;
+    const key = button.dataset.rosterSortKey;
+    const type = button.dataset.rosterSortType;
+    const sameColumn = table.dataset.sortKey === key;
+    const ascending = sameColumn
+      ? table.dataset.sortDirection !== 'asc'
+      : (type === 'text');
+    const columnIndex = [...button.closest('tr').children].indexOf(button.closest('th'));
+    const body = table.tBodies[0];
+    const rows = [...body.rows];
+
+    rows.sort((left, right) => {
+      const leftValue = left.cells[columnIndex]?.dataset.sortValue || '';
+      const rightValue = right.cells[columnIndex]?.dataset.sortValue || '';
+      if (!leftValue || !rightValue) return leftValue === rightValue ? 0 : (leftValue ? -1 : 1);
+      let comparison;
+      if (type === 'number') comparison = Number(leftValue) - Number(rightValue);
+      else if (type === 'time') {
+        const seconds = value => {
+          const [minutes, secs] = value.split(':').map(Number);
+          return (minutes || 0) * 60 + (secs || 0);
+        };
+        comparison = seconds(leftValue) - seconds(rightValue);
+      } else comparison = leftValue.localeCompare(rightValue, undefined, { numeric: true, sensitivity: 'base' });
+      return ascending ? comparison : -comparison;
+    });
+
+    table.dataset.sortKey = key;
+    table.dataset.sortDirection = ascending ? 'asc' : 'desc';
+    rows.forEach(row => body.appendChild(row));
+    table.querySelectorAll('thead th').forEach((header, index) => {
+      const active = index === columnIndex;
+      header.setAttribute('aria-sort', active ? (ascending ? 'ascending' : 'descending') : 'none');
+      const icon = header.querySelector('.sort-icon');
+      if (icon) icon.textContent = active ? (ascending ? '▲' : '▼') : '';
+    });
+  }
+
+  function renderGameSheet(game) {
+    const teams = Array.isArray(game.teams) ? game.teams : [];
+    if (!teams.length) throw new Error('No team scores were included in the game sheet.');
+    const matchup = teams.map(team => team.name).join(' at ');
+    title.textContent = matchup || 'Game Details';
+    document.title = `${matchup || 'Game Details'} · Portland United Hockey League`;
+    status.textContent = '';
+
+    const meta = [game.date, game.time, game.location].filter(Boolean);
+    const teamRows = teams.map(team => `
+      <div class="game-detail-team">
+        <img src="${escapeHtml(teamLogo(team))}" alt="">
+        <div class="game-detail-team-copy">
+          <strong>${escapeHtml(team.name || 'Team')}</strong>
+          <span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'Shots on goal unavailable' : `${escapeHtml(team.shotsOnGoal)} shots on goal`}</span>
+        </div>
+        <strong class="game-detail-score">${escapeHtml(team.score ?? '—')}</strong>
+      </div>
+    `).join('');
+
+    const periods = periodColumns(teams);
+    const periodTable = periods.length ? `
+      <section class="game-detail-section">
+        <h2>Scoring by Period</h2>
+        <div class="stats-table-wrapper">
+          <table class="stats-table game-detail-period-table">
+            <thead><tr><th>Team</th>${periods.map(period => `<th>${escapeHtml(/^ot/i.test(period) ? 'OT' : period.toUpperCase())}</th>`).join('')}<th>Total</th></tr></thead>
+            <tbody>${teams.map(team => `<tr><td>${escapeHtml(team.name || 'Team')}</td>${periods.map(period => `<td>${escapeHtml(team.periods?.[period] ?? '—')}</td>`).join('')}<td><strong>${escapeHtml(team.score ?? '—')}</strong></td></tr>`).join('')}</tbody>
+          </table>
+        </div>
+      </section>` : '';
+
+    const scorers = (game.goalScorers || []).filter(player =>
+      player.name && Number(player.goals) > 0 && String(player.number || '').toLowerCase() !== 'totals:'
+    );
+    const scorerMarkup = teams.map(team => {
+      const players = scorers.filter(player => normalize(player.team) === normalize(team.name));
+      if (!players.length) return '';
+      return `<section class="game-detail-scorer-team"><h3>${escapeHtml(team.name)}</h3><ul>${players.map(player => `
+        <li><span class="game-detail-scorer-name">${player.number ? `<strong>#${escapeHtml(player.number)}</strong> ` : ''}${escapeHtml(player.name)}</span><span>${escapeHtml(player.goals)} ${Number(player.goals) === 1 ? 'goal' : 'goals'}${Number(player.assists) > 0 ? ` · ${escapeHtml(player.assists)} ${Number(player.assists) === 1 ? 'assist' : 'assists'}` : ''}</span></li>
+      `).join('')}</ul></section>`;
+    }).join('');
+
+    content.innerHTML = `
+      <section class="game-detail-card" aria-label="Final score">
+        <div class="game-detail-card-heading">
+          <span class="game-detail-final">${escapeHtml(game.status || 'FINAL')}</span>
+          <div class="game-detail-meta">${meta.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div>
+        </div>
+        <div class="game-detail-scoreboard">${teamRows}</div>
+        ${periodTable}
+        <section class="game-detail-section game-detail-goals">
+          <h2>Goal Scorers</h2>
+          ${scorerMarkup || '<p class="game-detail-muted">No goal scorers were reported.</p>'}
+        </section>
+        <section class="game-detail-section game-detail-rosters">
+          <h2>Player Stats</h2>
+          <div class="game-detail-roster-grid">${teams.map((team, index) => `
+            <section class="game-detail-roster-team">
+              <h3><img src="${escapeHtml(teamLogo(team))}" alt="">${escapeHtml(team.name || `Team ${index + 1}`)}</h3>
+              ${rosterTable(team, index, 'skaters')}
+              ${rosterTable(team, index, 'goalies')}
+            </section>
+          `).join('')}</div>
+        </section>
+      </section>`;
+    requestAnimationFrame(updateGameTableOverflow);
+  }
+
+  function updateGameTableOverflow() {
+    content.querySelectorAll('.stats-table-wrapper').forEach(wrapper => {
+      const table = wrapper.querySelector('table');
+      wrapper.classList.toggle('has-horizontal-overflow', Boolean(table && table.scrollWidth > wrapper.clientWidth + 1));
+    });
+  }
+  window.addEventListener('resize', updateGameTableOverflow, { passive: true });
+
+  content.addEventListener('click', event => {
+    const button = event.target.closest('[data-roster-sort-key]');
+    if (button) sortRosterTable(button);
+  });
+
+  if (!gameId || !/^\d+$/.test(gameId)) {
+    status.textContent = 'This game link is missing a valid game ID.';
+    return;
+  }
+
+  fetch(`${API_URL}?id=${encodeURIComponent(gameId)}`)
+    .then(async response => {
+      if (!response.ok) throw new Error(`Game sheet request failed (${response.status}).`);
+      return response.json();
+    })
+    .then(renderGameSheet)
+    .catch(error => {
+      console.error('Unable to load game sheet:', error);
+      status.textContent = 'Game details could not be loaded.';
+    });
+})();
+</script>

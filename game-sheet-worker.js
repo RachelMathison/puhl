@@ -51,7 +51,11 @@ function normalizeCell(value = '') {
     goal: 'g',
     assists: 'a',
     assist: 'a',
-    no: 'number'
+    no: 'number',
+    '#': 'number',
+    min: 'minutes',
+    dec: 'decision',
+    gwg: 'gwg'
   };
   return aliases[normalized] || normalized;
 }
@@ -88,7 +92,7 @@ function parseTables(html) {
           }))
       }))
       .filter(row => row.cells.length);
-    const before = html.slice(Math.max(0, match.index - 1800), match.index);
+    const before = html.slice(Math.max(0, match.index - 10000), match.index);
     const headings = [...before.matchAll(/<(?:h[1-6]|strong|b)\b[^>]*>([\s\S]*?)<\/(?:h[1-6]|strong|b)\s*>/gi)];
     const label = headings.length ? textContent(headings[headings.length - 1][1]) : '';
     const teamNameHeader = [...before.matchAll(/<h3\b[^>]*id=["']player_stats_(?:away|home)_team_name["'][^>]*>([\s\S]*?)<\/h3\s*>/gi)];
@@ -146,22 +150,44 @@ function parseSkaterTable(table) {
 
   const headers = table.rows[headerIndex].cells.map(cell => normalizeCell(cell.text));
   const nameIndex = headers.indexOf('name');
-  const goalsIndex = headers.indexOf('g');
-  const assistsIndex = headers.indexOf('a');
   const numberIndex = headers.findIndex(header => ['#', 'number', 'no'].includes(header));
   const players = table.rows.slice(headerIndex + 1).map(row => {
     const name = textContent(row.cells[nameIndex]?.text || '');
-    const goals = numericValue(row.cells[goalsIndex]?.text);
-    if (!name || /^(totals?|team totals)$/i.test(name) || goals === null || goals <= 0) return null;
+    if (!name || /^(totals?|team totals)$/i.test(name) || row.className.split(/\s+/).includes('totals')) return null;
     return {
       name,
       number: numberIndex >= 0 ? textContent(row.cells[numberIndex]?.text || '') || null : null,
-      goals,
-      assists: assistsIndex >= 0 ? numericValue(row.cells[assistsIndex]?.text) : null
+      goals: numericValue(row.cells[headers.indexOf('g')]?.text) ?? 0,
+      assists: numericValue(row.cells[headers.indexOf('a')]?.text) ?? 0,
+      pim: numericValue(row.cells[headers.indexOf('pim')]?.text),
+      gwg: numericValue(row.cells[headers.indexOf('gwg')]?.text)
     };
   }).filter(Boolean);
 
   return { team: table.teamName, players };
+}
+
+function parseGoalieTable(table) {
+  const headerIndex = findHeaderRow(table, ['name', 'minutes']);
+  if (headerIndex < 0) return null;
+
+  const headers = table.rows[headerIndex].cells.map(cell => normalizeCell(cell.text));
+  const numberIndex = headers.findIndex(header => ['#', 'number', 'no'].includes(header));
+  const goalies = table.rows.slice(headerIndex + 1).map(row => {
+    const name = textContent(row.cells[headers.indexOf('name')]?.text || '');
+    if (!name || /^(totals?|team totals)$/i.test(name) || row.className.split(/\s+/).includes('totals')) return null;
+    const decisionIndex = headers.indexOf('decision');
+    return {
+      name,
+      number: numberIndex >= 0 ? textContent(row.cells[numberIndex]?.text || '') || null : null,
+      minutes: textContent(row.cells[headers.indexOf('minutes')]?.text || '') || null,
+      shots: numericValue(row.cells[headers.indexOf('sh')]?.text),
+      saves: numericValue(row.cells[headers.indexOf('sv')]?.text),
+      decision: decisionIndex >= 0 ? textContent(row.cells[decisionIndex]?.text || '') || null : null
+    };
+  }).filter(Boolean);
+
+  return { team: table.teamName, goalies };
 }
 
 function elementTextById(html, id) {
@@ -208,6 +234,11 @@ function parseScoreSheet(html, gameId, sourceUrl) {
     .filter(item => item.parsed)
     .filter((item, index, all) => !item.parsed.team || all.findIndex(candidate =>
       sameTeam(candidate.parsed.team, item.parsed.team)) === index);
+  const goalieTables = tables
+    .map(table => ({ table, parsed: parseGoalieTable(table) }))
+    .filter(item => item.parsed)
+    .filter((item, index, all) => !item.parsed.team || all.findIndex(candidate =>
+      sameTeam(candidate.parsed.team, item.parsed.team)) === index);
 
   const scores = parseBoxScore(scoreTable, html);
   const shots = shotTable?.parsed.rows || [];
@@ -215,10 +246,15 @@ function parseScoreSheet(html, gameId, sourceUrl) {
     ...scores.map(row => row.name),
     ...shots.map(row => row.team)
   ]));
-  const goalScorers = skaterTables.flatMap(({ table, parsed }) => parsed.players.map(player => ({
+  const skaters = skaterTables.flatMap(({ table, parsed }) => parsed.players.map(player => ({
     ...player,
     team: parsed.team || inferTeamForTable(table, teamNames)
   })));
+  const goalies = goalieTables.flatMap(({ table, parsed }) => parsed.goalies.map(goalie => ({
+    ...goalie,
+    team: parsed.team || inferTeamForTable(table, teamNames)
+  })));
+  const goalScorers = skaters.filter(player => Number(player.goals) > 0);
 
   return {
     gameId,
@@ -232,13 +268,17 @@ function parseScoreSheet(html, gameId, sourceUrl) {
       side: team.side,
       score: team.score,
       shotsOnGoal: shots.find(row => sameTeam(row.team, team.name))?.total ?? null,
-      periods: team.periods
+      periods: team.periods,
+      skaters: skaters.filter(player => sameTeam(player.team, team.name)),
+      goalies: goalies.filter(goalie => sameTeam(goalie.team, team.name))
     })),
     goalScorers,
     available: {
       score: scores.some(team => team.score !== null),
       shotsOnGoal: shots.length > 0,
-      goalScorers: skaterTables.length > 0
+      goalScorers: goalScorers.length > 0,
+      skaters: skaters.length > 0,
+      goalies: goalies.length > 0
     }
   };
 }

@@ -331,6 +331,11 @@ function renderScoreCard(event, matchup) {
   const date = start.toLocaleDateString([], { month: 'short', day: 'numeric' });
   const time = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   const cardKey = getScoreCardKey(event);
+  const canOpenScoreSheet = isPastGame && event.gameId;
+  const cardTag = canOpenScoreSheet ? 'a' : 'article';
+  const scoreSheetHref = canOpenScoreSheet
+    ? ` href="${escapeLeaderHtml(window.siteAssetUrl(`/game/?id=${encodeURIComponent(event.gameId)}`))}" aria-label="View final score details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}"`
+    : '';
   const leaders = firstTeam && secondTeam ? [
     renderTeamLeader(firstTeam, getTeamLeader(firstTeam, 'g'), 'g', 'Goals'),
     renderTeamLeader(secondTeam, getTeamLeader(secondTeam, 'g'), 'g', 'Goals'),
@@ -338,7 +343,7 @@ function renderScoreCard(event, matchup) {
     renderTeamLeader(secondTeam, getTeamLeader(secondTeam, 'a'), 'a', 'Assists')
   ].join('') : '';
 
-  return `<article class="scores-game-card${isPastGame ? ' scores-game-card-final' : ''}">
+  return `<${cardTag} class="scores-game-card${isPastGame ? ' scores-game-card-final' : ''}${canOpenScoreSheet ? ' scores-game-card-link' : ''}"${scoreSheetHref}>
     <div class="scores-game-card-heading">
       <span class="scores-game-time"${isPastGame ? ` id="scores-game-status-${cardKey}"` : ''}>${escapeLeaderHtml(`${time} · ${date}`)}</span>
       <span class="scores-game-location">${escapeLeaderHtml(event.location || 'Location to be announced')}</span>
@@ -350,12 +355,16 @@ function renderScoreCard(event, matchup) {
           ${formatScoreTeam(secondTeam) || `<div class="scores-game-team"><img src="${escapeLeaderHtml(matchup.oppLogo)}" alt=""><div><strong>${escapeLeaderHtml(matchup.team2Name || 'Team 2')}</strong><span>Record unavailable</span></div></div>`}
         </div>
         ${leaders ? `<div class="scores-game-leaders"><h3>Team Leaders</h3><div class="scores-game-leader-grid">${leaders}</div></div>` : ''}`}
-  </article>`;
+  </${cardTag}>`;
 }
 
 function getScoreCardKey(event) {
   const raw = `${event.gameId || ''}-${new Date(event.start).getTime()}-${event.leagueKey || ''}`;
   return raw.replace(/[^a-z0-9_-]/gi, '-');
+}
+
+function gameDetailHref(gameId) {
+  return window.siteAssetUrl(`/game/?id=${encodeURIComponent(gameId)}`);
 }
 
 function fetchGameSheet(gameId) {
@@ -858,6 +867,7 @@ function renderListView() {
       html += `
         <tr>
           <td>
+            ${isPastGame && event.gameId ? `<a class="schedule-game-link" href="${escapeLeaderHtml(gameDetailHref(event.gameId))}" aria-label="View final score details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}">` : ''}
             <div class="matchup-cell">
               <span class="team-name">${matchup.team1Name || 'Team 1'}</span>
               <img src="${matchup.selfLogo}" alt="${matchup.team1Name || 'Team 1'}" />
@@ -865,6 +875,7 @@ function renderListView() {
               <img src="${matchup.oppLogo}" alt="${matchup.team2Name || 'Team 2'}" />
               <span class="team-name">${matchup.team2Name || 'Team 2'}</span>
             </div>
+            ${isPastGame && event.gameId ? '</a>' : ''}
           </td>
           ${hasPastGames ? `<td class="result-cell${isPastGame ? ' past-game-result' : ''}">${isPastGame
             ? `<span id="schedule-result-${getScoreCardKey(event)}">${event.gameId ? 'Loading…' : 'Score unavailable'}</span>`

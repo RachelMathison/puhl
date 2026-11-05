@@ -286,7 +286,8 @@
   object-fit: contain;
 }
 
-.stats-team-table .stats-sort-button {
+.stats-team-table .stats-sort-button,
+.game-detail-player-table .stats-sort-button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -300,7 +301,8 @@
   cursor: pointer;
 }
 
-.stats-team-table .stats-sort-button:focus-visible {
+.stats-team-table .stats-sort-button:focus-visible,
+.game-detail-player-table .stats-sort-button:focus-visible {
   outline: 2px solid var(--primary-text);
   outline-offset: 2px;
 }

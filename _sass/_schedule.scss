@@ -520,6 +520,21 @@
   }
 }
 
+.schedule-game-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover .team-name {
+    color: var(--primary-text);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-text);
+    outline-offset: 2px;
+  }
+}
+
 @media (max-width: 600px) {
   .schedule-date-picker {
     padding: 6px 0 8px;
