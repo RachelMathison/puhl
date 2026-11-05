@@ -44,6 +44,76 @@
   --watermark-image:#{'url("../images/teams/penguins.png")'};
 }
 
+:root[data-site-theme="bushtits"] {
+  --primary:#596166;
+  --primary-deep:#252a2d;
+  --on-primary:#ffffff;
+  --accent:#aeb5b8;
+  --on-accent:#171a1c;
+  --header-logo-image:#{'url("../images/teams/bushtits.png")'};
+  --watermark-image:#{'url("../images/teams/bushtits.png")'};
+}
+
+:root[data-site-theme="eagles"] {
+  --primary:#17654d;
+  --primary-deep:#0a3b34;
+  --on-primary:#ffffff;
+  --accent:#e3ad37;
+  --on-accent:#17140b;
+  --header-logo-image:#{'url("../images/teams/eagles.png")'};
+  --watermark-image:#{'url("../images/teams/eagles.png")'};
+}
+
+:root[data-site-theme="hooters"] {
+  --primary:#ef6b24;
+  --primary-deep:#29180f;
+  --on-primary:#17110e;
+  --accent:#ff9a50;
+  --on-accent:#17110e;
+  --header-logo-image:#{'url("../images/teams/hooters.png")'};
+  --watermark-image:#{'url("../images/teams/hooters.png")'};
+}
+
+:root[data-site-theme="shags"] {
+  --primary:#542b80;
+  --primary-deep:#291743;
+  --on-primary:#ffffff;
+  --accent:#f0bd32;
+  --on-accent:#1a1408;
+  --header-logo-image:#{'url("../images/teams/shags.png")'};
+  --watermark-image:#{'url("../images/teams/shags.png")'};
+}
+
+:root[data-site-theme="flamingos"] {
+  --primary:#e77c9b;
+  --primary-deep:#fff;
+  --on-primary:#24151b;
+  --accent:#75bfc0;
+  --on-accent:#102020;
+  --header-logo-image:#{'url("../images/teams/flamingos.png")'};
+  --watermark-image:#{'url("../images/teams/flamingos.png")'};
+}
+
+:root[data-site-theme="flying"] {
+  --primary:#397a48;
+  --primary-deep:#1b3827;
+  --on-primary:#ffffff;
+  --accent:#68458b;
+  --on-accent:#ffffff;
+  --header-logo-image:#{'url("../images/teams/flying_vs.png")'};
+  --watermark-image:#{'url("../images/teams/flying_vs.png")'};
+}
+
+:root[data-site-theme="pigeons"] {
+  --primary:#277fab;
+  --primary-deep:#0c405f;
+  --on-primary:#ffffff;
+  --accent:#e0b444;
+  --on-accent:#171309;
+  --header-logo-image:#{'url("../images/teams/pigeons.png")'};
+  --watermark-image:#{'url("../images/teams/pigeons.png")'};
+}
+
 :root[data-site-theme="twocans"] {
   --primary:#187dbd;
   --primary-deep:#452576;

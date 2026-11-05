@@ -1,0 +1,54 @@
+- id: green
+  label: Dirty Birds
+  subtitle: Dirty Birds Flock Together
+- id: pride
+  label: PUHL Pride
+  subtitle: Hockey is for everyone
+- id: honkers
+  label: Honkers
+  subtitle: Novice Division · Honkers
+  statsTeamKey: "novice:honkers"
+- id: penguins
+  label: Penguins
+  subtitle: Novice Division · Chinstrap Penguins
+  statsTeamKey: "novice:penguins"
+- id: twocans
+  label: Two Cans
+  subtitle: Novice Division · Two Cans
+  statsTeamKey: "novice:two cans"
+- id: pigeons
+  label: Pigeons
+  subtitle: Novice Division · Ice Pigeons
+  statsTeamKey: "novice:pigeons"
+- id: boobies
+  label: Boobies
+  subtitle: Recreational Division · Blue-Footed Boobies
+  statsTeamKey: "rec:boobies"
+- id: coqs
+  label: Golden Coqs
+  subtitle: Recreational Division · Golden Coqs
+  statsTeamKey: "rec:coqs"
+- id: flamingos
+  label: Flamingos
+  subtitle: Recreational Division · Flamingos
+  statsTeamKey: "rec:flamingos"
+- id: flying
+  label: Flying V's
+  subtitle: Recreational Division · Flying V's
+  statsTeamKey: "rec:flying"
+- id: bushtits
+  label: Bushtits
+  subtitle: Competitive Division · Bushtits
+  statsTeamKey: "comp:bushtits"
+- id: eagles
+  label: Eagles
+  subtitle: Competitive Division · Spread Eagles
+  statsTeamKey: "comp:eagles"
+- id: hooters
+  label: Hooters
+  subtitle: Competitive Division · Hooters
+  statsTeamKey: "comp:hooters"
+- id: shags
+  label: Imperial Shags
+  subtitle: Competitive Division · Imperial Shags
+  statsTeamKey: "comp:shags"

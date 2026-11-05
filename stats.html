@@ -294,10 +294,24 @@ permalink: /stats/
 
   function restoreStatsFilters() {
     try {
-      const savedDivision = localStorage.getItem(STATS_DIVISION_STORAGE_KEY) || '';
-      selectedDivisionKey = DIVISIONS[savedDivision] ? savedDivision : '';
+      const savedDivision = localStorage.getItem(STATS_DIVISION_STORAGE_KEY);
+      selectedDivisionKey = savedDivision && DIVISIONS[savedDivision] ? savedDivision : '';
       divisionSelect.value = selectedDivisionKey;
-      selectedTeamKey = localStorage.getItem(STATS_TEAM_STORAGE_KEY) || '';
+      const savedTeam = localStorage.getItem(STATS_TEAM_STORAGE_KEY);
+      if (savedTeam !== null) {
+        selectedTeamKey = savedTeam;
+      } else {
+        const activeThemeKey = document.documentElement.dataset.siteTheme || 'green';
+        const theme = (window.siteThemeMetadata || []).find(item => item.id === activeThemeKey);
+        if (theme?.statsTeamKey) {
+          const separator = theme.statsTeamKey.indexOf(':');
+          selectedDivisionKey = theme.statsTeamKey.slice(0, separator);
+          selectedTeamKey = theme.statsTeamKey;
+          divisionSelect.value = selectedDivisionKey;
+        } else {
+          selectedTeamKey = '';
+        }
+      }
     } catch (error) {
       selectedDivisionKey = '';
       selectedTeamKey = '';
@@ -382,6 +396,17 @@ permalink: /stats/
     divisionSelect.value = '';
     populateTeamFilter();
     playerSearchInputs.forEach(input => { input.value = ''; });
+    saveStatsFilters();
+    applyStatsFilters();
+  });
+
+  window.addEventListener('puhl:stats-theme-team-change', event => {
+    const { divisionKey, teamKey } = event.detail;
+    selectedDivisionKey = DIVISIONS[divisionKey] ? divisionKey : '';
+    divisionSelect.value = selectedDivisionKey;
+    populateTeamFilter();
+    selectedTeamKey = teamKey;
+    teamSelect.value = selectedTeamKey;
     saveStatsFilters();
     applyStatsFilters();
   });

@@ -4,7 +4,8 @@
       <span class="masthead-logo" aria-hidden="true"></span>
       <div>
         <div class="masthead-word">Portland United <span>Hockey League</span></div>
-        <div class="masthead-sub">Hockey is for everyone</div>
+        {% assign default_site_theme = site.data.site_themes | where: "id", "green" | first %}
+        <div class="masthead-sub" data-theme-subtitle>{{ default_site_theme.subtitle }}</div>
       </div>
     </a>
     <nav class="site-nav">
@@ -32,6 +33,28 @@
 </div>
 
 <script>
+  window.siteThemeMetadata = {{ site.data.site_themes | jsonify }};
+  window.updateSiteThemeSubtitle = function (themeId) {
+    const subtitleElement = document.querySelector('[data-theme-subtitle]');
+    const themes = window.siteThemeMetadata || [];
+    const theme = themes.find(item => item.id === themeId) || themes.find(item => item.id === 'green');
+    if (subtitleElement && theme) subtitleElement.textContent = theme.subtitle;
+  };
+  window.applyThemeStatsTeam = function (themeId) {
+    const theme = (window.siteThemeMetadata || []).find(item => item.id === themeId);
+    if (!theme?.statsTeamKey) return;
+    const separator = theme.statsTeamKey.indexOf(':');
+    const divisionKey = theme.statsTeamKey.slice(0, separator);
+    const teamKey = theme.statsTeamKey;
+    try {
+      localStorage.setItem('puhl_stats_division', divisionKey);
+      localStorage.setItem('puhl_stats_team', teamKey);
+    } catch (error) {}
+    window.dispatchEvent(new CustomEvent('puhl:stats-theme-team-change', {
+      detail: { divisionKey, teamKey }
+    }));
+  };
+
   document.addEventListener('DOMContentLoaded', function () {
     const settingsMenu = document.getElementById('site-settings-menu');
     const settingsDropdown = settingsMenu?.closest('.nav-dropdown');
@@ -45,10 +68,13 @@
         const selectedTheme = themeSelect.value;
         if (selectedTheme === 'green') delete document.documentElement.dataset.siteTheme;
         else document.documentElement.dataset.siteTheme = selectedTheme;
+        window.updateSiteThemeSubtitle(selectedTheme);
+        window.applyThemeStatsTeam(selectedTheme);
         themeSelects.forEach(select => { select.value = selectedTheme; });
         try { localStorage.setItem('puhl_site_theme', selectedTheme); } catch (error) {}
       });
     });
+    window.updateSiteThemeSubtitle(document.documentElement.dataset.siteTheme || 'green');
 
     darkModeToggles.forEach(function (darkModeToggle) {
       darkModeToggle.checked = document.documentElement.dataset.colorMode === 'dark';
