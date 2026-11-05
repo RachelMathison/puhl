@@ -1,5 +1,6 @@
 standings_api_url: "https://standings.darkknightshockey.com"
 stats_api_url: "https://puhl-stats-players.xarria.workers.dev/"
+team_stats_api_url: "https://puhl-stats-teams.xarria.workers.dev/"
 primary_team_key: "dk"
 primary_team_keywords:
   - "dark"

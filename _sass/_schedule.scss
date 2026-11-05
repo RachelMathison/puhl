@@ -436,6 +436,8 @@
 }
 
 .league-matchup-table {
+  table-layout: fixed;
+
   thead tr {
     background-color: var(--surface);
   }
@@ -482,16 +484,19 @@
 
 /* League schedule matchup rows: names outside, logos and @ centered. */
 .league-matchup-table .matchup-cell {
+  min-width: 0;
   display: grid;
-  grid-template-columns: minmax(70px, 1fr) 36px 24px 36px minmax(70px, 1fr);
+  grid-template-columns: minmax(0, 1fr) 36px 24px 36px minmax(0, 1fr);
   align-items: center;
   justify-items: center;
   gap: 10px;
 
   .team-name {
+    min-width: 0;
     font-size: 1.05rem;
     font-weight: 700;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 
     &:first-child {
       justify-self: end;
@@ -669,6 +674,7 @@
     .team-name {
       font-size: 0.95rem;
       white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     img {

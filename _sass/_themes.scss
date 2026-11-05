@@ -6,6 +6,7 @@
   --subtitle-color:#68b24a;
   --on-primary:#ffffff;
   --accent:#68b24a;
+  --nav-highlight: var(--accent);
   --on-accent:#111111;
   --page-background: linear-gradient(150deg, var(--primary-deep) 0%, var(--primary) 55%, var(--accent) 100%);
   --surface:#ffffff;
@@ -44,6 +45,7 @@
   --on-primary:#ffffff;
   --accent:#4c4f4c;
   --on-accent:#c2e2da;
+  --nav-highlight: var(--subtitle-color);
   --header-logo-image:#{'url("../images/teams/penguins.png")'};
   --watermark-image:#{'url("../images/teams/penguins.png")'};
 }
@@ -88,7 +90,7 @@
 :root[data-site-theme="shags"] {
   --primary:#542b80;
   --primary-deep:#291743;
-  --subtitle-color:#542b80;
+  --subtitle-color:#f0bd32;
   --on-primary:#ffffff;
   --accent:#f0bd32;
   --on-accent:#1a1408;
@@ -99,12 +101,13 @@
 :root[data-site-theme="flamingos"] {
   --primary:#e77c9b;
   --primary-deep:#fff;
-  --subtitle-color:#e77c9b;
+  --subtitle-color:#75bfc0;
   --on-primary:#24151b;
   --accent:#75bfc0;
   --on-accent:#102020;
   --header-logo-image:#{'url("../images/teams/flamingos.png")'};
   --watermark-image:#{'url("../images/teams/flamingos.png")'};
+  --page-background: linear-gradient(150deg, var(--accent) 0%, var(--primary) 55%, var(--primary-deep) 100%);
 }
 
 :root[data-site-theme="flying"] {
@@ -114,8 +117,10 @@
   --on-primary:#ffffff;
   --accent:#5e2f7f;
   --on-accent:#ffffff;
+  --nav-highlight: var(--subtitle-color);
   --header-logo-image:#{'url("../images/teams/flying_vs.png")'};
   --watermark-image:#{'url("../images/teams/flying_vs.png")'};
+  --page-background: linear-gradient(150deg, var(--accent) 0%, var(--primary) 55%, var(--primary-deep) 100%);
 }
 
 :root[data-site-theme="pigeons"] {
@@ -176,9 +181,10 @@
   --on-primary:#15201e;
   --accent:#ce2121;
   --on-accent:#ffffff;
+  --nav-highlight: var(--subtitle-color);
   --header-logo-image:#{'url("../images/teams/boobies.png")'};
   --watermark-image:#{'url("../images/teams/boobies.png")'};
-  --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 40%, var(--primary-deep) 80%, var(--accent) 100%);
+  --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 40%, var(--primary-deep) 80%, #6ca0bc 100%);
 }
 
 :root[data-site-theme="pride"] {

@@ -27,6 +27,7 @@ permalink: /stats/
   <button type="button" class="active" role="tab" aria-selected="true" data-stats-view="home">Home</button>
   <button type="button" role="tab" aria-selected="false" data-stats-view="skaters">Skaters</button>
   <button type="button" role="tab" aria-selected="false" data-stats-view="goalies">Goalies</button>
+  <button type="button" role="tab" aria-selected="false" data-stats-view="teams">Team Stats</button>
 </nav>
 
 <div class="stats-container">
@@ -115,10 +116,19 @@ permalink: /stats/
       </table>
     </div>
   </section>
+
+  <section class="stats-view" id="stats-view-teams" role="tabpanel" hidden>
+    <h2>Team Statistics</h2>
+    <p class="stats-team-status" id="team-stats-status" role="status">Loading team statistics...</p>
+    <div id="team-stats-content" class="stats-team-tables">
+      <p class="stats-empty">Loading team statistics...</p>
+    </div>
+  </section>
 </div>
 
 <script>
   const STATS_API_URL = "{{ site.data.team_config.stats_api_url }}";
+  const TEAM_STATS_API_URL = "{{ site.data.team_config.team_stats_api_url }}";
   const DIVISIONS = {{ site.data.league_structure | jsonify }};
   const TEAM_LOGOS = {{ site.data.team_logos | jsonify }};
   const DEFAULT_LOGO_PATH = window.siteAssetUrl({{ site.data.team_config.default_logo_path | default: '/assets/images/teams/default.png' | jsonify }});
@@ -138,6 +148,9 @@ permalink: /stats/
   let goalieStats = [];
   let allSkaterStats = [];
   let allGoalieStats = [];
+  let allTeamStats = [];
+  let teamStats = [];
+  const teamStatsSort = {};
   let selectedDivisionKey = '';
   let selectedTeamKey = '';
   let playerNameQuery = '';
@@ -230,6 +243,49 @@ permalink: /stats/
     return player;
   }
 
+  function addTeamStatsMetadata(teamStatsRow) {
+    const teamName = String(teamStatsRow.name || '').trim();
+    const normalizedName = normalizeTeamIdentifier(teamName);
+    let match = null;
+
+    for (const [divisionKey, division] of Object.entries(DIVISIONS)) {
+      for (const team of division.teams || []) {
+        const identifiers = [team.name, team.id, ...(team.statsAliases || [])]
+          .map(normalizeTeamIdentifier).filter(Boolean);
+        if (identifiers.includes(normalizedName)) {
+          match = { divisionKey, division, team };
+          break;
+        }
+      }
+      if (match) break;
+    }
+
+    if (!match) {
+      for (const [divisionKey, division] of Object.entries(DIVISIONS)) {
+        const team = (division.teams || []).find(candidate => {
+          const identifiers = [candidate.name, candidate.id, ...(candidate.statsAliases || [])]
+            .map(normalizeTeamIdentifier).filter(Boolean);
+          return identifiers.some(identifier => normalizedName.includes(identifier) || identifier.includes(normalizedName));
+        });
+        if (team) {
+          match = { divisionKey, division, team };
+          break;
+        }
+      }
+    }
+
+    if (!match) return { ...teamStatsRow, teamName, divisionKey: '', teamKey: '' };
+    return {
+      ...teamStatsRow,
+      teamName: match.team.name,
+      teamId: match.team.id,
+      teamKey: `${match.divisionKey}:${match.team.id}`,
+      divisionKey: match.divisionKey,
+      division: match.division.name,
+      imagePath: match.team.imagePath || DEFAULT_LOGO_PATH
+    };
+  }
+
   function playerNameMarkup(player) {
     const name = escapeHtml(player.name || 'Unknown player');
     if (!player.profileUrl) return name;
@@ -264,10 +320,21 @@ permalink: /stats/
       panel.classList.toggle('active', selected);
       panel.hidden = !selected;
     });
+    if (viewName === 'teams') requestAnimationFrame(updateTeamTableOverflow);
   }
 
   document.querySelectorAll('[data-stats-view]').forEach(button => {
     button.addEventListener('click', () => showStatsView(button.dataset.statsView));
+  });
+  document.getElementById('team-stats-content').addEventListener('click', event => {
+    const button = event.target.closest('[data-team-sort-section][data-team-sort-key]');
+    if (!button) return;
+    const { teamSortSection: section, teamSortKey: key } = button.dataset;
+    const current = teamStatsSort[section] || { key: 'name', ascending: true };
+    teamStatsSort[section] = current.key === key
+      ? { key, ascending: !current.ascending }
+      : { key, ascending: key === 'name' };
+    renderTeamStats();
   });
   document.querySelectorAll('[data-open-stats-view]').forEach(button => {
     button.addEventListener('click', () => showStatsView(button.dataset.openStatsView));
@@ -341,6 +408,10 @@ permalink: /stats/
       (!selectedTeamKey || player.teamKey === selectedTeamKey) &&
       matchesName(player)
     );
+    teamStats = allTeamStats.filter(team =>
+      (!selectedDivisionKey || team.divisionKey === selectedDivisionKey) &&
+      (!selectedTeamKey || team.teamKey === selectedTeamKey)
+    );
 
     const filterLabel = selectedTeamKey
       ? teamSelect.options[teamSelect.selectedIndex].text
@@ -350,6 +421,145 @@ permalink: /stats/
     renderGoalies();
     renderLeaders('skater');
     renderLeaders('goalie');
+    renderTeamStats();
+  }
+
+  function renderTeamStats() {
+    const container = document.getElementById('team-stats-content');
+    if (!container) return;
+    if (!teamStats.length) {
+      container.innerHTML = '<p class="stats-empty">No team statistics match the current filters.</p>';
+      return;
+    }
+
+    const numericColumns = {
+      skater: [
+        ['gp', 'GP'], ['goals', 'G'], ['assists', 'A'], ['points', 'PTS'], ['sog', 'SOG'],
+        ['ppg', 'PPG'], ['ppa', 'PPA'], ['sh', 'SH'], ['sha', 'SHA'], ['penalties', 'PEN'], ['pim', 'PIM']
+      ],
+      goalie: [
+        ['gp', 'GP'], ['minutes', 'MIN'], ['sog', 'SOG'], ['ga', 'GA'], ['saves', 'SV'],
+        ['gaa', 'GAA'], ['svPct', 'SV%'], ['shutouts', 'SO']
+      ],
+      team: [
+        ['gp', 'GP'], ['gpg', 'GPG'], ['gapg', 'GAPG'], ['pp', 'PP'], ['ppPct', 'PP%'],
+        ['pk', 'PK'], ['ppga', 'PPGA'], ['pkPct', 'PK%']
+      ]
+    };
+    const sections = [
+      { key: 'scoreByPeriod', title: 'Scoring by Period' },
+      { key: 'skater', title: 'Skater Totals', columns: numericColumns.skater },
+      { key: 'goalie', title: 'Goalie Totals', columns: numericColumns.goalie },
+      { key: 'team', title: 'Team Totals', columns: numericColumns.team }
+    ];
+
+    const tableMarkup = sections.map(section => {
+      const available = teamStats.filter(team => team.stats?.[section.key]);
+      if (!available.length) return '';
+      const sort = teamStatsSort[section.key] || { key: 'name', ascending: true };
+      let columns = section.columns || [];
+      if (section.key === 'scoreByPeriod') {
+        const periodKeys = [...new Set(available.flatMap(team => Object.keys(team.stats.scoreByPeriod || {})))];
+        periodKeys.sort((a, b) => {
+          const numberA = Number(a);
+          const numberB = Number(b);
+          if (Number.isFinite(numberA) && Number.isFinite(numberB)) return numberA - numberB;
+          if (Number.isFinite(numberA)) return -1;
+          if (Number.isFinite(numberB)) return 1;
+          return a.localeCompare(b);
+        });
+        columns = periodKeys.map(key => [key, /^overtime|^ot/i.test(key) ? 'OT' : key.toUpperCase()]);
+      }
+      columns = columns.filter(([key]) => available.some(team => team.stats[section.key]?.[key] !== undefined && team.stats[section.key]?.[key] !== null));
+      if (!columns.length) return '';
+      const sortedTeams = [...available].sort((left, right) => {
+        const leftValue = sort.key === 'name' ? (left.teamName || left.name) : left.stats[section.key]?.[sort.key];
+        const rightValue = sort.key === 'name' ? (right.teamName || right.name) : right.stats[section.key]?.[sort.key];
+        const leftMissing = leftValue === undefined || leftValue === null || leftValue === '';
+        const rightMissing = rightValue === undefined || rightValue === null || rightValue === '';
+        if (leftMissing || rightMissing) return leftMissing === rightMissing ? 0 : (leftMissing ? 1 : -1);
+
+        const leftTime = typeof leftValue === 'string' && /^(\d+):(\d{2})$/.exec(leftValue);
+        const rightTime = typeof rightValue === 'string' && /^(\d+):(\d{2})$/.exec(rightValue);
+        let comparison;
+        if (leftTime && rightTime) {
+          comparison = (Number(leftTime[1]) * 60 + Number(leftTime[2])) - (Number(rightTime[1]) * 60 + Number(rightTime[2]));
+        } else if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+          comparison = leftValue - rightValue;
+        } else {
+          comparison = String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
+        }
+        return sort.ascending ? comparison : -comparison;
+      });
+      const sortHeader = (key, label) => {
+        const active = sort.key === key;
+        const direction = active ? (sort.ascending ? 'ascending' : 'descending') : 'none';
+        return `<th scope="col" aria-sort="${direction}"><button type="button" class="stats-sort-button" data-team-sort-section="${escapeHtml(section.key)}" data-team-sort-key="${escapeHtml(key)}">${escapeHtml(label)}<span class="sort-icon" aria-hidden="true">${active ? (sort.ascending ? '▲' : '▼') : ''}</span></button></th>`;
+      };
+
+      return `
+        <section class="stats-team-section">
+          <h3>${escapeHtml(section.title)}</h3>
+          <div class="stats-table-wrapper">
+            <table class="stats-table stats-team-table">
+              <thead><tr>${sortHeader('name', 'Team')}${columns.map(([key, label]) => sortHeader(key, label)).join('')}</tr></thead>
+              <tbody>${sortedTeams.map(team => `
+                <tr>
+                  <td><div class="stats-player-cell"><img src="${escapeHtml(getTeamLogo(team))}" alt="">${escapeHtml(team.teamName || team.name)}</div></td>
+                  ${columns.map(([key]) => `<td>${escapeHtml(formatTeamStatValue(section.key, key, team.stats[section.key]?.[key]))}</td>`).join('')}
+                </tr>
+              `).join('')}</tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    }).join('');
+
+    container.innerHTML = tableMarkup || '<p class="stats-empty">Team statistics were not returned.</p>';
+    updateTeamTableOverflow();
+  }
+
+  function formatTeamStatValue(sectionKey, key, value) {
+    if (value === undefined || value === null || value === '') return '—';
+    const number = Number(value);
+    if (!Number.isFinite(number)) return value;
+    if (key === 'svPct') return number.toFixed(3).replace(/^0/, '');
+    if (key === 'ppPct' || key === 'pkPct') return `${number}%`;
+    if (['gpg', 'gapg', 'gaa'].includes(key)) return number.toFixed(2);
+    return value;
+  }
+
+  function updateTeamTableOverflow() {
+    document.querySelectorAll('#team-stats-content .stats-table-wrapper').forEach(wrapper => {
+      wrapper.classList.toggle('has-horizontal-overflow', wrapper.scrollWidth > wrapper.clientWidth);
+    });
+  }
+
+  window.addEventListener('resize', updateTeamTableOverflow);
+
+  async function loadLeagueTeamStats() {
+    const status = document.getElementById('team-stats-status');
+    if (!TEAM_STATS_API_URL) {
+      status.textContent = 'Team statistics are not configured.';
+      document.getElementById('team-stats-content').innerHTML = '<p class="stats-empty">Team statistics are not configured.</p>';
+      return;
+    }
+
+    try {
+      const response = await fetch(TEAM_STATS_API_URL);
+      if (!response.ok) throw new Error(`Team stats request failed: ${response.status}`);
+      const data = await response.json();
+      allTeamStats = (data.teams || []).map(addTeamStatsMetadata);
+      status.textContent = data.errors?.length
+        ? `${allTeamStats.length} teams loaded · ${data.errors.length} source${data.errors.length === 1 ? '' : 's'} failed`
+        : `${allTeamStats.length} teams loaded`;
+      if (data.errors?.length) console.error('Some team stats sources failed:', data.errors);
+      applyStatsFilters();
+    } catch (error) {
+      console.error('Error fetching team statistics:', error);
+      status.textContent = 'Could not load team statistics.';
+      document.getElementById('team-stats-content').innerHTML = '<p class="stats-empty">Team statistics could not be loaded.</p>';
+    }
   }
 
   async function loadAllTeamStats() {
@@ -426,6 +636,7 @@ permalink: /stats/
 
   restoreStatsFilters();
   loadAllTeamStats();
+  loadLeagueTeamStats();
 
   document.querySelectorAll('[data-leader-category]').forEach(button => {
     button.addEventListener('click', () => {

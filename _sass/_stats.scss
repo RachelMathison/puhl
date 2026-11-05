@@ -265,6 +265,46 @@
   }
 }
 
+.stats-team-status {
+  margin: 0 0 16px;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+}
+
+.stats-team-section + .stats-team-section {
+  margin-top: 28px;
+}
+
+.stats-team-section h3 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+
+.stats-team-table .stats-player-cell img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.stats-team-table .stats-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stats-team-table .stats-sort-button:focus-visible {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 2px;
+}
+
 .stats-leaders-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -481,14 +521,17 @@
     gap: 6px;
 
     li {
-      grid-template-columns: 42px minmax(0, 1fr) auto;
+      grid-template-columns: 32px 24px minmax(0, 1fr) auto;
       gap: 8px;
       min-height: 48px;
       padding: 6px 10px;
       font-size: 0.92rem;
 
       img {
-        display: none;
+        display: block;
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
       }
     }
   }

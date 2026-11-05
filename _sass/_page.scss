@@ -51,3 +51,15 @@
     padding: 6px 22px 32px;
   }
 }
+
+@media (max-width: 700px) {
+  .page-stage:has(.combined-calendar-page) {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .page-stage:has(.combined-calendar-page) > .card {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+}

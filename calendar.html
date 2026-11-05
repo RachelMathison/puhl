@@ -83,12 +83,15 @@ let masterGameEvents = [];
 let masterExtraIceEvents = [];
 
 Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
-  league.teams.forEach(team => allTeamConfigs.push({
-    displayName: team.name,
-    id: String(team.id).toLowerCase(),
-    leagueKey,
-    imagePath: window.siteAssetUrl(team.imagePath || teamLogos[team.name] || teamLogos.default)
-  }));
+  league.teams.forEach(team => {
+    team.imagePath = window.siteAssetUrl(team.imagePath || teamLogos[team.name] || teamLogos.default);
+    allTeamConfigs.push({
+      displayName: team.name,
+      id: String(team.id).toLowerCase(),
+      leagueKey,
+      imagePath: team.imagePath
+    });
+  });
 });
 
 function loadSavedTeamFilters() {
