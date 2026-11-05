@@ -1,0 +1,215 @@
+.scores-date-group {
+  margin-bottom: 28px;
+}
+
+.scores-game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 350px), 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+
+.scores-game-card {
+  display: flex;
+  min-width: 0;
+  min-height: 430px;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--gray-300);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.scores-game-card-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.scores-game-time {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: var(--gray-100);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.scores-game-location {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--gray-500);
+  font-size: 0.8rem;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scores-game-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scores-game-team {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+
+  > img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  strong {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 1.2rem;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: var(--gray-500);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+}
+
+.scores-game-leaders {
+  margin-top: auto;
+
+  > h3 {
+    margin: 0 0 8px;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+}
+
+.team-leader-item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid var(--gray-300);
+  border-radius: 9px;
+  background: var(--surface);
+
+  > img {
+    width: 34px;
+    height: 34px;
+    box-sizing: border-box;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    object-fit: contain;
+  }
+}
+
+.team-leader-player {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    overflow-wrap: anywhere;
+    font-size: 0.76rem;
+    line-height: 1.15;
+  }
+
+  span {
+    color: var(--gray-500);
+    font-size: 0.62rem;
+    line-height: 1.15;
+  }
+}
+
+.team-leader-total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+
+  strong {
+    color: var(--primary-text);
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  span {
+    color: var(--gray-700);
+    font-size: 0.58rem;
+  }
+}
+
+.team-leader-empty {
+  grid-template-columns: 34px minmax(0, 1fr);
+  color: var(--gray-500);
+  font-size: 0.75rem;
+}
+
+.scores-game-leader-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  .team-leader-item {
+    min-height: 68px;
+    padding: 7px;
+  }
+}
+
+@media (max-width: 600px) {
+  .scores-game-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .scores-game-card {
+    min-height: 0;
+    gap: 12px;
+    padding: 13px;
+  }
+
+  .scores-game-team {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 9px;
+
+    > img {
+      width: 42px;
+      height: 42px;
+    }
+  }
+
+  .team-leader-item {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 5px;
+    padding: 6px;
+
+    > img {
+      width: 30px;
+      height: 30px;
+    }
+  }
+}

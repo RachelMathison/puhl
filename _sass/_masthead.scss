@@ -8,6 +8,7 @@
   }
 
   &-inner {
+    position: relative;
     max-width: 1200px;
     margin: 0 auto;
     padding: 14px 20px;
@@ -257,6 +258,31 @@
     right: 0;
     left: auto;
     min-width: 220px;
+  }
+}
+
+@media (max-width: 900px) {
+  .masthead-inner {
+    align-items: flex-start;
+  }
+
+  .masthead-brand {
+    box-sizing: border-box;
+    max-width: 100%;
+    padding-right: 48px;
+  }
+
+  .site-nav {
+    flex: 1 1 100%;
+    padding-right: 42px;
+  }
+
+  .nav-settings {
+    position: absolute;
+    top: 14px;
+    right: 20px;
+    z-index: 30;
+    margin-left: 0;
   }
 }
 
