@@ -23,6 +23,10 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
+.scores-game-card.scores-game-card-final {
+  min-height: 0;
+}
+
 .scores-game-card-heading {
   display: flex;
   min-width: 0;
@@ -55,6 +59,65 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.scores-game-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+}
+
+.scores-game-load-error {
+  margin: 0;
+  color: var(--gray-500);
+  font-size: 0.85rem;
+}
+
+.scores-game-final-teams {
+  gap: 5px;
+}
+
+.scores-game-team.scores-game-final-team {
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  min-height: 56px;
+
+  .scores-game-final-score {
+    color: var(--text);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+}
+
+.scores-game-goal-scorers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  > h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+}
+
+.scores-game-scorer-team {
+  display: grid;
+  grid-template-columns: minmax(80px, 0.4fr) minmax(0, 1fr);
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+
+  > strong {
+    font-weight: 700;
+  }
+
+  > span {
+    color: var(--gray-700);
+  }
 }
 
 .scores-game-team {
@@ -200,6 +263,10 @@
       width: 42px;
       height: 42px;
     }
+  }
+
+  .scores-game-team.scores-game-final-team {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
   }
 
   .team-leader-item {

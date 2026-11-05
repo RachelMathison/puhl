@@ -381,6 +381,11 @@
     background: var(--surface-raised);
     cursor: default;
   }
+
+  &.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
 }
 
 .schedule-day-name {
@@ -445,6 +450,14 @@
     &:nth-child(even) {
       background-color: var(--surface-raised);
     }
+  }
+}
+
+.result-cell {
+  white-space: nowrap;
+
+  .schedule-result-team.winner {
+    font-weight: 700;
   }
 }
 
@@ -620,17 +633,31 @@
       }
 
       .division-cell {
-        order: 3;
+        order: 4;
         padding-top: 0;
         color: var(--gray-700);
         font-size: 0.9rem;
       }
 
       .location-cell {
-        order: 4;
+        order: 5;
         padding-top: 0;
         color: var(--gray-700);
         font-size: 0.9rem;
+      }
+
+      .result-cell {
+        order: 3;
+        padding-top: 0;
+        color: var(--text);
+        font-size: 0.9rem;
+        white-space: normal;
+
+        &.past-game-result::before {
+          content: "Result: ";
+          color: var(--gray-700);
+          font-weight: 600;
+        }
       }
     }
   }

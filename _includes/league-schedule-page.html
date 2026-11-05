@@ -34,6 +34,7 @@ const STORAGE_KEY_SHOW_ALL_TEAMS = 'puhl_show_all_teams';
 // --- League & Team Configurations ---
 const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
 const SCHEDULE_STATS_API_URL = {{ site.data.team_config.stats_api_url | jsonify }};
+const SCORE_SHEET_API_URL = 'https://score-sheet.xarria.workers.dev/';
 const GAME_PAGE_MODE = {{ game_page_mode | jsonify }};
 
 const teamLogos = window.pageTeamLogos || {};
@@ -94,6 +95,7 @@ Object.entries(LEAGUE_STRUCTURE).forEach(([leagueKey, league]) => {
     allTeamConfigs.push({
       displayName: team.name,
       id: String(team.id).toLowerCase(),
+      abbreviation: team.abbreviation || team.name,
       statsAliases: team.statsAliases || [],
       leagueKey,
       imagePath: team.imagePath || teamLogos[team.name] || teamLogos.default
@@ -153,6 +155,11 @@ let masterAllEvents = [];
 let scheduleWeekOffset = 0;
 let scheduleLeaderPlayersByTeam = new Map();
 let scheduleStandingsByTeam = new Map();
+let selectedScoreDateKey = null;
+let selectedScheduleDateKey = null;
+let scoreDateInitialized = false;
+const gameSheetResults = new Map();
+const gameSheetRequests = new Map();
 
 document.addEventListener('DOMContentLoaded', function() {
   loadSavedFilters();
@@ -210,10 +217,9 @@ function renderTeamLeader(team, player, metricKey, metricLabel) {
   const name = decodeLeaderEntities(player.name || 'Unknown player');
   const value = Number(player[metricKey] || 0);
   const details = [
-    team.displayName,
+    team.abbreviation || team.displayName,
     player.number ? `#${player.number}` : '',
-    player.position || '',
-    player.gp ? `${player.gp} GP` : ''
+    player.position || ''
   ].filter(Boolean).join(' · ');
 
   return `<div class="team-leader-item">
@@ -247,11 +253,16 @@ async function loadScheduleTeamLeaders() {
 
 function getConfiguredTeam(name, leagueKey) {
   const normalizedName = normalizeLeaderTeam(name);
-  return allTeamConfigs.find(team => {
-    if (leagueKey && team.leagueKey !== leagueKey) return false;
+  const eligibleTeams = allTeamConfigs.filter(team => !leagueKey || team.leagueKey === leagueKey);
+  const exactMatch = eligibleTeams.find(team => {
     return [team.displayName, team.id, ...team.statsAliases]
       .map(normalizeLeaderTeam).some(identifier => identifier && identifier === normalizedName);
   });
+  if (exactMatch) return exactMatch;
+
+  return eligibleTeams.find(team => [team.displayName, team.id, ...team.statsAliases]
+    .map(normalizeLeaderTeam)
+    .some(identifier => identifier.length >= 5 && normalizedName.includes(identifier)));
 }
 
 function getTeamLeader(team, metricKey) {
@@ -316,8 +327,10 @@ function renderScoreCard(event, matchup) {
   const firstTeam = getConfiguredTeam(matchup.team1Name, event.leagueKey);
   const secondTeam = getConfiguredTeam(matchup.team2Name, event.leagueKey);
   const start = new Date(event.start);
+  const isPastGame = start < new Date();
   const date = start.toLocaleDateString([], { month: 'short', day: 'numeric' });
   const time = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+  const cardKey = getScoreCardKey(event);
   const leaders = firstTeam && secondTeam ? [
     renderTeamLeader(firstTeam, getTeamLeader(firstTeam, 'g'), 'g', 'Goals'),
     renderTeamLeader(secondTeam, getTeamLeader(secondTeam, 'g'), 'g', 'Goals'),
@@ -325,17 +338,177 @@ function renderScoreCard(event, matchup) {
     renderTeamLeader(secondTeam, getTeamLeader(secondTeam, 'a'), 'a', 'Assists')
   ].join('') : '';
 
-  return `<article class="scores-game-card">
+  return `<article class="scores-game-card${isPastGame ? ' scores-game-card-final' : ''}">
     <div class="scores-game-card-heading">
-      <span class="scores-game-time">${escapeLeaderHtml(`${time} · ${date}`)}</span>
+      <span class="scores-game-time"${isPastGame ? ` id="scores-game-status-${cardKey}"` : ''}>${escapeLeaderHtml(`${time} · ${date}`)}</span>
       <span class="scores-game-location">${escapeLeaderHtml(event.location || 'Location to be announced')}</span>
     </div>
-    <div class="scores-game-teams">
-      ${formatScoreTeam(firstTeam) || `<div class="scores-game-team"><img src="${escapeLeaderHtml(matchup.selfLogo)}" alt=""><div><strong>${escapeLeaderHtml(matchup.team1Name || 'Team 1')}</strong><span>Record unavailable</span></div></div>`}
-      ${formatScoreTeam(secondTeam) || `<div class="scores-game-team"><img src="${escapeLeaderHtml(matchup.oppLogo)}" alt=""><div><strong>${escapeLeaderHtml(matchup.team2Name || 'Team 2')}</strong><span>Record unavailable</span></div></div>`}
-    </div>
-    ${leaders ? `<div class="scores-game-leaders"><h3>Team Leaders</h3><div class="scores-game-leader-grid">${leaders}</div></div>` : ''}
+    ${isPastGame
+      ? `<div id="scores-game-result-${cardKey}" class="scores-game-result">${event.gameId ? 'Loading final score…' : renderPastGameUnavailable(matchup, 'Final score details could not be loaded.')}</div>`
+      : `<div class="scores-game-teams">
+          ${formatScoreTeam(firstTeam) || `<div class="scores-game-team"><img src="${escapeLeaderHtml(matchup.selfLogo)}" alt=""><div><strong>${escapeLeaderHtml(matchup.team1Name || 'Team 1')}</strong><span>Record unavailable</span></div></div>`}
+          ${formatScoreTeam(secondTeam) || `<div class="scores-game-team"><img src="${escapeLeaderHtml(matchup.oppLogo)}" alt=""><div><strong>${escapeLeaderHtml(matchup.team2Name || 'Team 2')}</strong><span>Record unavailable</span></div></div>`}
+        </div>
+        ${leaders ? `<div class="scores-game-leaders"><h3>Team Leaders</h3><div class="scores-game-leader-grid">${leaders}</div></div>` : ''}`}
   </article>`;
+}
+
+function getScoreCardKey(event) {
+  const raw = `${event.gameId || ''}-${new Date(event.start).getTime()}-${event.leagueKey || ''}`;
+  return raw.replace(/[^a-z0-9_-]/gi, '-');
+}
+
+function fetchGameSheet(gameId) {
+  if (gameSheetResults.has(gameId)) return Promise.resolve(gameSheetResults.get(gameId));
+  if (gameSheetRequests.has(gameId)) return gameSheetRequests.get(gameId);
+
+  const request = fetch(`${SCORE_SHEET_API_URL}?id=${encodeURIComponent(gameId)}`)
+    .then(async response => {
+      if (!response.ok) throw new Error(`Scoresheet request failed (${response.status})`);
+      const result = await response.json();
+      if (!Array.isArray(result.teams)) throw new Error('Scoresheet response is missing team results');
+      gameSheetResults.set(gameId, result);
+      return result;
+    })
+    .finally(() => gameSheetRequests.delete(gameId));
+  gameSheetRequests.set(gameId, request);
+  return request;
+}
+
+function renderPastGameDetails(result, event, matchup) {
+  const fallbackTeams = [
+    { name: matchup.team1Name, imagePath: matchup.selfLogo, side: 'away' },
+    { name: matchup.team2Name, imagePath: matchup.oppLogo, side: 'home' }
+  ];
+  const teams = (result.teams || []).length ? result.teams : fallbackTeams;
+  const teamMarkup = teams.map((team, index) => {
+    const configuredTeam = getConfiguredTeam(team.name, event.leagueKey);
+    const fallback = fallbackTeams.find(item => item.side === team.side) || fallbackTeams[index];
+    const logo = configuredTeam?.imagePath || fallback?.imagePath || teamLogos.default;
+    const shotText = team.shotsOnGoal === null || team.shotsOnGoal === undefined
+      ? 'SOG unavailable'
+      : `SOG: ${team.shotsOnGoal}`;
+    const score = team.score === null || team.score === undefined ? '–' : team.score;
+    return `<div class="scores-game-team scores-game-final-team">
+      <img src="${escapeLeaderHtml(logo)}" alt="">
+      <div><strong>${escapeLeaderHtml(team.name || fallback?.name || 'Team')}</strong><span>${escapeLeaderHtml(shotText)}</span></div>
+      <strong class="scores-game-final-score">${escapeLeaderHtml(score)}</strong>
+    </div>`;
+  }).join('');
+
+  const scorers = (result.goalScorers || []).filter(player =>
+    player.name && Number(player.goals) > 0 && String(player.number || '').toLowerCase() !== 'totals:'
+  );
+  const scorerRows = teams.map(team => {
+    const players = scorers.filter(player => String(player.team || '').toLowerCase() === String(team.name || '').toLowerCase());
+    if (!players.length) return '';
+    const names = players.map(player => `${player.name}${Number(player.goals) > 1 ? ` (${player.goals})` : ''}`).join(', ');
+    return `<div class="scores-game-scorer-team"><strong>${escapeLeaderHtml(team.name)}</strong><span>${escapeLeaderHtml(names || 'No goals recorded')}</span></div>`;
+  }).join('');
+
+  return `<div class="scores-game-teams scores-game-final-teams">${teamMarkup}</div>
+    <div class="scores-game-goal-scorers"><h3>Goals</h3>${scorerRows || '<p>No goal scorers reported.</p>'}</div>`;
+}
+
+function renderPastGameUnavailable(matchup, message) {
+  const teams = [
+    { name: matchup.team1Name || 'Team 1', imagePath: matchup.selfLogo },
+    { name: matchup.team2Name || 'Team 2', imagePath: matchup.oppLogo }
+  ];
+  const teamRows = teams.map(team => `<div class="scores-game-team scores-game-final-team">
+    <img src="${escapeLeaderHtml(team.imagePath)}" alt="">
+    <div><strong>${escapeLeaderHtml(team.name)}</strong></div>
+  </div>`).join('');
+  return `<div class="scores-game-teams scores-game-final-teams">${teamRows}</div><p class="scores-game-load-error">${escapeLeaderHtml(message)}</p>`;
+}
+
+function completedGameLabel(status) {
+  const normalized = String(status || '').toUpperCase().replace(/\s+/g, '');
+  const finalMatch = normalized.match(/^FINAL(?:\/(OT|SO))?/);
+  return finalMatch ? `FINAL${finalMatch[1] ? `/${finalMatch[1]}` : ''}` : null;
+}
+
+function renderScheduleGameResult(result, event, matchup) {
+  const teams = result.teams || [];
+  if (teams.length < 2 || teams.some(team => team.score === null || team.score === undefined)) {
+    return 'Score unavailable';
+  }
+  const [first, second] = teams;
+  const firstName = getTeamAbbreviation(first.name || matchup.team1Name, event.leagueKey);
+  const secondName = getTeamAbbreviation(second.name || matchup.team2Name, event.leagueKey);
+  const finalStatus = completedGameLabel(result.status);
+  const overtimeSuffix = finalStatus === 'FINAL/OT' ? ' (OT)' : finalStatus === 'FINAL/SO' ? ' (SO)' : '';
+  const firstIsWinner = Number(first.score) > Number(second.score);
+  const secondIsWinner = Number(second.score) > Number(first.score);
+  return `<span class="schedule-result-team${firstIsWinner ? ' winner' : ''}">${escapeLeaderHtml(firstName)} ${escapeLeaderHtml(first.score)}</span>, <span class="schedule-result-team${secondIsWinner ? ' winner' : ''}">${escapeLeaderHtml(secondName)} ${escapeLeaderHtml(second.score)}</span>${overtimeSuffix}`;
+}
+
+function getTeamAbbreviation(name, leagueKey) {
+  return getConfiguredTeam(name, leagueKey)?.abbreviation || name;
+}
+
+function getIcsValue(component, propertyName) {
+  const value = component.getFirstPropertyValue(propertyName);
+  if (value === null || value === undefined) return '';
+  return typeof value === 'string' ? value : String(value);
+}
+
+function extractGameIdFromIcs(vevent) {
+  const values = ['url', 'description', 'uid'].map(name => getIcsValue(vevent, name));
+  for (const value of values) {
+    const linkedId = value.match(/\/game\/(?:game_sheet|show)\/(\d+)/i)?.[1];
+    if (linkedId) return linkedId;
+  }
+  for (const value of values) {
+    const numericId = value.match(/(?:^|[^\d])(\d{7,})(?:[^\d]|$)/)?.[1];
+    if (numericId) return numericId;
+  }
+  return null;
+}
+
+function loadPastGameDetails(events) {
+  events.filter(event => new Date(event.start) < new Date()).forEach(event => {
+    const target = document.getElementById(`scores-game-result-${getScoreCardKey(event)}`);
+    if (!target || !event.gameId) return;
+    const matchup = getMatchupDetails(event.title, event.leagueKey);
+    fetchGameSheet(event.gameId)
+      .then(result => {
+        const currentTarget = document.getElementById(`scores-game-result-${getScoreCardKey(event)}`);
+        if (currentTarget) currentTarget.innerHTML = renderPastGameDetails(result, event, matchup);
+        const statusLabel = completedGameLabel(result.status);
+        const statusTarget = document.getElementById(`scores-game-status-${getScoreCardKey(event)}`);
+        if (statusTarget && statusLabel) statusTarget.textContent = statusLabel;
+      })
+      .catch(error => {
+        console.error(`Could not load scoresheet for game ${event.gameId}:`, error);
+        const currentTarget = document.getElementById(`scores-game-result-${getScoreCardKey(event)}`);
+        if (currentTarget) currentTarget.innerHTML = renderPastGameUnavailable(matchup, 'Final score details could not be loaded.');
+      });
+  });
+}
+
+function loadPastScheduleResults(events) {
+  events.filter(event => new Date(event.start) < new Date()).forEach(event => {
+    const targetId = `schedule-result-${getScoreCardKey(event)}`;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    if (!event.gameId) {
+      target.textContent = 'Score unavailable';
+      return;
+    }
+
+    const matchup = getMatchupDetails(event.title, event.leagueKey);
+    fetchGameSheet(event.gameId)
+      .then(result => {
+        const currentTarget = document.getElementById(targetId);
+        if (currentTarget) currentTarget.innerHTML = renderScheduleGameResult(result, event, matchup);
+      })
+      .catch(error => {
+        console.error(`Could not load schedule result for game ${event.gameId}:`, error);
+        const currentTarget = document.getElementById(targetId);
+        if (currentTarget) currentTarget.textContent = 'Score unavailable';
+      });
+  });
 }
 
 function buildFilterUI() {
@@ -502,11 +675,43 @@ function scrollToScheduleDay(dateKey) {
 }
 
 function shiftScheduleWeek(amount) {
-  scheduleWeekOffset = Math.max(0, scheduleWeekOffset + amount);
   const activeEvents = masterAllEvents
     .filter(event => isEventActive(event.leagueKey, event.title))
-    .filter(event => event.start && new Date(event.start) > new Date());
+    .filter(event => event.start);
+  const earliestEvent = activeEvents.reduce((earliest, event) =>
+    !earliest || new Date(event.start) < earliest ? new Date(event.start) : earliest, null);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const earliestOffset = earliestEvent
+    ? Math.min(0, Math.floor((new Date(earliestEvent.getFullYear(), earliestEvent.getMonth(), earliestEvent.getDate()) - today) / (7 * 24 * 60 * 60 * 1000)))
+    : 0;
+  const previousOffset = scheduleWeekOffset;
+  scheduleWeekOffset = Math.max(earliestOffset, scheduleWeekOffset + amount);
+  const offsetChange = scheduleWeekOffset - previousOffset;
+
+  if (GAME_PAGE_MODE === 'scores' && selectedScoreDateKey && offsetChange) {
+    const selectedDate = new Date(`${selectedScoreDateKey}T12:00:00`);
+    selectedDate.setDate(selectedDate.getDate() + offsetChange * 7);
+    selectedScoreDateKey = getLocalDateKey(selectedDate);
+  }
+
   renderDaySelector(activeEvents);
+
+  if (GAME_PAGE_MODE === 'scores') {
+    renderListView();
+    return;
+  }
+
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + scheduleWeekOffset * 7);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  const firstGameInWeek = activeEvents
+    .filter(event => new Date(event.start) >= weekStart && new Date(event.start) < weekEnd)
+    .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
+  selectedScheduleDateKey = firstGameInWeek ? getLocalDateKey(new Date(firstGameInWeek.start)) : null;
+  renderListView();
+  if (selectedScheduleDateKey) scrollToScheduleDay(selectedScheduleDateKey);
 }
 
 async function fetchAllIcsEvents() {
@@ -528,6 +733,7 @@ async function fetchAllIcsEvents() {
           title: event.summary,
           start: event.startDate.toJSDate(),
           location: event.location || 'TBD',
+          gameId: extractGameIdFromIcs(vevent),
           leagueKey: leagueKey
         });
       });
@@ -537,7 +743,29 @@ async function fetchAllIcsEvents() {
   });
 
   await Promise.all(promises);
+  if (GAME_PAGE_MODE === 'scores' && !scoreDateInitialized) {
+    initializeScoreDate(masterAllEvents.filter(event => isEventActive(event.leagueKey, event.title) && event.start));
+  }
   renderListView();
+}
+
+function initializeScoreDate(events) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = getLocalDateKey(today);
+  const availableDates = Array.from(new Set(events.map(event => getLocalDateKey(new Date(event.start))))).sort();
+  const nextDate = availableDates.find(dateKey => dateKey >= todayKey);
+  const selectedDate = nextDate || availableDates[availableDates.length - 1] || todayKey;
+
+  selectedScoreDateKey = selectedDate;
+  scoreDateInitialized = true;
+
+  // The picker uses rolling seven-day ranges beginning today. Open the range
+  // containing the first available game so the selected date is visible.
+  const selected = new Date(`${selectedDate}T12:00:00`);
+  const dayDistance = Math.floor((Date.UTC(selected.getFullYear(), selected.getMonth(), selected.getDate()) -
+    Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
+  scheduleWeekOffset = Math.max(0, Math.floor(dayDistance / 7));
 }
 
 function renderListView() {
@@ -547,24 +775,45 @@ function renderListView() {
   const filteredEvents = masterAllEvents.filter(e => isEventActive(e.leagueKey, e.title));
   const noFilteredEvents = filteredEvents.length === 0;
 
-  const now = new Date();
-  const upcomingEvents = filteredEvents.filter(e => e.start && new Date(e.start) > now);
-  renderDaySelector(upcomingEvents);
+  const scheduledEvents = filteredEvents.filter(event => event.start);
+  renderDaySelector(scheduledEvents);
 
   if (noFilteredEvents) {
     container.innerHTML = '<p>No games found matching the selected filters.</p>';
     return;
   }
 
-  if (upcomingEvents.length === 0) {
-    container.innerHTML = '<p>No upcoming games scheduled.</p>';
+  let visibleEvents;
+  if (GAME_PAGE_MODE === 'scores') {
+    visibleEvents = scheduledEvents.filter(event => getLocalDateKey(new Date(event.start)) === selectedScoreDateKey);
+  } else {
+    const weekStart = new Date();
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() + scheduleWeekOffset * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    visibleEvents = scheduledEvents.filter(event => {
+      const eventDate = new Date(event.start);
+      return eventDate >= weekStart && eventDate < weekEnd;
+    });
+  }
+
+  if (visibleEvents.length === 0) {
+    const selectedDate = selectedScoreDateKey
+      ? new Date(`${selectedScoreDateKey}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
+      : '';
+    container.innerHTML = GAME_PAGE_MODE === 'scores' && selectedDate
+      ? `<p>No games scheduled for ${escapeLeaderHtml(selectedDate)}.</p>`
+      : GAME_PAGE_MODE === 'schedule'
+        ? '<p>No games scheduled this week.</p>'
+        : '<p>No games scheduled.</p>';
     return;
   }
 
-  upcomingEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
+  visibleEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
 
   const grouped = {};
-  upcomingEvents.forEach(e => {
+  visibleEvents.forEach(e => {
     const dateKey = getLocalDateKey(new Date(e.start));
     if (!grouped[dateKey]) grouped[dateKey] = [];
     grouped[dateKey].push(e);
@@ -572,6 +821,7 @@ function renderListView() {
 
   let html = '';
   for (const dateKey in grouped) {
+    const hasPastGames = grouped[dateKey].some(event => new Date(event.start) < new Date());
     const date = new Date(`${dateKey}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     html += `<div class="date-group${GAME_PAGE_MODE === 'scores' ? ' scores-date-group' : ''}" id="schedule-day-${dateKey}">
       <h3 class="date-header">${date}</h3>`;
@@ -590,10 +840,11 @@ function renderListView() {
       <table class="schedule-table league-matchup-table">
         <thead>
           <tr>
-            <th style="width: 42%;">Matchup</th>
-            <th style="width: 20%;">Division</th>
-            <th style="width: 18%;">Time</th>
-            <th style="width: 20%;">Location</th>
+            <th style="width: ${hasPastGames ? '37%' : '45%'};">Matchup</th>
+            ${hasPastGames ? '<th style="width: 19%;">Result</th>' : ''}
+            <th style="width: ${hasPastGames ? '15%' : '20%'};">Division</th>
+            <th style="width: ${hasPastGames ? '13%' : '15%'};">Time</th>
+            <th style="width: ${hasPastGames ? '16%' : '20%'};">Location</th>
           </tr>
         </thead>
         <tbody>
@@ -602,6 +853,7 @@ function renderListView() {
     grouped[dateKey].forEach(event => {
       const timeStr = new Date(event.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       const matchup = getMatchupDetails(event.title, event.leagueKey);
+      const isPastGame = new Date(event.start) < new Date();
 
       html += `
         <tr>
@@ -614,6 +866,9 @@ function renderListView() {
               <span class="team-name">${matchup.team2Name || 'Team 2'}</span>
             </div>
           </td>
+          ${hasPastGames ? `<td class="result-cell${isPastGame ? ' past-game-result' : ''}">${isPastGame
+            ? `<span id="schedule-result-${getScoreCardKey(event)}">${event.gameId ? 'Loading…' : 'Score unavailable'}</span>`
+            : ''}</td>` : ''}
           <td class="division-cell">${LEAGUE_STRUCTURE[event.leagueKey]?.name || ''}</td>
           <td class="time-cell">${timeStr}</td>
           <td class="location-cell">${event.location}</td>
@@ -624,16 +879,18 @@ function renderListView() {
     html += `</tbody></table></div>`;
   }
   container.innerHTML = html;
+  if (GAME_PAGE_MODE === 'scores') loadPastGameDetails(visibleEvents);
+  else loadPastScheduleResults(visibleEvents);
 }
 
-function renderDaySelector(upcomingEvents) {
+function renderDaySelector(events) {
   const selector = document.getElementById('day-selector');
   const weekLabel = document.getElementById('schedule-week-label');
   const previousButton = document.getElementById('previous-schedule-week');
   if (!selector || !weekLabel) return;
 
   const eventCounts = {};
-  upcomingEvents.forEach(event => {
+  events.forEach(event => {
     const key = getLocalDateKey(new Date(event.start));
     eventCounts[key] = (eventCounts[key] || 0) + 1;
   });
@@ -643,20 +900,54 @@ function renderDaySelector(upcomingEvents) {
   firstDay.setDate(firstDay.getDate() + scheduleWeekOffset * 7);
   const lastDay = new Date(firstDay);
   lastDay.setDate(firstDay.getDate() + 6);
+  const currentWeekKeys = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(firstDay);
+    day.setDate(firstDay.getDate() + index);
+    return getLocalDateKey(day);
+  });
+  const weekGameKeys = currentWeekKeys.filter(key => eventCounts[key]);
+  if (GAME_PAGE_MODE === 'schedule' && !weekGameKeys.includes(selectedScheduleDateKey)) {
+    selectedScheduleDateKey = weekGameKeys[0] || null;
+  }
   const formatRangeDate = date => date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   weekLabel.textContent = `${formatRangeDate(firstDay)} – ${formatRangeDate(lastDay)}`;
-  if (previousButton) previousButton.disabled = scheduleWeekOffset === 0;
+  const validEvents = events.filter(event => event.start);
+  const earliestEvent = validEvents.reduce((earliest, event) =>
+    !earliest || new Date(event.start) < earliest ? new Date(event.start) : earliest, null);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const earliestOffset = earliestEvent
+    ? Math.min(0, Math.floor((new Date(earliestEvent.getFullYear(), earliestEvent.getMonth(), earliestEvent.getDate()) - today) / (7 * 24 * 60 * 60 * 1000)))
+    : 0;
+  if (previousButton) previousButton.disabled = scheduleWeekOffset <= earliestOffset;
 
   selector.innerHTML = Array.from({ length: 7 }, (_, index) => {
     const day = new Date(firstDay);
     day.setDate(firstDay.getDate() + index);
     const key = getLocalDateKey(day);
     const count = eventCounts[key] || 0;
-    return `<button type="button" class="schedule-day-option ${count ? '' : 'no-games'}" ${count ? `onclick="scrollToScheduleDay('${key}')"` : 'disabled'} aria-label="${day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}: ${count} games">
+    const isSelected = GAME_PAGE_MODE === 'scores'
+      ? key === selectedScoreDateKey
+      : key === selectedScheduleDateKey;
+    const clickHandler = GAME_PAGE_MODE === 'scores'
+      ? `selectScoreDate('${key}')`
+      : `selectScheduleDate('${key}')`;
+    return `<button type="button" class="schedule-day-option ${count ? '' : 'no-games'}${isSelected ? ' selected' : ''}" ${count ? `onclick="${clickHandler}"` : 'disabled'} aria-label="${day.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}: ${count} games"${isSelected ? ' aria-current="date"' : ''}>
       <span class="schedule-day-name">${day.toLocaleDateString([], { weekday: 'short' })}</span>
       <span class="schedule-day-date">${day.getDate()}</span>
       <span class="schedule-day-count">${count}</span>
     </button>`;
   }).join('');
+}
+
+function selectScoreDate(dateKey) {
+  selectedScoreDateKey = dateKey;
+  renderListView();
+}
+
+function selectScheduleDate(dateKey) {
+  selectedScheduleDateKey = dateKey;
+  renderListView();
+  scrollToScheduleDay(dateKey);
 }
 </script>
