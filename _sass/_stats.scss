@@ -14,6 +14,10 @@
     border-radius: 6px;
     background: var(--surface);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+
+    &.has-horizontal-overflow {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), inset -14px 0 12px -12px rgba(0, 0, 0, 0.32);
+    }
   }
 
   .stats-table {

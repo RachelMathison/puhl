@@ -48,6 +48,8 @@ rec:
     - name: "Flamingos"
       id: "flamingos"
       abbreviation: "MINGO"
+      statsAliases:
+        - "Mingos"
       imagePath: "/assets/images/teams/flamingos.png"
       statsUrl: "https://puhl-stats-players-flamingos.xarria.workers.dev/"
     - name: "Flying V's"
@@ -80,6 +82,8 @@ novice:
     - name: "Pigeons"
       id: "pigeons"
       abbreviation: "PGN"
+      statsAliases:
+        - "Pigeon"
       imagePath: "/assets/images/teams/pigeons.png"
       statsUrl: "https://puhl-stats-players-pigeons.xarria.workers.dev/"
     - name: "Honkers"

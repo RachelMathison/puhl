@@ -38,6 +38,7 @@ permalink: /stats/
           <button type="button" class="active" data-leader-category="skater" data-leader-metric="pts">Points</button>
           <button type="button" data-leader-category="skater" data-leader-metric="g">Goals</button>
           <button type="button" data-leader-category="skater" data-leader-metric="a">Assists</button>
+          <button type="button" data-leader-category="skater" data-leader-metric="pim">Penalties</button>
         </div>
         <div class="stats-leader-content" id="skater-leaders">
           <p class="stats-empty">Loading skater statistics...</p>
@@ -77,10 +78,11 @@ permalink: /stats/
             <th class="highlight-col" onclick="sortSkaters('avgPts')">PTS/G <span class="sort-icon" data-key="avgPts"></span></th>
             <th onclick="sortSkaters('pim')">PIM <span class="sort-icon" data-key="pim"></span></th>
             <th onclick="sortSkaters('ppg')">PPG <span class="sort-icon" data-key="ppg"></span></th>
+            <th onclick="sortSkaters('ppa')">PPA <span class="sort-icon" data-key="ppa"></span></th>
             <th onclick="sortSkaters('gw')">GWG <span class="sort-icon" data-key="gw"></span></th>
           </tr>
         </thead>
-        <tbody id="skaters-tbody"><tr><td colspan="10" class="stats-table-message">Loading statistics...</td></tr></tbody>
+        <tbody id="skaters-tbody"><tr><td colspan="11" class="stats-table-message">Loading statistics...</td></tr></tbody>
       </table>
     </div>
   </section>
@@ -123,7 +125,8 @@ permalink: /stats/
   const skaterMetrics = {
     pts: { label: 'Points', key: 'pts', ascending: false },
     g: { label: 'Goals', key: 'g', ascending: false },
-    a: { label: 'Assists', key: 'a', ascending: false }
+    a: { label: 'Assists', key: 'a', ascending: false },
+    pim: { label: 'Penalty Minutes', key: 'pim', ascending: false }
   };
   const goalieMetrics = {
     gaa: { label: 'GAA', key: 'gaa', ascending: true },
@@ -372,7 +375,7 @@ permalink: /stats/
     } catch (error) {
       console.error('Error fetching league statistics:', error);
       statsStatus.textContent = 'Could not load league statistics.';
-      setStatsMessage('skaters-tbody', 10, 'Failed to load skater statistics.');
+      setStatsMessage('skaters-tbody', 11, 'Failed to load skater statistics.');
       setStatsMessage('goalies-tbody', 12, 'Failed to load goalie statistics.');
       document.getElementById('skater-leaders').innerHTML = '<p class="stats-empty">Statistics could not be loaded.</p>';
       document.getElementById('goalie-leaders').innerHTML = '<p class="stats-empty">Statistics could not be loaded.</p>';
@@ -474,7 +477,7 @@ permalink: /stats/
   }
 
   function updateSkaterTable() {
-    const columnKeys = ['number', 'name', 'gp', 'g', 'a', 'pts', 'avgPts', 'pim', 'ppg', 'gw'];
+    const columnKeys = ['number', 'name', 'gp', 'g', 'a', 'pts', 'avgPts', 'pim', 'ppg', 'ppa', 'gw'];
     const activeIndex = columnKeys.indexOf(currentSort.key);
     document.querySelectorAll('#skaters-table th').forEach((th, index) => {
       const icon = th.querySelector('.sort-icon');
@@ -484,7 +487,7 @@ permalink: /stats/
     });
 
     if (!skaterStats.length) {
-      setStatsMessage('skaters-tbody', 10, 'No skater stats match the current filters.');
+      setStatsMessage('skaters-tbody', 11, 'No skater stats match the current filters.');
       return;
     }
 
@@ -499,7 +502,8 @@ permalink: /stats/
         <td ${activeIndex === 6 ? 'class="active-sort-col"' : ''}>${formatMetric(player.avgPts, 'avgPts')}</td>
         <td ${activeIndex === 7 ? 'class="active-sort-col"' : ''}>${escapeHtml(player.pim ?? 0)}</td>
         <td ${activeIndex === 8 ? 'class="active-sort-col"' : ''}>${escapeHtml(player.ppg ?? 0)}</td>
-        <td ${activeIndex === 9 ? 'class="active-sort-col"' : ''}>${escapeHtml(player.gw ?? 0)}</td>
+        <td ${activeIndex === 9 ? 'class="active-sort-col"' : ''}>${escapeHtml(player.ppa ?? 0)}</td>
+        <td ${activeIndex === 10 ? 'class="active-sort-col"' : ''}>${escapeHtml(player.gw ?? 0)}</td>
       </tr>
     `).join('');
   }

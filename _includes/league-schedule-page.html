@@ -402,7 +402,7 @@ function renderPastGameDetails(result, event, matchup) {
   const scorerRows = teams.map(team => {
     const players = scorers.filter(player => String(player.team || '').toLowerCase() === String(team.name || '').toLowerCase());
     if (!players.length) return '';
-    const names = players.map(player => `${player.name}${Number(player.goals) > 1 ? ` (${player.goals})` : ''}`).join(', ');
+    const names = players.map(player => `${player.number ? `#${player.number} ` : ''}${player.name}${Number(player.goals) > 1 ? ` (${player.goals})` : ''}`).join(', ');
     return `<div class="scores-game-scorer-team"><strong>${escapeLeaderHtml(team.name)}</strong><span>${escapeLeaderHtml(names || 'No goals recorded')}</span></div>`;
   }).join('');
 
