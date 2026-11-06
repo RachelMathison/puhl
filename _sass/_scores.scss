@@ -44,6 +44,25 @@
   }
 }
 
+.scores-game-details-cta {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 12px;
+  border-radius: 7px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: filter 0.15s ease;
+
+  .scores-game-card-link:hover & {
+    filter: brightness(0.92);
+  }
+}
+
 .scores-game-card-heading {
   display: flex;
   min-width: 0;

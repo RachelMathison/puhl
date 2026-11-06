@@ -72,6 +72,89 @@
   margin-top: 0;
 }
 
+.game-detail-columns.is-upcoming .game-detail-season-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.game-detail-watch-subtitle {
+  margin: -5px 0 14px;
+  color: var(--gray-500);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.game-detail-watch-content,
+#game-detail-watch-content {
+  display: grid;
+  gap: 22px;
+}
+
+.game-detail-watch-stat {
+  min-width: 0;
+}
+
+.game-detail-watch-stat-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(70px, auto) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.game-detail-watch-player {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+
+  > img {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  strong,
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  strong {
+    font-size: 1rem;
+  }
+
+  span {
+    color: var(--gray-500);
+    font-size: 0.88rem;
+  }
+
+  &.home {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+}
+
+.game-detail-watch-value {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.game-detail-watch-label {
+  color: var(--gray-500);
+  text-align: center;
+}
+
+.game-detail-watch-stat .game-detail-stat-bars {
+  margin-top: 10px;
+}
+
 .game-detail-banner-team {
   display: flex;
   min-width: 0;
@@ -643,6 +726,12 @@
     gap: 16px;
   }
 
+  .game-detail-columns.is-upcoming {
+    grid-template-areas:
+      "players"
+      "side";
+  }
+
   .game-detail-banner {
     grid-template-columns: 70px minmax(0, 1fr) 88px minmax(0, 1fr) 70px;
   }
@@ -741,6 +830,27 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
+
+  .game-detail-watch-stat-line {
+    grid-template-columns: minmax(0, 1fr) auto minmax(54px, auto) auto minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .game-detail-watch-player {
+    gap: 5px;
+
+    > img {
+      flex-basis: 30px;
+      width: 30px;
+      height: 30px;
+    }
+
+    strong { font-size: 0.78rem; }
+    span { font-size: 0.7rem; }
+  }
+
+  .game-detail-watch-value { font-size: 1.25rem; }
+  .game-detail-watch-label { font-size: 0.78rem; }
 
   .game-detail-season-heading {
     h2 {

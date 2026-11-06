@@ -331,10 +331,10 @@ function renderScoreCard(event, matchup) {
   const date = start.toLocaleDateString([], { month: 'short', day: 'numeric' });
   const time = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   const cardKey = getScoreCardKey(event);
-  const canOpenScoreSheet = isPastGame && event.gameId;
-  const cardTag = canOpenScoreSheet ? 'a' : 'article';
-  const scoreSheetHref = canOpenScoreSheet
-    ? ` href="${escapeLeaderHtml(gameDetailHref(event.gameId, getLocalDateKey(start)))}" aria-label="View final score details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}"`
+  const canOpenDetails = Boolean(matchup.team1Name && matchup.team2Name);
+  const cardTag = canOpenDetails ? 'a' : 'article';
+  const scoreSheetHref = canOpenDetails
+    ? ` href="${escapeLeaderHtml(gameDetailHref(event.gameId, getLocalDateKey(start), event, matchup))}" aria-label="View game details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}"`
     : '';
   const leaders = firstTeam && secondTeam ? [
     renderTeamLeader(firstTeam, getTeamLeader(firstTeam, 'g'), 'g', 'Goals'),
@@ -343,18 +343,20 @@ function renderScoreCard(event, matchup) {
     renderTeamLeader(secondTeam, getTeamLeader(secondTeam, 'a'), 'a', 'Assists')
   ].join('') : '';
 
-  return `<${cardTag} class="scores-game-card${isPastGame ? ' scores-game-card-final' : ''}${canOpenScoreSheet ? ' scores-game-card-link' : ''}"${scoreSheetHref}>
+  return `<${cardTag} class="scores-game-card${isPastGame ? ' scores-game-card-final' : ''}${canOpenDetails ? ' scores-game-card-link' : ''}"${scoreSheetHref}>
     <div class="scores-game-card-heading">
       <span class="scores-game-time"${isPastGame ? ` id="scores-game-status-${cardKey}"` : ''}>${escapeLeaderHtml(`${time} · ${date}`)}</span>
       <span class="scores-game-location">${escapeLeaderHtml(event.location || 'Location to be announced')}</span>
     </div>
     ${isPastGame
-      ? `<div id="scores-game-result-${cardKey}" class="scores-game-result">${event.gameId ? 'Loading final score…' : renderPastGameUnavailable(matchup, 'Final score details could not be loaded.')}</div>`
+      ? `<div id="scores-game-result-${cardKey}" class="scores-game-result">${event.gameId ? 'Loading final score…' : renderPastGameUnavailable(matchup, 'Final score details could not be loaded.')}</div>
+        ${canOpenDetails ? '<span class="scores-game-details-cta">Game Details <span aria-hidden="true">&rarr;</span></span>' : ''}`
       : `<div class="scores-game-teams">
           ${formatScoreTeam(firstTeam) || `<div class="scores-game-team"><img src="${escapeLeaderHtml(matchup.selfLogo)}" alt=""><div><strong>${escapeLeaderHtml(matchup.team1Name || 'Team 1')}</strong><span>Record unavailable</span></div></div>`}
           ${formatScoreTeam(secondTeam) || `<div class="scores-game-team"><img src="${escapeLeaderHtml(matchup.oppLogo)}" alt=""><div><strong>${escapeLeaderHtml(matchup.team2Name || 'Team 2')}</strong><span>Record unavailable</span></div></div>`}
         </div>
-        ${leaders ? `<div class="scores-game-leaders"><h3>Team Leaders</h3><div class="scores-game-leader-grid">${leaders}</div></div>` : ''}`}
+        ${leaders ? `<div class="scores-game-leaders"><h3>Team Leaders</h3><div class="scores-game-leader-grid">${leaders}</div></div>` : ''}
+        ${canOpenDetails ? '<span class="scores-game-details-cta">Game Details <span aria-hidden="true">&rarr;</span></span>' : ''}`}
   </${cardTag}>`;
 }
 
@@ -363,9 +365,15 @@ function getScoreCardKey(event) {
   return raw.replace(/[^a-z0-9_-]/gi, '-');
 }
 
-function gameDetailHref(gameId, returnDate) {
-  const returnDateParam = returnDate ? `&returnDate=${encodeURIComponent(returnDate)}` : '';
-  return window.siteAssetUrl(`/game/?id=${encodeURIComponent(gameId)}${returnDateParam}`);
+function gameDetailHref(gameId, returnDate, event, matchup) {
+  const query = new URLSearchParams();
+  if (gameId) query.set('id', gameId);
+  if (returnDate) query.set('returnDate', returnDate);
+  if (event?.start) query.set('date', getLocalDateKey(new Date(event.start)));
+  if (event?.leagueKey) query.set('league', event.leagueKey);
+  if (matchup?.team1Name) query.set('team1', matchup.team1Name);
+  if (matchup?.team2Name) query.set('team2', matchup.team2Name);
+  return window.siteAssetUrl(`/game/?${query.toString()}`);
 }
 
 function fetchGameSheet(gameId) {

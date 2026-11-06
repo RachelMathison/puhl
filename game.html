@@ -15,6 +15,7 @@ permalink: /game/
 <script>
 (() => {
   const API_URL = 'https://score-sheet.xarria.workers.dev/';
+  const STATS_API_URL = {{ site.data.team_config.stats_api_url | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
   const returnDate = params.get('returnDate');
@@ -105,6 +106,57 @@ permalink: /game/
 
   function sameConfiguredTeam(left, right) {
     return normalize(left?.id || left?.name) === normalize(right?.id || right?.name);
+  }
+
+  function localDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  async function findScheduledGame() {
+    const requestedDate = params.get('date');
+    const teamNames = [params.get('team1'), params.get('team2')];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') || teamNames.some(name => !name)) return null;
+    const targetTeams = teamNames.map(configuredTeamEntry);
+    if (targetTeams.some(team => !team)) return null;
+    const leagueKey = params.get('league') || targetTeams[0].leagueKey;
+    const url = leagues[leagueKey]?.icsUrl;
+    if (!url) return null;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Schedule feed failed (${response.status}).`);
+    const component = new ICAL.Component(ICAL.parse(await response.text()));
+    const events = component.getAllSubcomponents('vevent').map(vevent => {
+      const event = new ICAL.Event(vevent);
+      const start = event.startDate?.toJSDate();
+      const teams = getTeamsInTitle(event.summary, leagueKey);
+      return { vevent, event, start, teams };
+    });
+    const selected = events.find(({ vevent, start, teams }) => {
+      if (!start || localDateKey(start) !== requestedDate || teams.length !== 2) return false;
+      const id = extractGameIdFromIcs(vevent);
+      if (gameId && id && String(id) !== String(gameId)) return false;
+      return targetTeams.every(team => teams.some(candidate => sameConfiguredTeam(team, candidate)));
+    });
+    if (!selected) return null;
+    return {
+      gameId: extractGameIdFromIcs(selected.vevent) || gameId,
+      start: selected.start,
+      title: selected.event.summary,
+      location: selected.event.location || 'TBD',
+      upcoming: true,
+      status: 'Scheduled',
+      date: selected.start.toLocaleDateString([], { month: 'short', day: '2-digit', year: 'numeric' }),
+      time: selected.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      teams: selected.teams.map((team, index) => ({
+        name: team.name,
+        side: index === 0 ? 'away' : 'home',
+        score: null,
+        shotsOnGoal: null,
+        periods: {}
+      }))
+    };
   }
 
   async function fetchSeasonGames(currentGame, gameTeams) {
@@ -203,6 +255,80 @@ permalink: /game/
     } catch (error) {
       console.error('Could not load season series:', error);
       container.innerHTML = '<p class="game-detail-muted">Season series could not be loaded.</p>';
+    }
+  }
+
+  function playerTeamEntry(player) {
+    const candidates = [player.teamName, player.team_name, player.team, player.Team, player.teamId, player.team_id, player.teamKey, player.franchise, player.teamAbbreviation];
+    for (const candidate of candidates) {
+      const value = candidate && typeof candidate === 'object'
+        ? (candidate.name || candidate.fullName || candidate.teamName || candidate.id || candidate.abbreviation)
+        : String(candidate || '').includes(':') ? String(candidate).split(':').pop() : candidate;
+      const entry = configuredTeamEntry(value);
+      if (entry) return entry;
+    }
+    return null;
+  }
+
+  function metricValue(player, metric) {
+    const aliases = {
+      points: ['pts', 'points', 'PTS'],
+      goals: ['g', 'goals', 'G'],
+      assists: ['a', 'assists', 'A']
+    }[metric];
+    const value = aliases.map(key => player[key]).find(item => item !== undefined && item !== null && item !== '');
+    return Number(value || 0);
+  }
+
+  function renderPlayersToWatch(skaters, teams) {
+    const metrics = [
+      ['points', 'Points'], ['goals', 'Goals'], ['assists', 'Assists']
+    ];
+    const teamPlayers = teams.map(team => {
+      const config = configuredTeamEntry(team.name);
+      return skaters.filter(player => sameConfiguredTeam(playerTeamEntry(player), config));
+    });
+    return metrics.map(([metric, label]) => {
+      const leaders = teamPlayers.map(players => [...players].sort((left, right) => metricValue(right, metric) - metricValue(left, metric))[0] || null);
+      const values = leaders.map(player => player ? metricValue(player, metric) : 0);
+      const total = values[0] + values[1];
+      const shares = total ? [values[0] / total, values[1] / total] : [0.5, 0.5];
+      const playerMarkup = (player, team, side) => player
+        ? `<div class="game-detail-watch-player ${side}">
+            <img src="${escapeHtml(teamLogo(team))}" alt="">
+            <div><strong>${escapeHtml(player.name || 'Player')}</strong><span>${player.number ? `#${escapeHtml(player.number)}` : ''}${player.position || player.pos ? ` · ${escapeHtml(player.position || player.pos)}` : ''}</span></div>
+          </div>`
+        : `<div class="game-detail-watch-player ${side} unavailable"><img src="${escapeHtml(teamLogo(team))}" alt=""><div><strong>Player stats unavailable</strong></div></div>`;
+      return `<div class="game-detail-watch-stat">
+        <div class="game-detail-watch-stat-line">
+          ${playerMarkup(leaders[0], teams[0], 'away')}
+          <strong class="game-detail-watch-value">${values[0]}</strong>
+          <span class="game-detail-watch-label">${label}</span>
+          <strong class="game-detail-watch-value">${values[1]}</strong>
+          ${playerMarkup(leaders[1], teams[1], 'home')}
+        </div>
+        <div class="game-detail-stat-bars" aria-hidden="true">
+          <span class="game-detail-stat-bar-away" style="--bar-share:${shares[0]};--bar-color:${escapeHtml(teamPrimaryColor(teams[0]))}"></span>
+          <span class="game-detail-stat-bar-home" style="--bar-share:${shares[1]};--bar-color:${escapeHtml(teamPrimaryColor(teams[1]))}"></span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadPlayersToWatch(teams) {
+    const target = document.getElementById('game-detail-watch-content');
+    if (!target) return;
+    try {
+      const response = await fetch(STATS_API_URL);
+      if (!response.ok) throw new Error(`Player stats request failed (${response.status}).`);
+      const data = await response.json();
+      const skaters = Array.isArray(data.skaters) ? data.skaters : [];
+      target.innerHTML = skaters.length
+        ? renderPlayersToWatch(skaters, teams)
+        : '<p class="game-detail-muted">Player statistics are unavailable.</p>';
+    } catch (error) {
+      console.error('Could not load players to watch:', error);
+      target.innerHTML = '<p class="game-detail-muted">Player statistics could not be loaded.</p>';
     }
   }
 
@@ -359,7 +485,7 @@ permalink: /game/
           <img src="${escapeHtml(teamLogo(team))}" alt="">
           <div class="game-detail-team-copy">
             <strong>${escapeHtml(team.name || 'Team')}</strong>
-            <span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'SOG unavailable' : `SOG: ${escapeHtml(team.shotsOnGoal)}`}</span>
+          ${game.upcoming ? '' : `<span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'SOG unavailable' : `SOG: ${escapeHtml(team.shotsOnGoal)}`}</span>`}
           </div>
           <strong class="game-detail-score ${resultClass}">${escapeHtml(team.score ?? '—')}</strong>
         </div>`;
@@ -369,7 +495,7 @@ permalink: /game/
         ${bannerStripe(teams[0], 'away')}
         ${bannerTeam(teams[0], 'away')}
         <div class="game-detail-banner-center">
-          <span class="game-detail-final">${escapeHtml(game.status || 'FINAL')}</span>
+          <span class="game-detail-final">${escapeHtml(game.status || (game.upcoming ? 'SCHEDULED' : 'FINAL'))}</span>
           ${game.date ? `<span>${escapeHtml(game.date)}</span>` : ''}
         </div>
         ${teams[1] ? bannerTeam(teams[1], 'home') : ''}
@@ -499,45 +625,54 @@ permalink: /game/
         }).join('')}
       </section>` : '';
 
+    const playersToWatch = `<section class="game-detail-section game-detail-players-watch">
+      <h2>Players to Watch</h2>
+      <p class="game-detail-watch-subtitle">Season Leaders</p>
+      <div id="game-detail-watch-content" aria-live="polite"><p class="game-detail-muted">Loading player stats...</p></div>
+    </section>`;
+    const gameSheet = `<section class="game-detail-section game-detail-rosters">
+      <div class="game-detail-roster-heading">
+        <h2>Game Sheet</h2>
+        <div class="game-detail-roster-tabs" role="tablist" aria-label="Select team game sheet">
+          ${teams.map((team, index) => `
+            <button type="button" class="${index === 0 ? 'active' : ''}" role="tab"
+              id="game-roster-tab-${index}" aria-selected="${index === 0}" aria-controls="game-roster-panel-${index}"
+              data-game-roster-tab="${index}">${escapeHtml(team.name || `Team ${index + 1}`)}</button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="game-detail-roster-panels stats-container">
+        ${teams.map((team, index) => `
+          <section class="game-detail-roster-team" role="tabpanel" id="game-roster-panel-${index}"
+            aria-labelledby="game-roster-tab-${index}" data-game-roster-panel="${index}" ${index === 0 ? '' : 'hidden'}>
+            ${rosterTable(team, index, 'skaters')}
+            ${rosterTable(team, index, 'goalies')}
+          </section>
+        `).join('')}
+      </div>
+    </section>`;
+    const seasonSeries = `<section class="game-detail-season-series" id="game-detail-season-series" aria-live="polite">
+      <p class="game-detail-muted">Loading season series...</p>
+    </section>`;
+
     content.innerHTML = `
       ${banner}
-      <div class="game-detail-columns">
+      <div class="game-detail-columns${game.upcoming ? ' is-upcoming' : ''}">
         <div class="game-detail-side-column stats-container">
-          ${gameStatsMarkup}
-          ${shotsTable}
-          ${periodTable}
+          ${seasonSeries}
+          ${game.upcoming ? '' : gameStatsMarkup}
+          ${game.upcoming ? '' : shotsTable}
+          ${game.upcoming ? '' : periodTable}
         </div>
         <div class="game-detail-player-column">
-          <section class="game-detail-section game-detail-rosters">
-            <div class="game-detail-roster-heading">
-              <h2>Game Sheet</h2>
-              <div class="game-detail-roster-tabs" role="tablist" aria-label="Select team game sheet">
-                ${teams.map((team, index) => `
-                  <button type="button" class="${index === 0 ? 'active' : ''}" role="tab"
-                    id="game-roster-tab-${index}" aria-selected="${index === 0}" aria-controls="game-roster-panel-${index}"
-                    data-game-roster-tab="${index}">${escapeHtml(team.name || `Team ${index + 1}`)}</button>
-                `).join('')}
-              </div>
-            </div>
-            <div class="game-detail-roster-panels stats-container">
-              ${teams.map((team, index) => `
-                <section class="game-detail-roster-team" role="tabpanel" id="game-roster-panel-${index}"
-                  aria-labelledby="game-roster-tab-${index}" data-game-roster-panel="${index}" ${index === 0 ? '' : 'hidden'}>
-                  ${rosterTable(team, index, 'skaters')}
-                  ${rosterTable(team, index, 'goalies')}
-                </section>
-              `).join('')}
-            </div>
-          </section>
-          <section class="game-detail-season-series" id="game-detail-season-series" aria-live="polite">
-            <p class="game-detail-muted">Loading season series...</p>
-          </section>
+          ${game.upcoming ? playersToWatch : gameSheet}
         </div>
       </div>
       `;
     requestAnimationFrame(updateGameTableOverflow);
     requestAnimationFrame(updateGameBannerStickyState);
     loadSeasonSeries(game, teams);
+    if (game.upcoming) loadPlayersToWatch(teams);
   }
 
   function updateGameTableOverflow() {
@@ -575,22 +710,33 @@ permalink: /game/
     if (button) sortRosterTable(button);
   });
 
-  if (!gameId || !/^\d+$/.test(gameId)) {
-    status.hidden = false;
-    status.textContent = 'This game link is missing a valid game ID.';
-    return;
-  }
-
-  fetch(`${API_URL}?id=${encodeURIComponent(gameId)}`)
-    .then(async response => {
+  async function loadGamePage() {
+    let scheduled = null;
+    try {
+      scheduled = await findScheduledGame();
+    } catch (error) {
+      console.warn('Could not look up the scheduled matchup:', error);
+    }
+    if (scheduled && scheduled.start >= new Date()) {
+      renderGameSheet(scheduled);
+      return;
+    }
+    try {
+      if (!gameId || !/^\d+$/.test(gameId)) {
+        status.hidden = false;
+        status.textContent = 'This game link is missing a valid game ID.';
+        return;
+      }
+      const response = await fetch(`${API_URL}?id=${encodeURIComponent(gameId)}`);
       if (!response.ok) throw new Error(`Game sheet request failed (${response.status}).`);
-      return response.json();
-    })
-    .then(renderGameSheet)
-    .catch(error => {
-      console.error('Unable to load game sheet:', error);
+      renderGameSheet(await response.json());
+    } catch (error) {
+      console.error('Unable to load game details:', error);
       status.hidden = false;
       status.textContent = 'Game details could not be loaded.';
-    });
+    }
+  }
+
+  loadGamePage();
 })();
 </script>
