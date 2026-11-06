@@ -11,6 +11,7 @@ permalink: /game/
   <div id="game-detail-content"></div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
 <script>
 (() => {
   const API_URL = 'https://score-sheet.xarria.workers.dev/';
@@ -49,10 +50,160 @@ permalink: /game/
       }));
   }
 
+  function configuredTeamEntry(name) {
+    const resolved = configuredTeam(name);
+    if (!resolved) return null;
+    const entry = Object.entries(leagues).find(([, league]) => (league.teams || []).includes(resolved));
+    return entry ? { ...resolved, leagueKey: entry[0] } : null;
+  }
+
   function teamLogo(team) {
     const config = configuredTeam(team.name);
     const path = config?.imagePath || window.pageTeamLogos?.[team.name] || window.pageTeamLogos?.default || '';
     return window.siteAssetUrl(path);
+  }
+
+  function decodeIcsUrl(value) {
+    let decoded = String(value || '');
+    for (let pass = 0; pass < 3; pass += 1) {
+      try {
+        const next = decodeURIComponent(decoded);
+        if (next === decoded) break;
+        decoded = next;
+      } catch (_) { break; }
+    }
+    return decoded;
+  }
+
+  function extractGameIdFromIcs(vevent) {
+    const values = ['url', 'description', 'uid'].map(key => String(vevent.getFirstPropertyValue(key) || ''));
+    for (const value of values) {
+      const id = decodeIcsUrl(value).match(/\/game\/(?:game_sheet|show)\/(\d+)/i)?.[1];
+      if (id) return id;
+    }
+    for (const value of values) {
+      const id = decodeIcsUrl(value).match(/[?&](?:game[_-]?id|gameid)=(\d+)/i)?.[1];
+      if (id) return id;
+    }
+    return null;
+  }
+
+  function getTeamsInTitle(title, leagueKey) {
+    const normalizedTitle = normalize(title);
+    const teams = leagueKey && leagues[leagueKey]
+      ? (leagues[leagueKey].teams || []).map(team => ({ ...team, leagueKey }))
+      : Object.entries(leagues).flatMap(([key, league]) => (league.teams || []).map(team => ({ ...team, leagueKey: key })));
+    return teams.map(team => {
+      const positions = [team.name, team.id, team.abbreviation, ...(team.statsAliases || [])]
+        .map(normalize)
+        .filter(alias => alias.length >= 3)
+        .map(alias => normalizedTitle.indexOf(alias))
+        .filter(position => position >= 0);
+      return positions.length ? { ...team, matchPosition: Math.min(...positions) } : null;
+    }).filter(Boolean).sort((left, right) => left.matchPosition - right.matchPosition);
+  }
+
+  function sameConfiguredTeam(left, right) {
+    return normalize(left?.id || left?.name) === normalize(right?.id || right?.name);
+  }
+
+  async function fetchSeasonGames(currentGame, gameTeams) {
+    const currentTeamConfigs = gameTeams.map(team => configuredTeamEntry(team.name)).filter(Boolean);
+    const leagueKeys = [...new Set(currentTeamConfigs.map(team => team.leagueKey))];
+    const feeds = await Promise.all(leagueKeys.map(async leagueKey => {
+      const url = leagues[leagueKey]?.icsUrl;
+      if (!url) return [];
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Schedule feed failed (${response.status}).`);
+      const component = new ICAL.Component(ICAL.parse(await response.text()));
+      return component.getAllSubcomponents('vevent').map(vevent => {
+        const event = new ICAL.Event(vevent);
+        const matchedTeams = getTeamsInTitle(event.summary, leagueKey);
+        if (matchedTeams.length !== 2 || !currentTeamConfigs.every(team => matchedTeams.some(candidate => sameConfiguredTeam(team, candidate)))) return null;
+        return {
+          title: event.summary,
+          start: event.startDate.toJSDate(),
+          gameId: extractGameIdFromIcs(vevent),
+          teams: matchedTeams
+        };
+      }).filter(Boolean);
+    }));
+    return feeds.flat().sort((left, right) => left.start - right.start);
+  }
+
+  async function fetchSeriesGameSheet(event, currentGame) {
+    if (!event.gameId) return null;
+    if (String(event.gameId) === String(currentGame.gameId)) return currentGame;
+    const response = await fetch(`${API_URL}?id=${encodeURIComponent(event.gameId)}`);
+    if (!response.ok) throw new Error(`Game sheet request failed (${response.status}).`);
+    return response.json();
+  }
+
+  function renderSeasonSeriesCard(event, sheet) {
+    const isPast = event.start < new Date();
+    const scores = sheet?.teams || [];
+    const formatDate = event.start.toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase();
+    const rows = event.teams.map(team => {
+      const scoreTeam = scores.find(candidate => sameConfiguredTeam(configuredTeamEntry(candidate.name), team));
+      const score = isPast ? (scoreTeam?.score ?? '—') : '';
+      const otherScore = isPast ? Number(scores.find(candidate => !sameConfiguredTeam(configuredTeamEntry(candidate.name), team))?.score) : NaN;
+      const numericScore = Number(score);
+      const resultClass = Number.isFinite(numericScore) && Number.isFinite(otherScore)
+        ? (numericScore > otherScore ? 'is-winner' : numericScore < otherScore ? 'is-loser' : '')
+        : '';
+      return `<div class="game-detail-series-team ${resultClass}">
+        <img src="${escapeHtml(window.siteAssetUrl(team.imagePath || window.pageTeamLogos?.[team.name] || window.pageTeamLogos?.default || ''))}" alt="">
+        <strong>${escapeHtml(team.abbreviation || team.name)}</strong>
+        ${isPast ? `<b>${escapeHtml(score)}</b>` : ''}
+      </div>`;
+    }).join('');
+    const resultStatus = isPast ? (sheet?.status || 'FINAL') : '';
+    return `<article class="game-detail-series-card">
+      <div class="game-detail-series-matchup">${rows}</div>
+      <div class="game-detail-series-footer"><span>${escapeHtml(resultStatus)}</span><time>${escapeHtml(formatDate)}</time></div>
+    </article>`;
+  }
+
+  async function loadSeasonSeries(currentGame, gameTeams) {
+    const container = document.getElementById('game-detail-season-series');
+    if (!container || gameTeams.length !== 2) return;
+    try {
+      const events = await fetchSeasonGames(currentGame, gameTeams);
+      if (!events.length) {
+        container.innerHTML = '<p class="game-detail-muted">No other games found for this matchup.</p>';
+        return;
+      }
+      const results = await Promise.all(events.map(async event => {
+        if (event.start >= new Date()) return { event, sheet: null };
+        try { return { event, sheet: await fetchSeriesGameSheet(event, currentGame) }; }
+        catch (error) {
+          console.warn(`Could not load season series score for game ${event.gameId || 'unknown'}:`, error);
+          return { event, sheet: null };
+        }
+      }));
+      const [firstTeam, secondTeam] = gameTeams.map(team => configuredTeamEntry(team.name));
+      const record = results.reduce((totals, { event, sheet }) => {
+        if (event.start >= new Date() || !sheet?.teams) return totals;
+        const first = sheet.teams.find(candidate => sameConfiguredTeam(configuredTeamEntry(candidate.name), firstTeam));
+        const second = sheet.teams.find(candidate => sameConfiguredTeam(configuredTeamEntry(candidate.name), secondTeam));
+        if (!first || !second || first.score === null || first.score === undefined || second.score === null || second.score === undefined ||
+          !Number.isFinite(Number(first.score)) || !Number.isFinite(Number(second.score))) return totals;
+        totals.completed += 1;
+        if (Number(first.score) > Number(second.score)) totals.firstWins += 1;
+        else if (Number(second.score) > Number(first.score)) totals.secondWins += 1;
+        return totals;
+      }, { firstWins: 0, secondWins: 0, completed: 0 });
+      const summary = !record.completed
+        ? (results.some(result => result.event.start < new Date()) ? 'Results unavailable' : 'No completed games')
+        : record.firstWins === record.secondWins
+          ? `Tied ${record.firstWins}-${record.secondWins}`
+          : `${escapeHtml((record.firstWins > record.secondWins ? firstTeam : secondTeam)?.abbreviation || '')} leads ${Math.max(record.firstWins, record.secondWins)}-${Math.min(record.firstWins, record.secondWins)}`;
+      container.innerHTML = `<div class="game-detail-season-heading"><h2>Season Series</h2><span>${summary}</span></div>
+        <div class="game-detail-season-grid">${results.map(({ event, sheet }) => renderSeasonSeriesCard(event, sheet)).join('')}</div>`;
+    } catch (error) {
+      console.error('Could not load season series:', error);
+      container.innerHTML = '<p class="game-detail-muted">Season series could not be loaded.</p>';
+    }
   }
 
   function themePrimaryColor(themeId) {
@@ -378,11 +529,15 @@ permalink: /game/
               `).join('')}
             </div>
           </section>
+          <section class="game-detail-season-series" id="game-detail-season-series" aria-live="polite">
+            <p class="game-detail-muted">Loading season series...</p>
+          </section>
         </div>
       </div>
       `;
     requestAnimationFrame(updateGameTableOverflow);
     requestAnimationFrame(updateGameBannerStickyState);
+    loadSeasonSeries(game, teams);
   }
 
   function updateGameTableOverflow() {

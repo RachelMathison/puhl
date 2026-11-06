@@ -12,7 +12,7 @@ comp:
       statsUrl: "https://puhl-stats-players-bushtits.xarria.workers.dev/"
     - name: "Eagles"
       id: "eagles"
-      abbreviation: "EAG"
+      abbreviation: "EAGL"
       imagePath: "/assets/images/teams/eagles.png"
       statsUrl: "https://puhl-stats-players-eagles.xarria.workers.dev/"
     - name: "Hooters"
@@ -54,7 +54,7 @@ rec:
       statsUrl: "https://puhl-stats-players-flamingos.xarria.workers.dev/"
     - name: "Flying V's"
       id: "flying"
-      abbreviation: "FVS"
+      abbreviation: "FLYV"
       statsAliases:
         - "V's"
       imagePath: "/assets/images/teams/flying_vs.png"
@@ -67,7 +67,7 @@ novice:
   teams:
     - name: "Penguins"
       id: "penguins"
-      abbreviation: "PEN"
+      abbreviation: "PENS"
       statsAliases:
         - "Pens"
       imagePath: "/assets/images/teams/penguins.png"
@@ -81,7 +81,7 @@ novice:
       statsUrl: "https://puhl-stats-players-two-cans.xarria.workers.dev/"
     - name: "Pigeons"
       id: "pigeons"
-      abbreviation: "PGN"
+      abbreviation: "PIGN"
       statsAliases:
         - "Pigeon"
       imagePath: "/assets/images/teams/pigeons.png"

@@ -281,7 +281,7 @@
 
 .game-detail-section {
   margin-top: 20px;
-  padding: 18px;
+  padding: 5px;
   border: 1px solid var(--gray-300);
   border-radius: 9px;
   background: var(--surface);
@@ -548,6 +548,92 @@
   font-size: 0.85rem;
 }
 
+.game-detail-season-series {
+  margin-top: 26px;
+  padding-bottom: 28px;
+}
+
+.game-detail-season-heading {
+  position: relative;
+  margin-bottom: 14px;
+
+  h2 {
+    width: 100%;
+    margin: 0;
+    padding-right: 180px;
+  }
+
+  > span {
+    position: absolute;
+    top: 14px;
+    right: 0;
+    color: var(--gray-500);
+    font-size: 1.1rem;
+    white-space: nowrap;
+  }
+}
+
+.game-detail-season-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.game-detail-series-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--gray-300);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.game-detail-series-matchup {
+  display: grid;
+  gap: 8px;
+}
+
+.game-detail-series-team {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+
+  img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+  }
+
+  strong {
+    overflow: hidden;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  b {
+    font-size: 1.25rem;
+  }
+
+  &.is-loser {
+    color: var(--gray-500);
+  }
+}
+
+.game-detail-series-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
 @media (max-width: 900px) {
   .game-detail-columns {
     grid-template-columns: minmax(0, 1fr);
@@ -649,6 +735,22 @@
   .game-detail-roster-tabs {
     top: 10px;
     width: 56%;
+  }
+
+  .game-detail-season-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .game-detail-season-heading {
+    h2 {
+      padding-right: 135px;
+    }
+
+    > span {
+      top: 12px;
+      font-size: 0.9rem;
+    }
   }
 
   .game-detail-card {
