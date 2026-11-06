@@ -44,6 +44,18 @@
   border-radius: 0;
 }
 
+@media (min-width: 901px) {
+  .game-detail-banner.is-upcoming {
+    grid-template-columns: 115px minmax(0, 1fr) max-content minmax(0, 1fr) 115px;
+
+    .game-detail-banner-center {
+      min-width: 116px;
+      padding: 0 16px;
+      white-space: nowrap;
+    }
+  }
+}
+
 .game-detail-columns {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
@@ -73,7 +85,7 @@
 }
 
 .game-detail-columns.is-upcoming .game-detail-season-grid {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -82,6 +94,127 @@
   color: var(--gray-500);
   font-size: 1.05rem;
   font-weight: 700;
+}
+
+.game-detail-recent,
+.game-detail-info {
+  padding: 16px;
+}
+
+.game-detail-section.game-detail-recent,
+.game-detail-section.game-detail-info,
+.game-detail-section.game-detail-players-watch,
+.game-detail-section.game-detail-goaltending {
+  border: 0;
+}
+
+.game-detail-recent-team {
+  padding: 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+
+  + .game-detail-recent-team { margin-top: 14px; }
+}
+
+.game-detail-recent-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.game-detail-recent-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  text-align: center;
+}
+
+.game-detail-recent-badge {
+  display: block;
+  padding: 4px 2px;
+  border-radius: 3px;
+  background: #ddd;
+  color: #555;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+
+  &.is-win { background: #2e9133; color: #fff; }
+}
+
+.game-detail-recent-outcome {
+  display: block;
+  margin-top: 4px;
+  color: var(--gray-500);
+  font-size: 0.8rem;
+}
+
+.game-detail-info dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 14px;
+  margin: 0;
+
+  dt { color: var(--gray-500); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+}
+
+.game-detail-goaltending {
+  padding: 16px;
+}
+
+.game-detail-goalie-team + .game-detail-goalie-team {
+  margin-top: 24px;
+}
+
+.game-detail-goalie-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+
+  &.is-team {
+    border: 1px solid var(--gray-300);
+    border-radius: 9px;
+    background: var(--surface-raised);
+  }
+}
+
+.game-detail-goalie-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-wrap: anywhere;
+
+  img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+  }
+
+  span {
+    display: block;
+    color: var(--gray-500);
+    font-size: 0.8rem;
+  }
+}
+
+.game-detail-goalie-metric {
+  text-align: center;
+
+  strong, span {
+    display: block;
+  }
+
+  strong {
+    font-size: clamp(0.9rem, 2vw, 1.4rem);
+  }
+
+  span {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+  }
 }
 
 .game-detail-watch-content,
@@ -827,7 +960,7 @@
   }
 
   .game-detail-season-grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 

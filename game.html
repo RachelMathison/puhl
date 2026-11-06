@@ -33,6 +33,23 @@ permalink: /game/
   const title = document.getElementById('game-detail-title');
   const leagues = window.siteLeagueStructure || {};
   const themePrimaryColors = new Map();
+  const statsRequests = new Map();
+
+  function fetchStats(url) {
+    const key = String(url);
+    if (!statsRequests.has(key)) statsRequests.set(key, fetch(url).then(response => {
+      if (!response.ok) throw new Error(`Stats request failed (${response.status}).`);
+      return response.json();
+    }));
+    return statsRequests.get(key);
+  }
+
+  function teamStatsUrl() {
+    if (!TEAM_STATS_API_URL) throw new Error('Team statistics are not configured.');
+    const url = new URL(TEAM_STATS_API_URL, window.location.href);
+    url.searchParams.set('subseason', TEAM_STATS_SUBSEASON);
+    return url;
+  }
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -322,9 +339,7 @@ permalink: /game/
     const target = document.getElementById('game-detail-watch-content');
     if (!target) return;
     try {
-      const response = await fetch(STATS_API_URL);
-      if (!response.ok) throw new Error(`Player stats request failed (${response.status}).`);
-      const data = await response.json();
+      const data = await fetchStats(STATS_API_URL);
       const skaters = Array.isArray(data.skaters) ? data.skaters : [];
       target.innerHTML = skaters.length
         ? renderPlayersToWatch(skaters, teams)
@@ -332,6 +347,41 @@ permalink: /game/
     } catch (error) {
       console.error('Could not load players to watch:', error);
       target.innerHTML = '<p class="game-detail-muted">Player statistics could not be loaded.</p>';
+    }
+  }
+
+  function renderGoaltending(goalies, teams) {
+    const goalieName = player => String(player.name || 'Goalie')
+      .replace(/(?:\*|\s|&(?:#x0*a0|#0*160|nbsp);)*-\s*\(G\)(?:\*|\s)*$/i, '').trim();
+    const format = (value, key) => {
+      if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) return '&mdash;';
+      const number = Number(value);
+      return key === 'gaa' ? number.toFixed(2) : key === 'svPct' ? number.toFixed(3).replace(/^0/, '') : String(number);
+    };
+    const cells = stats => [['gp', 'GP'], ['gaa', 'GAA'], ['svPct', 'SV%'], ['so', 'SO']].map(([key, label]) =>
+      `<div class="game-detail-goalie-metric"><strong>${format(stats?.[key], key)}</strong><span>${label}</span></div>`).join('');
+    return teams.map(team => {
+      const config = configuredTeamEntry(team.name);
+      const matches = entry => config && entry?.leagueKey === config.leagueKey && sameConfiguredTeam(entry, config);
+      const players = goalies.filter(player => matches(playerTeamEntry(player))).sort((a, b) => Number(b.gp || 0) - Number(a.gp || 0));
+      return `<div class="game-detail-goalie-team">
+        ${players.length ? players.map(player => `<div class="game-detail-goalie-row">
+          <div class="game-detail-goalie-name"><img src="${escapeHtml(teamLogo(team))}" alt="${escapeHtml(team.name)}"><div><strong>${escapeHtml(goalieName(player))}</strong>${player.number ? `<span>#${escapeHtml(player.number)}</span>` : ''}</div></div>
+          ${cells(player)}
+        </div>`).join('') : `<p class="game-detail-muted">Goalie statistics are unavailable for ${escapeHtml(team.name)}.</p>`}
+      </div>`;
+    }).join('');
+  }
+
+  async function loadGoaltending(teams) {
+    const target = document.getElementById('game-detail-goaltending-content');
+    if (!target) return;
+    try {
+      const data = await fetchStats(STATS_API_URL);
+      target.innerHTML = renderGoaltending(Array.isArray(data.goalies) ? data.goalies : [], teams);
+    } catch (error) {
+      console.error('Could not load goaltending statistics:', error);
+      target.innerHTML = '<p class="game-detail-muted">Goaltending statistics could not be loaded.</p>';
     }
   }
 
@@ -346,6 +396,15 @@ permalink: /game/
     const configs = teams.map(team => configuredTeamEntry(team.name));
     const selected = configs.map(config => config && entries.find(entry => entry.config?.leagueKey === config.leagueKey && sameConfiguredTeam(entry.config, config)));
     const valueOf = (entry, key) => {
+      // Fall 2026 Novice totals include six extra games in the GP count.
+      if (String(TEAM_STATS_SUBSEASON) === '964738' && entry?.config?.leagueKey === 'novice' && ['gpg', 'gapg'].includes(key)) {
+        const stats = entry.row.stats;
+        const gamesPlayed = Number(stats?.team?.gp) - 6;
+        const total = key === 'gpg' ? stats?.skater?.goals : stats?.goalie?.ga;
+        return gamesPlayed > 0 && total !== null && total !== undefined && total !== '' && Number.isFinite(Number(total))
+          ? Number(total) / gamesPlayed
+          : null;
+      }
       const value = entry?.row.stats?.team?.[key];
       return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
     };
@@ -383,12 +442,7 @@ permalink: /game/
     const target = document.getElementById('game-detail-team-stats-content');
     if (!target) return;
     try {
-      if (!TEAM_STATS_API_URL) throw new Error('Team statistics are not configured.');
-      const url = new URL(TEAM_STATS_API_URL, window.location.href);
-      url.searchParams.set('subseason', TEAM_STATS_SUBSEASON);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Team stats request failed (${response.status}).`);
-      const data = await response.json();
+      const data = await fetchStats(teamStatsUrl());
       target.innerHTML = renderTeamStats(Array.isArray(data.teams) ? data.teams : [], teams);
     } catch (error) {
       console.error('Could not load team statistics:', error);
@@ -433,10 +487,35 @@ permalink: /game/
     });
   }
 
-  function rosterTable(team, teamIndex, kind) {
+  async function loadSeasonRoster(teams) {
+    try {
+      const data = await fetchStats(STATS_API_URL);
+      teams.forEach((team, index) => {
+        const panel = document.getElementById(`game-roster-panel-${index}`);
+        if (!panel) return;
+        const config = configuredTeamEntry(team.name);
+        const players = kind => (Array.isArray(data[kind]) ? data[kind] : []).filter(player => {
+          const entry = playerTeamEntry(player);
+          return config && entry?.leagueKey === config.leagueKey && sameConfiguredTeam(entry, config);
+        });
+        const roster = { skaters: players('skaters'), goalies: players('goalies') };
+        panel.innerHTML = rosterTable(roster, index, 'skaters', true) + rosterTable(roster, index, 'goalies', true);
+      });
+      requestAnimationFrame(updateGameTableOverflow);
+    } catch (error) {
+      console.error('Could not load season roster:', error);
+      content.querySelectorAll('[data-game-roster-panel]').forEach(panel => {
+        panel.innerHTML = '<p class="game-detail-muted">Roster statistics could not be loaded.</p>';
+      });
+    }
+  }
+
+  function rosterTable(team, teamIndex, kind, season = false) {
     const isSkater = kind === 'skaters';
     const players = Array.isArray(team[kind]) ? [...team[kind]] : [];
-    const columns = isSkater
+    const columns = season ? (isSkater
+      ? [['number', '#', 'number'], ['name', 'Player', 'text'], ['gp', 'GP', 'number'], ['g', 'G', 'number'], ['a', 'A', 'number'], ['pts', 'PTS', 'number'], ['avgPts', 'PTS/GP', 'number'], ['pim', 'PIM', 'number'], ['ppg', 'PPG', 'number'], ['ppa', 'PPA', 'number'], ['gw', 'GWG', 'number']]
+      : [['number', '#', 'number'], ['name', 'Goalie', 'text'], ['gp', 'GP', 'number'], ['w', 'W', 'number'], ['l', 'L', 'number'], ['t', 'T', 'number'], ['sog', 'SOG', 'number'], ['ga', 'GA', 'number'], ['sv', 'SV', 'number'], ['gaa', 'GAA', 'number'], ['svPct', 'SV%', 'number'], ['so', 'SO', 'number']]) : isSkater
       ? [
           ['number', '#', 'number'], ['name', 'Player', 'text'], ['goals', 'G', 'number'],
           ['assists', 'A', 'number'], ['points', 'P', 'number'], ['pim', 'PIM', 'number'], ['gwg', 'GWG', 'number']
@@ -445,18 +524,22 @@ permalink: /game/
           ['number', '#', 'number'], ['name', 'Goalie', 'text'], ['minutes', 'MIN', 'time'],
           ['shots', 'SH', 'number'], ['saves', 'SV', 'number'], ['decision', 'DEC', 'text']
         ];
-    const defaultSortKey = isSkater ? 'points' : 'number';
+    const defaultSortKey = isSkater ? (season ? 'pts' : 'points') : 'number';
     const defaultSortDirection = isSkater ? 'desc' : 'asc';
-    const valueFor = (player, key) => key === 'points'
+    const valueFor = (player, key) => season && key === 'name'
+      ? String(player.name || '').replace(/(?:\*|\s|&(?:#x0*a0|#0*160|nbsp);)*-\s*\(G\)(?:\*|\s)*$/i, '').trim()
+      : key === 'points'
       ? Number(player.goals || 0) + Number(player.assists || 0)
       : (player[key] ?? '');
     if (isSkater) {
-      players.sort((left, right) => valueFor(right, 'points') - valueFor(left, 'points'));
+      players.sort((left, right) => valueFor(right, defaultSortKey) - valueFor(left, defaultSortKey));
     }
     const tableKey = `${teamIndex}-${kind}`;
     const rows = players.map(player => `<tr>${columns.map(([key]) => {
       const value = valueFor(player, key);
-      const displayValue = value === '' || value === null || value === undefined ? '—' : value;
+      const displayValue = value === '' || value === null || value === undefined ? '—'
+        : season && ['gaa', 'avgPts', 'svPct'].includes(key) && Number.isFinite(Number(value))
+          ? (key === 'svPct' ? Number(value).toFixed(3).replace(/^0/, '') : Number(value).toFixed(2)) : value;
       return `<td data-sort-value="${escapeHtml(value)}">${escapeHtml(displayValue)}</td>`;
     }).join('')}</tr>`).join('');
     const headers = columns.map(([key, label, type], index) => `
@@ -587,7 +670,7 @@ permalink: /game/
         </div>`;
     };
     const banner = `
-      <section class="game-detail-banner" aria-label="Final score">
+      <section class="game-detail-banner${game.upcoming ? ' is-upcoming' : ''}" aria-label="${game.upcoming ? 'Scheduled matchup' : 'Final score'}">
         ${bannerStripe(teams[0], 'away')}
         ${bannerTeam(teams[0], 'away')}
         <div class="game-detail-banner-center">
@@ -612,7 +695,7 @@ permalink: /game/
         </div>
       </section>` : '';
 
-    const shotPeriods = [...new Set(teams.flatMap(team => Object.keys(team.shotsOnGoalByPeriod || {})))].sort((left, right) => {
+    const shotPeriods = [...new Set(teams.flatMap(team => Object.keys(team.shotsOnGoalByPeriod || {})))].filter(period => !/^total$/i.test(period.trim())).sort((left, right) => {
       const leftNumber = Number(left);
       const rightNumber = Number(right);
       if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) return leftNumber - rightNumber;
@@ -665,14 +748,9 @@ permalink: /game/
         display: teams.map(team => team.shotsOnGoal ?? '—')
       },
       {
-        label: 'Power Play %',
-        values: teams.map(team => team.powerPlay?.percentage !== null && team.powerPlay?.percentage !== undefined && Number.isFinite(Number(team.powerPlay.percentage)) ? Number(team.powerPlay.percentage) : null),
-        display: teams.map(team => team.powerPlay && Number(team.powerPlay.opportunities) > 0
-          ? `${Number(team.powerPlay.percentage).toFixed(1)}%`
-          : '—'),
-        details: teams.map(team => team.powerPlay
-          ? `${team.powerPlay.goals}/${team.powerPlay.opportunities}`
-          : '')
+        label: 'Saves',
+        values: teams.map(totalGoalieSaves),
+        display: teams.map(team => totalGoalieSaves(team) ?? '—')
       },
       {
         label: 'Penalty Minutes',
@@ -688,9 +766,14 @@ permalink: /game/
         })
       },
       {
-        label: 'Saves',
-        values: teams.map(totalGoalieSaves),
-        display: teams.map(team => totalGoalieSaves(team) ?? '—')
+        label: 'Power Play %',
+        values: teams.map(team => team.powerPlay?.percentage !== null && team.powerPlay?.percentage !== undefined && Number.isFinite(Number(team.powerPlay.percentage)) ? Number(team.powerPlay.percentage) : null),
+        display: teams.map(team => team.powerPlay && Number(team.powerPlay.opportunities) > 0
+          ? `${Number(team.powerPlay.percentage).toFixed(1)}%`
+          : '—'),
+        details: teams.map(team => team.powerPlay
+          ? `${team.powerPlay.goals}/${team.powerPlay.opportunities}`
+          : '')
       }
     ].filter(stat => stat.values.some(value => value !== null));
     const gameStatsMarkup = gameStats.length ? `
@@ -724,12 +807,11 @@ permalink: /game/
 
     const playersToWatch = `<section class="game-detail-section game-detail-players-watch">
       <h2>Players to Watch</h2>
-      <p class="game-detail-watch-subtitle">Season Leaders</p>
       <div id="game-detail-watch-content" aria-live="polite"><p class="game-detail-muted">Loading player stats...</p></div>
     </section>`;
     const gameSheet = `<section class="game-detail-section game-detail-rosters">
       <div class="game-detail-roster-heading">
-        <h2>Game Sheet</h2>
+        <h2>${game.upcoming ? 'Roster' : 'Game Sheet'}</h2>
         <div class="game-detail-roster-tabs" role="tablist" aria-label="Select team game sheet">
           ${teams.map((team, index) => `
             <button type="button" class="${index === 0 ? 'active' : ''}" role="tab"
@@ -742,8 +824,7 @@ permalink: /game/
         ${teams.map((team, index) => `
           <section class="game-detail-roster-team" role="tabpanel" id="game-roster-panel-${index}"
             aria-labelledby="game-roster-tab-${index}" data-game-roster-panel="${index}" ${index === 0 ? '' : 'hidden'}>
-            ${rosterTable(team, index, 'skaters')}
-            ${rosterTable(team, index, 'goalies')}
+            ${game.upcoming ? '<p class="game-detail-muted">Loading roster stats...</p>' : rosterTable(team, index, 'skaters') + rosterTable(team, index, 'goalies')}
           </section>
         `).join('')}
       </div>
@@ -756,7 +837,7 @@ permalink: /game/
       ${banner}
       <div class="game-detail-columns${game.upcoming ? ' is-upcoming' : ''}">
         <div class="game-detail-side-column stats-container">
-          ${seasonSeries}
+          ${game.upcoming ? seasonSeries : ''}
           ${game.upcoming ? `<section class="game-detail-section game-detail-stats">
             <h2>Team Stats</h2>
             <div class="game-detail-stats-heading">
@@ -767,9 +848,25 @@ permalink: /game/
           </section>` : gameStatsMarkup}
           ${game.upcoming ? '' : shotsTable}
           ${game.upcoming ? '' : periodTable}
+          ${game.upcoming ? `<section class="game-detail-section game-detail-recent">
+            <h2>Last 5 Games</h2>
+            <div id="game-detail-recent-content" aria-live="polite"><p class="game-detail-muted">Loading recent games...</p></div>
+          </section>
+          <section class="game-detail-section game-detail-info">
+            <h2>Game Info</h2>
+            <dl><dt>Date/Time</dt><dd>${escapeHtml([game.date, game.time].filter(Boolean).join(' · ') || 'TBD')}</dd>
+            <dt>Location</dt><dd>${escapeHtml(game.location || 'TBD')}</dd>
+            ${teams.map((team, index) => `<dt>${escapeHtml(configuredTeam(team.name)?.abbreviation || team.name)} Captain</dt><dd id="game-detail-captains-${index}">Loading...</dd>`).join('')}</dl>
+          </section>` : ''}
         </div>
         <div class="game-detail-player-column">
           ${game.upcoming ? playersToWatch : gameSheet}
+          ${game.upcoming ? `<section class="game-detail-section game-detail-goaltending">
+            <h2>Goaltending</h2>
+            <div id="game-detail-goaltending-content" aria-live="polite"><p class="game-detail-muted">Loading goaltending stats...</p></div>
+          </section>` : ''}
+          ${game.upcoming ? gameSheet : ''}
+          ${game.upcoming ? '' : seasonSeries}
         </div>
       </div>
       `;
@@ -780,6 +877,85 @@ permalink: /game/
     if (game.upcoming) {
       loadPlayersToWatch(teams);
       loadTeamStats(teams);
+      loadGoaltending(teams);
+      loadSeasonRoster(teams);
+      loadRecentGames(game, teams);
+      loadCaptains(teams);
+    }
+  }
+
+  function recentGameResult(sheet, config) {
+    if (!sheet || !/final|completed/i.test(sheet.status || '')) return null;
+    const own = (sheet.teams || []).find(team => sameConfiguredTeam(configuredTeamEntry(team.name), config));
+    const opponent = (sheet.teams || []).find(team => !sameConfiguredTeam(configuredTeamEntry(team.name), config));
+    const valid = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+    if (!own || !opponent || !valid(own.score) || !valid(opponent.score)) return null;
+    return { opponent, own, outcome: Number(own.score) > Number(opponent.score) ? 'W' : Number(own.score) < Number(opponent.score) ? 'L' : 'T' };
+  }
+
+  async function loadRecentGames(game, teams) {
+    const target = document.getElementById('game-detail-recent-content');
+    if (!target) return;
+    const feeds = new Map();
+    const sheets = new Map();
+    const cards = await Promise.all(teams.map(async team => {
+      const config = configuredTeamEntry(team.name);
+      try {
+        const url = leagues[config?.leagueKey]?.icsUrl;
+        if (!url) throw new Error('Schedule is not configured.');
+        if (!feeds.has(url)) feeds.set(url, fetch(url).then(async response => {
+          if (!response.ok) throw new Error(`Schedule request failed (${response.status}).`);
+          return new ICAL.Component(ICAL.parse(await response.text())).getAllSubcomponents('vevent');
+        }));
+        const events = (await feeds.get(url)).map(vevent => {
+          const event = new ICAL.Event(vevent);
+          return { start: event.startDate?.toJSDate(), gameId: extractGameIdFromIcs(vevent), teams: getTeamsInTitle(event.summary, config.leagueKey) };
+        }).filter(event => event.start && event.start < new Date() && event.gameId && String(event.gameId) !== String(game.gameId) && event.teams.some(candidate => sameConfiguredTeam(candidate, config)))
+          .sort((a, b) => b.start - a.start);
+        const results = [];
+        const seen = new Set();
+        for (const event of events) {
+          if (seen.has(event.gameId)) continue;
+          seen.add(event.gameId);
+          try {
+            if (!sheets.has(event.gameId)) sheets.set(event.gameId, fetchSeriesGameSheet(event, game));
+            const result = recentGameResult(await sheets.get(event.gameId), config);
+            if (result) results.push({ ...result, start: event.start });
+          } catch (error) { console.warn('Could not load recent game:', error); }
+          if (results.length === 5) break;
+        }
+        const count = outcome => results.filter(result => result.outcome === outcome).length;
+        return `<article class="game-detail-recent-team">
+          <div class="game-detail-recent-heading"><strong>${escapeHtml(team.name)}</strong><span>${count('W')}-${count('L')}-${count('T')}</span></div>
+          ${results.length ? `<div class="game-detail-recent-grid">${results.map(result => {
+            const opponent = configuredTeamEntry(result.opponent.name);
+            const description = `${result.start.toLocaleDateString()}: ${team.name} ${result.own.score}-${result.opponent.score} ${result.opponent.name}`;
+            return `<div title="${escapeHtml(description)}"><span class="game-detail-recent-badge ${result.outcome === 'W' ? 'is-win' : ''}">${escapeHtml(opponent?.abbreviation || result.opponent.name)}</span><span class="game-detail-recent-outcome">${result.outcome}</span></div>`;
+          }).join('')}</div>` : '<p class="game-detail-muted">No completed games found.</p>'}
+        </article>`;
+      } catch (error) {
+        console.warn('Could not load recent games:', error);
+        return `<p class="game-detail-muted">Recent games are unavailable for ${escapeHtml(team.name)}.</p>`;
+      }
+    }));
+    target.innerHTML = cards.join('');
+  }
+
+  async function loadCaptains(teams) {
+    try {
+      const data = await fetchStats(STATS_API_URL);
+      const players = [...(data.skaters || []), ...(data.goalies || [])];
+      teams.forEach((team, index) => {
+        const config = configuredTeamEntry(team.name);
+        const names = players.filter(player => {
+          const entry = playerTeamEntry(player);
+          return config && entry?.leagueKey === config.leagueKey && sameConfiguredTeam(entry, config) && /\(C\)/i.test(player.name || '');
+        }).map(player => String(player.name).replace(/\(C\)|\(G\)|\*|&(?:#x0*a0|#0*160|nbsp);/gi, ' ').replace(/\s*-\s*$/, '').trim());
+        document.getElementById(`game-detail-captains-${index}`).textContent = [...new Set(names)].join(', ') || 'Unavailable';
+      });
+    } catch (error) {
+      console.warn('Could not load captains:', error);
+      teams.forEach((_, index) => { document.getElementById(`game-detail-captains-${index}`).textContent = 'Unavailable'; });
     }
   }
 
