@@ -20,6 +20,7 @@ permalink: /game/
   const status = document.getElementById('game-detail-status');
   const title = document.getElementById('game-detail-title');
   const leagues = window.siteLeagueStructure || {};
+  const themePrimaryColors = new Map();
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -45,6 +46,31 @@ permalink: /game/
     const config = configuredTeam(team.name);
     const path = config?.imagePath || window.pageTeamLogos?.[team.name] || window.pageTeamLogos?.default || '';
     return window.siteAssetUrl(path);
+  }
+
+  function themePrimaryColor(themeId) {
+    if (!themeId) return getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+    if (themePrimaryColors.has(themeId)) return themePrimaryColors.get(themeId);
+    const root = document.documentElement;
+    const previousTheme = root.getAttribute('data-site-theme');
+    if (themeId === 'green') root.removeAttribute('data-site-theme');
+    else root.setAttribute('data-site-theme', themeId);
+    const color = getComputedStyle(root).getPropertyValue('--primary').trim();
+    if (previousTheme === null) root.removeAttribute('data-site-theme');
+    else root.setAttribute('data-site-theme', previousTheme);
+    themePrimaryColors.set(themeId, color);
+    return color;
+  }
+
+  function teamPrimaryColor(team) {
+    const config = configuredTeam(team.name);
+    const identifiers = [config?.id, config?.name, ...(config?.statsAliases || [])].map(normalize).filter(Boolean);
+    const theme = (window.siteThemeMetadata || []).find(item => {
+      if (!item.statsTeamKey) return false;
+      const configuredKey = normalize(String(item.statsTeamKey).split(':').slice(1).join(':'));
+      return identifiers.includes(configuredKey);
+    }) || (window.siteThemeMetadata || []).find(item => normalize(item.id) === normalize(config?.id));
+    return themePrimaryColor(theme?.id);
   }
 
   function periodColumns(teams) {
@@ -141,27 +167,47 @@ permalink: /game/
     title.textContent = matchup || 'Game Details';
     document.title = `${matchup || 'Game Details'} · Portland United Hockey League`;
     status.textContent = '';
+    status.hidden = true;
 
     const meta = [game.date, game.time, game.location].filter(Boolean);
-    const teamRows = teams.map(team => `
-      <div class="game-detail-team">
+    const bannerMeta = [game.time, game.location].filter(Boolean).join(' · ');
+    const bannerStripe = (team, side) => `
+      <span class="game-detail-banner-stripe ${side}" style="--team-primary:${escapeHtml(teamPrimaryColor(team))}" aria-hidden="true">
+        <span class="game-detail-banner-stripe-art">
+          <svg class="game-detail-banner-corner" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg" focusable="false"><polygon points="0,0 66,0 0,66"></polygon></svg>
+          <svg class="game-detail-banner-diagonal" viewBox="0 0 115 96" xmlns="http://www.w3.org/2000/svg" focusable="false"><polyline points="0,95 94,1 108,1 14,95"></polyline></svg>
+        </span>
+      </span>`;
+    const bannerTeam = (team, side) => `
+      <div class="game-detail-banner-team ${side}">
         <img src="${escapeHtml(teamLogo(team))}" alt="">
         <div class="game-detail-team-copy">
           <strong>${escapeHtml(team.name || 'Team')}</strong>
-          <span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'Shots on goal unavailable' : `${escapeHtml(team.shotsOnGoal)} shots on goal`}</span>
+          <span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'SOG unavailable' : `SOG: ${escapeHtml(team.shotsOnGoal)}`}</span>
         </div>
         <strong class="game-detail-score">${escapeHtml(team.score ?? '—')}</strong>
-      </div>
-    `).join('');
+      </div>`;
+    const banner = `
+      <section class="game-detail-banner" aria-label="Final score">
+        ${bannerStripe(teams[0], 'away')}
+        ${bannerTeam(teams[0], 'away')}
+        <div class="game-detail-banner-center">
+          <span class="game-detail-final">${escapeHtml(game.status || 'FINAL')}</span>
+          ${game.date ? `<span>${escapeHtml(game.date)}</span>` : ''}
+        </div>
+        ${teams[1] ? bannerTeam(teams[1], 'home') : ''}
+        ${teams[1] ? bannerStripe(teams[1], 'home') : ''}
+      </section>
+      ${bannerMeta ? `<p class="game-detail-banner-meta">${escapeHtml(bannerMeta)}</p>` : ''}`;
 
     const periods = periodColumns(teams);
     const periodTable = periods.length ? `
-      <section class="game-detail-section">
-        <h2>Scoring by Period</h2>
+      <section class="game-detail-section game-detail-linescore">
+        <h2>Linescore</h2>
         <div class="stats-table-wrapper">
           <table class="stats-table game-detail-period-table">
-            <thead><tr><th>Team</th>${periods.map(period => `<th>${escapeHtml(/^ot/i.test(period) ? 'OT' : period.toUpperCase())}</th>`).join('')}<th>Total</th></tr></thead>
-            <tbody>${teams.map(team => `<tr><td>${escapeHtml(team.name || 'Team')}</td>${periods.map(period => `<td>${escapeHtml(team.periods?.[period] ?? '—')}</td>`).join('')}<td><strong>${escapeHtml(team.score ?? '—')}</strong></td></tr>`).join('')}</tbody>
+            <thead><tr><th>Team</th>${periods.map(period => `<th>${escapeHtml(/^ot/i.test(period) ? 'OT' : period.toUpperCase())}</th>`).join('')}<th>T</th></tr></thead>
+            <tbody>${teams.map(team => `<tr><td><div class="game-detail-linescore-team"><img src="${escapeHtml(teamLogo(team))}" alt=""><strong>${escapeHtml(team.name || 'Team')}</strong></div></td>${periods.map(period => `<td>${escapeHtml(team.periods?.[period] ?? '—')}</td>`).join('')}<td><strong>${escapeHtml(team.score ?? '—')}</strong></td></tr>`).join('')}</tbody>
           </table>
         </div>
       </section>` : '';
@@ -178,13 +224,8 @@ permalink: /game/
     }).join('');
 
     content.innerHTML = `
-      <section class="game-detail-card" aria-label="Final score">
-        <div class="game-detail-card-heading">
-          <span class="game-detail-final">${escapeHtml(game.status || 'FINAL')}</span>
-          <div class="game-detail-meta">${meta.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div>
-        </div>
-        <div class="game-detail-scoreboard">${teamRows}</div>
-        ${periodTable}
+      ${banner}
+      ${periodTable}
         <section class="game-detail-section game-detail-goals">
           <h2>Goal Scorers</h2>
           ${scorerMarkup || '<p class="game-detail-muted">No goal scorers were reported.</p>'}
@@ -199,7 +240,7 @@ permalink: /game/
             </section>
           `).join('')}</div>
         </section>
-      </section>`;
+      `;
     requestAnimationFrame(updateGameTableOverflow);
   }
 
@@ -217,6 +258,7 @@ permalink: /game/
   });
 
   if (!gameId || !/^\d+$/.test(gameId)) {
+    status.hidden = false;
     status.textContent = 'This game link is missing a valid game ID.';
     return;
   }
@@ -229,6 +271,7 @@ permalink: /game/
     .then(renderGameSheet)
     .catch(error => {
       console.error('Unable to load game sheet:', error);
+      status.hidden = false;
       status.textContent = 'Game details could not be loaded.';
     });
 })();
