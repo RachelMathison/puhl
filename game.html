@@ -17,6 +17,8 @@ permalink: /game/
   const API_URL = 'https://score-sheet.xarria.workers.dev/';
   const STATS_API_URL = {{ site.data.team_config.stats_api_url | jsonify }};
   const TEAM_STATS_API_URL = {{ site.data.team_config.team_stats_api_url | jsonify }};
+  const TEAM_STATS_SUBSEASON = {{ site.data.team_config.team_stats_subseason | jsonify }};
+  const STANDINGS_API_URL = {{ site.data.team_config.standings_api_url | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
   const returnDate = params.get('returnDate');
@@ -283,14 +285,14 @@ permalink: /game/
 
   function renderPlayersToWatch(skaters, teams) {
     const metrics = [
-      ['points', 'Points'], ['goals', 'Goals'], ['assists', 'Assists']
+      ['points', 'Points'], ['goals', 'Goals'], ['goals', 'Goals', 1], ['assists', 'Assists']
     ];
     const teamPlayers = teams.map(team => {
       const config = configuredTeamEntry(team.name);
       return skaters.filter(player => sameConfiguredTeam(playerTeamEntry(player), config));
     });
-    return metrics.map(([metric, label]) => {
-      const leaders = teamPlayers.map(players => [...players].sort((left, right) => metricValue(right, metric) - metricValue(left, metric))[0] || null);
+    return metrics.map(([metric, label, leaderIndex = 0]) => {
+      const leaders = teamPlayers.map(players => [...players].sort((left, right) => metricValue(right, metric) - metricValue(left, metric))[leaderIndex] || null);
       const values = leaders.map(player => player ? metricValue(player, metric) : 0);
       const total = values[0] + values[1];
       const shares = total ? [values[0] / total, values[1] / total] : [0.5, 0.5];
@@ -357,12 +359,13 @@ permalink: /game/
       const shares = values.every(value => value !== null)
         ? (total ? values.map(value => Math.max(0, value) / total) : [0.5, 0.5])
         : [0, 0];
+      if (metric.ascending) shares.reverse();
       const ranks = selected.map((entry, index) => {
         if (values[index] === null || !entry?.config) return 'Rank unavailable';
         const peers = entries.filter(peer => peer.config?.leagueKey === entry.config.leagueKey && valueOf(peer, metric.key) !== null);
         const better = peers.filter(peer => metric.ascending ? valueOf(peer, metric.key) < values[index] : valueOf(peer, metric.key) > values[index]).length;
         const tied = peers.filter(peer => valueOf(peer, metric.key) === values[index]).length > 1;
-        return `${tied ? 'Tied ' : ''}${ordinal(better + 1)} in division`;
+        return `${tied ? 'Tied ' : ''}${ordinal(better + 1)}`;
       });
       const display = values.map(value => value === null ? '&mdash;' : metric.percent ? `${value}%` : value.toFixed(2));
       return `<div class="game-detail-stat-row">
@@ -381,7 +384,9 @@ permalink: /game/
     if (!target) return;
     try {
       if (!TEAM_STATS_API_URL) throw new Error('Team statistics are not configured.');
-      const response = await fetch(TEAM_STATS_API_URL);
+      const url = new URL(TEAM_STATS_API_URL, window.location.href);
+      url.searchParams.set('subseason', TEAM_STATS_SUBSEASON);
+      const response = await fetch(url);
       if (!response.ok) throw new Error(`Team stats request failed (${response.status}).`);
       const data = await response.json();
       target.innerHTML = renderTeamStats(Array.isArray(data.teams) ? data.teams : [], teams);
@@ -512,6 +517,38 @@ permalink: /game/
     });
   }
 
+  async function loadTeamRecords(teams) {
+    const requests = new Map();
+    await Promise.all(teams.map(async (team, index) => {
+      const target = document.getElementById(`game-detail-team-record-${index}`);
+      if (!target) return;
+      const config = configuredTeamEntry(team.name);
+      const division = leagues[config?.leagueKey];
+      const url = division?.standingsUrl || STANDINGS_API_URL;
+      try {
+        if (!url || !config) throw new Error('Team standings are not configured.');
+        if (!requests.has(url)) requests.set(url, fetch(url).then(response => {
+          if (!response.ok) throw new Error(`Standings request failed (${response.status}).`);
+          return response.json();
+        }));
+        const rows = await requests.get(url);
+        const row = rows.find(row => {
+          const entry = configuredTeamEntry(row.Team);
+          return entry?.leagueKey === config.leagueKey && sameConfiguredTeam(entry, config);
+        });
+        const record = ['W', 'L', 'T'].map(key => row?.[key]);
+        if (record.some(value => value === null || value === undefined || String(value).trim() === '' || !Number.isFinite(Number(value)))) {
+          throw new Error('Team record was not returned.');
+        }
+        target.textContent = record.map(Number).join('-');
+        target.setAttribute('aria-label', `${record[0]} wins, ${record[1]} losses, ${record[2]} ties`);
+      } catch (error) {
+        console.warn(`Could not load record for ${team.name}:`, error);
+        target.textContent = 'Record unavailable';
+      }
+    }));
+  }
+
   function renderGameSheet(game) {
     const teams = Array.isArray(game.teams) ? game.teams : [];
     if (!teams.length) throw new Error('No team scores were included in the game sheet.');
@@ -544,9 +581,9 @@ permalink: /game/
           <img src="${escapeHtml(teamLogo(team))}" alt="">
           <div class="game-detail-team-copy">
             <strong>${escapeHtml(team.name || 'Team')}</strong>
-          ${game.upcoming ? '' : `<span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'SOG unavailable' : `SOG: ${escapeHtml(team.shotsOnGoal)}`}</span>`}
+            <span id="game-detail-team-record-${teams.indexOf(team)}">Loading record...</span>
           </div>
-          <strong class="game-detail-score ${resultClass}">${escapeHtml(team.score ?? '—')}</strong>
+          ${game.upcoming ? '' : `<strong class="game-detail-score ${resultClass}">${escapeHtml(team.score ?? '—')}</strong>`}
         </div>`;
     };
     const banner = `
@@ -554,13 +591,14 @@ permalink: /game/
         ${bannerStripe(teams[0], 'away')}
         ${bannerTeam(teams[0], 'away')}
         <div class="game-detail-banner-center">
-          <span class="game-detail-final">${escapeHtml(game.status || (game.upcoming ? 'SCHEDULED' : 'FINAL'))}</span>
+          <span class="game-detail-final">${escapeHtml(game.upcoming ? (game.time || 'Time TBD') : (game.status || 'FINAL'))}</span>
           ${game.date ? `<span>${escapeHtml(game.date)}</span>` : ''}
+          ${game.upcoming && game.location ? `<span>${escapeHtml(game.location)}</span>` : ''}
         </div>
         ${teams[1] ? bannerTeam(teams[1], 'home') : ''}
         ${teams[1] ? bannerStripe(teams[1], 'home') : ''}
       </section>
-      ${bannerMeta ? `<p class="game-detail-banner-meta">${escapeHtml(bannerMeta)}</p>` : ''}`;
+      ${!game.upcoming && bannerMeta ? `<p class="game-detail-banner-meta">${escapeHtml(bannerMeta)}</p>` : ''}`;
 
     const periods = periodColumns(teams);
     const periodTable = periods.length ? `
@@ -721,7 +759,6 @@ permalink: /game/
           ${seasonSeries}
           ${game.upcoming ? `<section class="game-detail-section game-detail-stats">
             <h2>Team Stats</h2>
-            <p class="game-detail-watch-subtitle">Regular Season</p>
             <div class="game-detail-stats-heading">
               <img src="${escapeHtml(teamLogo(teams[0]))}" alt="${escapeHtml(teams[0].name)}" class="away">
               ${teams[1] ? `<img src="${escapeHtml(teamLogo(teams[1]))}" alt="${escapeHtml(teams[1].name)}" class="home">` : ''}
@@ -739,6 +776,7 @@ permalink: /game/
     requestAnimationFrame(updateGameTableOverflow);
     requestAnimationFrame(updateGameBannerStickyState);
     loadSeasonSeries(game, teams);
+    loadTeamRecords(teams);
     if (game.upcoming) {
       loadPlayersToWatch(teams);
       loadTeamStats(teams);

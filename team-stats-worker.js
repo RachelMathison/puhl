@@ -1,17 +1,17 @@
 // One SportsEngine team-stats URL per team. Keep this list in sync with stats-worker.js.
 const TEAM_STATS_URLS = [
-  'https://wicadulthockey.sportngin.com/stats/print/10598435?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598436?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598437?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598438?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598442?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598440?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598441?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598443?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598446?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598445?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598447?subseason=964738&tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598444?subseason=964738&tab=team_instance_team_stats'
+  'https://wicadulthockey.sportngin.com/stats/print/10598435?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598436?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598437?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598438?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598442?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598440?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598441?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598443?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598446?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598445?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598447?tab=team_instance_team_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598444?tab=team_instance_team_stats'
 ];
 
 const CORS_HEADERS = {
@@ -144,7 +144,16 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
     if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed. Use GET.' }, 405);
 
-    const results = await Promise.allSettled(TEAM_STATS_URLS.map(fetchTeamStats));
+    const subseason = new URL(request.url).searchParams.get('subseason');
+    if (!subseason || !/^\d+$/.test(subseason)) {
+      return jsonResponse({ error: 'A numeric subseason query parameter is required.' }, 400);
+    }
+    const urls = TEAM_STATS_URLS.map(source => {
+      const url = new URL(source);
+      url.searchParams.set('subseason', subseason);
+      return url.toString();
+    });
+    const results = await Promise.allSettled(urls.map(fetchTeamStats));
     const response = { league: null, season: null, teams: [], errors: [] };
 
     results.forEach((result, index) => {
@@ -152,10 +161,10 @@ export default {
         response.league ||= result.value.league;
         response.season ||= result.value.season;
         if (result.value.team) response.teams.push(result.value.team);
-        else response.errors.push({ url: TEAM_STATS_URLS[index], error: 'No team stats tables were recognized.' });
+        else response.errors.push({ url: urls[index], error: 'No team stats tables were recognized.' });
       } else {
         response.errors.push({
-          url: TEAM_STATS_URLS[index],
+          url: urls[index],
           error: result.reason instanceof Error ? result.reason.message : String(result.reason)
         });
       }

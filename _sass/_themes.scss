@@ -157,15 +157,15 @@
 }
 
 :root[data-site-theme="honkers"] {
-  --primary:#252c62;
-  --primary-deep:#ce2027;
+  --primary:#ce2027;
+  --primary-deep:#252c62;
   --subtitle-color:#ede0b0;
   --on-primary:#ffffff;
   --accent:#ede0b0;
   --on-accent:#111111;
   --header-logo-image:#{'url("../images/teams/honkers.png")'};
   --watermark-image:#{'url("../images/teams/honkers.png")'};
-  --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 45%, var(--primary-deep) 75%, var(--accent) 100%);
+  --page-background: linear-gradient(150deg, var(--primary-deep) 0%, var(--primary) 45%, var(--primary) 75%, var(--accent) 100%);
 }
 
 :root[data-site-theme="honkers"][data-color-mode="dark"] {
