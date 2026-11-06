@@ -16,6 +16,13 @@ permalink: /game/
   const API_URL = 'https://score-sheet.xarria.workers.dev/';
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
+  const returnDate = params.get('returnDate');
+  const backLink = document.querySelector('.game-detail-back');
+  if (backLink && /^\d{4}-\d{2}-\d{2}$/.test(returnDate || '')) {
+    const backUrl = new URL(backLink.href, window.location.href);
+    backUrl.searchParams.set('date', returnDate);
+    backLink.href = backUrl.toString();
+  }
   const content = document.getElementById('game-detail-content');
   const status = document.getElementById('game-detail-status');
   const title = document.getElementById('game-detail-title');
@@ -222,6 +229,85 @@ permalink: /game/
         </div>
       </section>` : '';
 
+    const totalGoalieSaves = team => {
+      const sheetTotal = team.goalieTotals?.saves;
+      if (sheetTotal !== null && sheetTotal !== undefined && Number.isFinite(Number(sheetTotal))) {
+        return Number(sheetTotal);
+      }
+      const saves = (team.goalies || [])
+        .map(goalie => goalie.saves)
+        .filter(value => value !== null && value !== undefined && Number.isFinite(Number(value)))
+        .map(Number);
+      if (saves.length) return saves.reduce((total, value) => total + value, 0);
+
+      const opponent = teams.find(candidate => candidate !== team);
+      const shotsFaced = Number(opponent?.shotsOnGoal);
+      const goalsAllowed = Number(opponent?.score);
+      const hasOpponentTotals = opponent?.shotsOnGoal !== null && opponent?.shotsOnGoal !== undefined &&
+        opponent?.score !== null && opponent?.score !== undefined &&
+        Number.isFinite(shotsFaced) && Number.isFinite(goalsAllowed);
+      return hasOpponentTotals ? Math.max(0, shotsFaced - goalsAllowed) : null;
+    };
+    const gameStats = [
+      {
+        label: 'Shots on Goal',
+        values: teams.map(team => team.shotsOnGoal !== null && team.shotsOnGoal !== undefined && Number.isFinite(Number(team.shotsOnGoal)) ? Number(team.shotsOnGoal) : null),
+        display: teams.map(team => team.shotsOnGoal ?? '—')
+      },
+      {
+        label: 'Power Play %',
+        values: teams.map(team => team.powerPlay?.percentage !== null && team.powerPlay?.percentage !== undefined && Number.isFinite(Number(team.powerPlay.percentage)) ? Number(team.powerPlay.percentage) : null),
+        display: teams.map(team => team.powerPlay && Number(team.powerPlay.opportunities) > 0
+          ? `${Number(team.powerPlay.percentage).toFixed(1)}%`
+          : '—'),
+        details: teams.map(team => team.powerPlay
+          ? `${team.powerPlay.goals}/${team.powerPlay.opportunities}`
+          : '')
+      },
+      {
+        label: 'Penalty Minutes',
+        values: teams.map(team => {
+          if (team.penaltyMinutes !== null && team.penaltyMinutes !== undefined) return Number(team.penaltyMinutes);
+          const values = (team.skaters || []).map(player => player.pim).filter(value => value !== null && value !== undefined && Number.isFinite(Number(value))).map(Number);
+          return values.length ? values.reduce((total, value) => total + value, 0) : null;
+        }),
+        display: teams.map(team => {
+          if (team.penaltyMinutes !== null && team.penaltyMinutes !== undefined) return team.penaltyMinutes;
+          const values = (team.skaters || []).map(player => player.pim).filter(value => value !== null && value !== undefined && Number.isFinite(Number(value))).map(Number);
+          return values.length ? values.reduce((total, value) => total + value, 0) : '—';
+        })
+      },
+      {
+        label: 'Saves',
+        values: teams.map(totalGoalieSaves),
+        display: teams.map(team => totalGoalieSaves(team) ?? '—')
+      }
+    ].filter(stat => stat.values.some(value => value !== null));
+    const gameStatsMarkup = gameStats.length ? `
+      <section class="game-detail-section game-detail-stats">
+        <h2>Game Stats</h2>
+        ${gameStats.map(stat => {
+          const numeric = stat.values.map(value => value === null ? 0 : value);
+          const total = numeric.reduce((sum, value) => sum + value, 0);
+          const hasBothValues = stat.values[0] !== null && stat.values[1] !== null;
+          const shares = hasBothValues && numeric[0] === numeric[1]
+            ? [0.5, 0.5]
+            : total > 0 ? numeric.map(value => value / total) : [0, 0];
+          return `<div class="game-detail-stat-row">
+            <div class="game-detail-stat-values">
+              <strong>${escapeHtml(stat.display[0])}</strong>
+              <span>${escapeHtml(stat.label)}</span>
+              <strong>${escapeHtml(stat.display[1] ?? '—')}</strong>
+            </div>
+            <div class="game-detail-stat-bars" aria-hidden="true">
+              <span class="game-detail-stat-bar-away" style="--bar-share:${shares[0]};--bar-color:${escapeHtml(teamPrimaryColor(teams[0]))}"></span>
+              <span class="game-detail-stat-bar-home" style="--bar-share:${shares[1]};--bar-color:${escapeHtml(teamPrimaryColor(teams[1]))}"></span>
+            </div>
+            ${stat.details ? `<div class="game-detail-stat-details"><span>${escapeHtml(stat.details[0] || '')}</span><span>${escapeHtml(stat.details[1] || '')}</span></div>` : ''}
+          </div>`;
+        }).join('')}
+      </section>` : '';
+
     const scorers = (game.goalScorers || []).filter(player =>
       player.name && Number(player.goals) > 0 && String(player.number || '').toLowerCase() !== 'totals:'
     );
@@ -236,6 +322,7 @@ permalink: /game/
     content.innerHTML = `
       ${banner}
       ${periodTable}
+      ${gameStatsMarkup}
         <section class="game-detail-section game-detail-goals">
           <h2>Goal Scorers</h2>
           ${scorerMarkup || '<p class="game-detail-muted">No goal scorers were reported.</p>'}

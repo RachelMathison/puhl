@@ -51,7 +51,22 @@
   }
 
   .game-detail-team-copy {
-    flex: 1 1 auto;
+    flex: 1 1 0;
+    min-width: 0;
+
+    strong {
+      overflow: hidden;
+      overflow-wrap: normal;
+      font-size: clamp(0.9rem, 1.4vw, 1.2rem);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 }
 
@@ -123,6 +138,10 @@
 
 .game-detail-banner-team .game-detail-score.is-winner {
   color: #111;
+}
+
+:root[data-color-mode="dark"] .game-detail-banner-team .game-detail-score.is-winner {
+  color: #fff;
 }
 
 .game-detail-banner-team .game-detail-score.is-loser {
@@ -247,6 +266,78 @@
   margin-bottom: 12px;
 }
 
+.game-detail-stats {
+  display: grid;
+  gap: 16px;
+}
+
+.game-detail-linescore,
+.game-detail-stats {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.game-detail-stat-values {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 1.4fr) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+
+  strong {
+    font-size: 1.25rem;
+  }
+
+  strong:last-child {
+    text-align: right;
+  }
+
+  > span {
+    color: var(--gray-500);
+    text-align: center;
+  }
+}
+
+.game-detail-stat-bars {
+  position: relative;
+  height: 8px;
+  margin-top: 6px;
+}
+
+.game-detail-stat-bar-away,
+.game-detail-stat-bar-home {
+  position: absolute;
+  top: 0;
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: var(--bar-color);
+}
+
+.game-detail-stat-bar-away {
+  left: 0;
+  width: calc((100% - 14px) * var(--bar-share));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.game-detail-stat-bar-home {
+  right: 0;
+  width: calc((100% - 14px) * var(--bar-share));
+  clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.game-detail-stat-details {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 4px;
+  color: var(--gray-500);
+  font-size: 0.78rem;
+}
+
 .game-detail-roster-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -340,40 +431,56 @@
   font-size: 0.85rem;
 }
 
+@media (max-width: 900px) {
+  .game-detail-banner {
+    grid-template-columns: 70px minmax(0, 1fr) 88px minmax(0, 1fr) 70px;
+  }
+
+  .game-detail-banner-team {
+    gap: 12px;
+    padding: 10px 8px;
+
+    > img {
+      flex-basis: 50px;
+      width: 50px;
+      height: 50px;
+    }
+  }
+}
+
 @media (max-width: 600px) {
   .game-detail-banner {
-    grid-template-columns: 54px minmax(0, 1fr) 68px minmax(0, 1fr) 54px;
+    grid-template-columns: 36px minmax(0, 1fr) 58px minmax(0, 1fr) 36px;
     height: 96px;
     min-height: 96px;
   }
 
   .game-detail-banner-team {
     gap: 5px;
-    padding: 8px 5px;
+    padding: 8px 4px;
 
     > img {
-      flex-basis: 34px;
-      width: 34px;
-      height: 34px;
+      flex-basis: 30px;
+      width: 30px;
+      height: 30px;
     }
 
     .game-detail-team-copy strong {
-      font-size: 0.72rem;
-      white-space: normal;
+      font-size: 0.68rem;
     }
 
     .game-detail-team-copy span {
-      font-size: 0.7rem;
+      font-size: 0.62rem;
     }
   }
 
   .game-detail-banner-corner {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
   }
 
   .game-detail-banner-diagonal {
-    width: 54px;
+    width: 36px;
     height: 96px;
   }
 
@@ -385,6 +492,16 @@
     gap: 4px;
     padding: 4px;
     font-size: 0.63rem;
+  }
+
+  .game-detail-stat-values {
+    grid-template-columns: minmax(0, 1fr) minmax(90px, 1.4fr) minmax(0, 1fr);
+    gap: 6px;
+    font-size: 0.85rem;
+
+    strong {
+      font-size: 1rem;
+    }
   }
 
   .game-detail-section {

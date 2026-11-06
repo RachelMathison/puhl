@@ -334,7 +334,7 @@ function renderScoreCard(event, matchup) {
   const canOpenScoreSheet = isPastGame && event.gameId;
   const cardTag = canOpenScoreSheet ? 'a' : 'article';
   const scoreSheetHref = canOpenScoreSheet
-    ? ` href="${escapeLeaderHtml(window.siteAssetUrl(`/game/?id=${encodeURIComponent(event.gameId)}`))}" aria-label="View final score details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}"`
+    ? ` href="${escapeLeaderHtml(gameDetailHref(event.gameId, getLocalDateKey(start)))}" aria-label="View final score details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}"`
     : '';
   const leaders = firstTeam && secondTeam ? [
     renderTeamLeader(firstTeam, getTeamLeader(firstTeam, 'g'), 'g', 'Goals'),
@@ -363,8 +363,9 @@ function getScoreCardKey(event) {
   return raw.replace(/[^a-z0-9_-]/gi, '-');
 }
 
-function gameDetailHref(gameId) {
-  return window.siteAssetUrl(`/game/?id=${encodeURIComponent(gameId)}`);
+function gameDetailHref(gameId, returnDate) {
+  const returnDateParam = returnDate ? `&returnDate=${encodeURIComponent(returnDate)}` : '';
+  return window.siteAssetUrl(`/game/?id=${encodeURIComponent(gameId)}${returnDateParam}`);
 }
 
 function fetchGameSheet(gameId) {
@@ -465,14 +466,29 @@ function getIcsValue(component, propertyName) {
 function extractGameIdFromIcs(vevent) {
   const values = ['url', 'description', 'uid'].map(name => getIcsValue(vevent, name));
   for (const value of values) {
-    const linkedId = value.match(/\/game\/(?:game_sheet|show)\/(\d+)/i)?.[1];
+    const decodedValue = decodeIcsUrl(value);
+    const linkedId = decodedValue.match(/\/game\/(?:game_sheet|show)\/(\d+)/i)?.[1];
     if (linkedId) return linkedId;
   }
   for (const value of values) {
-    const numericId = value.match(/(?:^|[^\d])(\d{7,})(?:[^\d]|$)/)?.[1];
-    if (numericId) return numericId;
+    const explicitId = decodeIcsUrl(value).match(/[?&](?:game[_-]?id|gameid)=(\d+)/i)?.[1];
+    if (explicitId) return explicitId;
   }
   return null;
+}
+
+function decodeIcsUrl(value) {
+  let decoded = String(value || '');
+  for (let pass = 0; pass < 3; pass += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    } catch (_) {
+      break;
+    }
+  }
+  return decoded;
 }
 
 function loadPastGameDetails(events) {
@@ -764,7 +780,10 @@ function initializeScoreDate(events) {
   const todayKey = getLocalDateKey(today);
   const availableDates = Array.from(new Set(events.map(event => getLocalDateKey(new Date(event.start))))).sort();
   const nextDate = availableDates.find(dateKey => dateKey >= todayKey);
-  const selectedDate = nextDate || availableDates[availableDates.length - 1] || todayKey;
+  const requestedDate = new URLSearchParams(window.location.search).get('date');
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '') && availableDates.includes(requestedDate)
+    ? requestedDate
+    : nextDate || availableDates[availableDates.length - 1] || todayKey;
 
   selectedScoreDateKey = selectedDate;
   scoreDateInitialized = true;
@@ -774,7 +793,7 @@ function initializeScoreDate(events) {
   const selected = new Date(`${selectedDate}T12:00:00`);
   const dayDistance = Math.floor((Date.UTC(selected.getFullYear(), selected.getMonth(), selected.getDate()) -
     Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000);
-  scheduleWeekOffset = Math.max(0, Math.floor(dayDistance / 7));
+  scheduleWeekOffset = Math.floor(dayDistance / 7);
 }
 
 function renderListView() {
@@ -867,7 +886,7 @@ function renderListView() {
       html += `
         <tr>
           <td>
-            ${isPastGame && event.gameId ? `<a class="schedule-game-link" href="${escapeLeaderHtml(gameDetailHref(event.gameId))}" aria-label="View final score details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}">` : ''}
+            ${isPastGame && event.gameId ? `<a class="schedule-game-link" href="${escapeLeaderHtml(gameDetailHref(event.gameId, getLocalDateKey(new Date(event.start))))}" aria-label="View final score details for ${escapeLeaderHtml(`${matchup.team1Name || 'Team 1'} at ${matchup.team2Name || 'Team 2'}`)}">` : ''}
             <div class="matchup-cell">
               <span class="team-name">${matchup.team1Name || 'Team 1'}</span>
               <img src="${matchup.selfLogo}" alt="${matchup.team1Name || 'Team 1'}" />

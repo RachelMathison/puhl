@@ -25,6 +25,7 @@
 
 .scores-game-card.scores-game-card-final {
   min-height: 0;
+  height: auto;
 }
 
 .scores-game-card-link {
@@ -79,6 +80,8 @@
 
 .scores-game-result {
   display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
   flex-direction: column;
   gap: 12px;
   color: var(--gray-500);
@@ -121,6 +124,7 @@
 
 .scores-game-scorer-team {
   display: grid;
+  min-width: 0;
   grid-template-columns: minmax(80px, 0.4fr) minmax(0, 1fr);
   gap: 8px;
   color: var(--text);
@@ -132,7 +136,9 @@
   }
 
   > span {
+    min-width: 0;
     color: var(--gray-700);
+    overflow-wrap: anywhere;
   }
 }
 

@@ -144,6 +144,35 @@ function parsePeriodTable(table) {
   return rows.length ? { periodLabels, rows } : null;
 }
 
+function parsePowerPlayTable(table) {
+  if (!table) return [];
+  const headerIndex = findHeaderRow(table, ['team', 'pp']);
+  if (headerIndex < 0) return [];
+  const headers = table.rows[headerIndex].cells.map(cell => normalizeCell(cell.text));
+  const ppIndex = headers.indexOf('pp');
+  const pimIndex = headers.indexOf('pim');
+
+  return table.rows.slice(headerIndex + 1).map(row => {
+    const team = textContent(row.cells[0]?.text || '');
+    if (!team || /^(totals?|team totals)$/i.test(team)) return null;
+    const ppText = textContent(row.cells[ppIndex]?.text || '');
+    const ppMatch = ppText.match(/(\d+)\s*[-/]\s*(\d+)/);
+    const goals = ppMatch ? Number(ppMatch[1]) : null;
+    const opportunities = ppMatch ? Number(ppMatch[2]) : null;
+    const penaltyMinutes = pimIndex >= 0 ? numericValue(row.cells[pimIndex]?.text) : null;
+    if (goals === null && penaltyMinutes === null) return null;
+    return {
+      team,
+      powerPlay: goals === null ? null : {
+        goals,
+        opportunities,
+        percentage: opportunities ? Math.round((goals / opportunities) * 1000) / 10 : 0
+      },
+      penaltyMinutes
+    };
+  }).filter(Boolean);
+}
+
 function parseSkaterTable(table) {
   const headerIndex = findHeaderRow(table, ['name', 'g']);
   if (headerIndex < 0) return null;
@@ -187,7 +216,19 @@ function parseGoalieTable(table) {
     };
   }).filter(Boolean);
 
-  return { team: table.teamName, goalies };
+  const totalsRow = table.rows.find(row =>
+    row.className.split(/\s+/).includes('totals') ||
+    row.cells.some(cell => /^goalie_(?:shots|saves)_total_/.test(cell.id))
+  );
+  const totalCell = metric => totalsRow?.cells.find(cell =>
+    new RegExp(`^goalie_${metric}_total_`).test(cell.id)
+  );
+  const goalieTotals = {
+    shots: numericValue(totalCell('shots')?.text),
+    saves: numericValue(totalCell('saves')?.text)
+  };
+
+  return { team: table.teamName, goalies, totals: goalieTotals };
 }
 
 function elementTextById(html, id) {
@@ -229,6 +270,14 @@ function parseScoreSheet(html, gameId, sourceUrl) {
     .filter(table => /shots?\s*(on\s*)?goal|\bsog\b/i.test(`${table.label} ${table.context}`))
     .map(table => ({ table, parsed: parsePeriodTable(table) }))
     .find(candidate => candidate.parsed);
+  const specialTeamsTable = tables.find(table => {
+    if (findHeaderRow(table, ['team', 'pp']) < 0) return false;
+    const heading = `${table.label} ${table.context} ${table.html}`;
+    return /power\s*plays?/i.test(heading) || table.rows.some(row =>
+      row.cells.some(cell => /\b\d+\s*[-/]\s*\d+\b/.test(cell.text))
+    );
+  });
+  const specialTeams = parsePowerPlayTable(specialTeamsTable);
   const skaterTables = tables
     .map(table => ({ table, parsed: parseSkaterTable(table) }))
     .filter(item => item.parsed)
@@ -254,6 +303,10 @@ function parseScoreSheet(html, gameId, sourceUrl) {
     ...goalie,
     team: parsed.team || inferTeamForTable(table, teamNames)
   })));
+  const goalieTotalsByTeam = goalieTables.map(({ table, parsed }) => ({
+    team: parsed.team || inferTeamForTable(table, teamNames),
+    ...parsed.totals
+  }));
   const goalScorers = skaters.filter(player => Number(player.goals) > 0);
 
   return {
@@ -268,17 +321,26 @@ function parseScoreSheet(html, gameId, sourceUrl) {
       side: team.side,
       score: team.score,
       shotsOnGoal: shots.find(row => sameTeam(row.team, team.name))?.total ?? null,
+      powerPlay: specialTeams.find(row => sameTeam(row.team, team.name))?.powerPlay ?? null,
+      penaltyMinutes: specialTeams.find(row => sameTeam(row.team, team.name))?.penaltyMinutes ?? null,
       periods: team.periods,
       skaters: skaters.filter(player => sameTeam(player.team, team.name)),
-      goalies: goalies.filter(goalie => sameTeam(goalie.team, team.name))
+      goalies: goalies.filter(goalie => sameTeam(goalie.team, team.name)),
+      goalieTotals: (() => {
+        const totals = goalieTotalsByTeam.find(row => sameTeam(row.team, team.name));
+        return totals ? { shots: totals.shots, saves: totals.saves } : null;
+      })()
     })),
     goalScorers,
     available: {
       score: scores.some(team => team.score !== null),
       shotsOnGoal: shots.length > 0,
+      powerPlay: specialTeams.some(team => team.powerPlay !== null),
+      penaltyMinutes: specialTeams.some(team => team.penaltyMinutes !== null),
       goalScorers: goalScorers.length > 0,
       skaters: skaters.length > 0,
-      goalies: goalies.length > 0
+      goalies: goalies.length > 0,
+      goalieTotals: goalieTotalsByTeam.some(row => row.saves !== null || row.shots !== null)
     }
   };
 }
