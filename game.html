@@ -6,7 +6,7 @@ permalink: /game/
 
 <main class="game-detail-page" id="game-detail-page">
   <a class="game-detail-back" href="{{ '/scores/' | relative_url }}">&larr; Back to Scores</a>
-  <h1 id="game-detail-title">Game Details</h1>
+  <h1 id="game-detail-title" hidden>Game Details</h1>
   <p class="game-detail-status" id="game-detail-status" role="status" aria-live="polite">Loading game sheet...</p>
   <div id="game-detail-content"></div>
 </main>
@@ -178,15 +178,25 @@ permalink: /game/
           <svg class="game-detail-banner-diagonal" viewBox="0 0 115 96" xmlns="http://www.w3.org/2000/svg" focusable="false"><polyline points="0,95 94,1 108,1 14,95"></polyline></svg>
         </span>
       </span>`;
-    const bannerTeam = (team, side) => `
-      <div class="game-detail-banner-team ${side}">
-        <img src="${escapeHtml(teamLogo(team))}" alt="">
-        <div class="game-detail-team-copy">
-          <strong>${escapeHtml(team.name || 'Team')}</strong>
-          <span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'SOG unavailable' : `SOG: ${escapeHtml(team.shotsOnGoal)}`}</span>
-        </div>
-        <strong class="game-detail-score">${escapeHtml(team.score ?? '—')}</strong>
-      </div>`;
+    const bannerTeam = (team, side) => {
+      const opponent = teams.find(candidate => candidate !== team);
+      const score = Number(team.score);
+      const opponentScore = Number(opponent?.score);
+      const hasScores = team.score !== null && team.score !== undefined && team.score !== '' &&
+        opponent?.score !== null && opponent?.score !== undefined && opponent?.score !== '';
+      const resultClass = hasScores && Number.isFinite(score) && Number.isFinite(opponentScore)
+        ? (score > opponentScore ? 'is-winner' : score < opponentScore ? 'is-loser' : '')
+        : '';
+      return `
+        <div class="game-detail-banner-team ${side}">
+          <img src="${escapeHtml(teamLogo(team))}" alt="">
+          <div class="game-detail-team-copy">
+            <strong>${escapeHtml(team.name || 'Team')}</strong>
+            <span>${team.shotsOnGoal === null || team.shotsOnGoal === undefined ? 'SOG unavailable' : `SOG: ${escapeHtml(team.shotsOnGoal)}`}</span>
+          </div>
+          <strong class="game-detail-score ${resultClass}">${escapeHtml(team.score ?? '—')}</strong>
+        </div>`;
+    };
     const banner = `
       <section class="game-detail-banner" aria-label="Final score">
         ${bannerStripe(teams[0], 'away')}
