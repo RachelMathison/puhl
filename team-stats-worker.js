@@ -96,8 +96,8 @@ function parseStatsPage(html, sourceUrl) {
     if (!headerRow) continue;
 
     // SportsEngine's period table omits closing </th> tags, so stop each header
-    // cell at the next <th> or the end of the header row.
-    const headers = [...headerRow[1].matchAll(/<th\b[^>]*>([\s\S]*?)(?=<th\b|<\/tr\s*>)/gi)]
+    // cell at the next <th> or the end of the captured row contents.
+    const headers = [...headerRow[1].matchAll(/<th\b[^>]*>([\s\S]*?)(?=<th\b|$)/gi)]
       .map((cell, index) => normalizeHeader(cell[1], index));
     const dataRows = rowMatches.filter(row => row.index > headerRow.index);
     const currentTeamRow = dataRows.find(row => {

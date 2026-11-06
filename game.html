@@ -16,6 +16,7 @@ permalink: /game/
 (() => {
   const API_URL = 'https://score-sheet.xarria.workers.dev/';
   const STATS_API_URL = {{ site.data.team_config.stats_api_url | jsonify }};
+  const TEAM_STATS_API_URL = {{ site.data.team_config.team_stats_api_url | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
   const returnDate = params.get('returnDate');
@@ -329,6 +330,64 @@ permalink: /game/
     } catch (error) {
       console.error('Could not load players to watch:', error);
       target.innerHTML = '<p class="game-detail-muted">Player statistics could not be loaded.</p>';
+    }
+  }
+
+  function renderTeamStats(rows, teams) {
+    const metrics = [
+      { key: 'ppPct', label: 'Power Play %', percent: true },
+      { key: 'pkPct', label: 'Penalty Kill %', percent: true },
+      { key: 'gpg', label: 'GF/GP' },
+      { key: 'gapg', label: 'GA/GP', ascending: true }
+    ];
+    const entries = rows.map(row => ({ row, config: configuredTeamEntry(row.name) }));
+    const configs = teams.map(team => configuredTeamEntry(team.name));
+    const selected = configs.map(config => config && entries.find(entry => entry.config?.leagueKey === config.leagueKey && sameConfiguredTeam(entry.config, config)));
+    const valueOf = (entry, key) => {
+      const value = entry?.row.stats?.team?.[key];
+      return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
+    };
+    const ordinal = rank => `${rank}${rank % 100 >= 11 && rank % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[rank % 10] || 'th')}`;
+    if (!selected.some(entry => metrics.some(metric => valueOf(entry, metric.key) !== null))) {
+      return '<p class="game-detail-muted">Team statistics are unavailable for this matchup.</p>';
+    }
+    return metrics.map(metric => {
+      const values = selected.map(entry => valueOf(entry, metric.key));
+      const total = values.reduce((sum, value) => sum + Math.max(0, value ?? 0), 0);
+      const shares = values.every(value => value !== null)
+        ? (total ? values.map(value => Math.max(0, value) / total) : [0.5, 0.5])
+        : [0, 0];
+      const ranks = selected.map((entry, index) => {
+        if (values[index] === null || !entry?.config) return 'Rank unavailable';
+        const peers = entries.filter(peer => peer.config?.leagueKey === entry.config.leagueKey && valueOf(peer, metric.key) !== null);
+        const better = peers.filter(peer => metric.ascending ? valueOf(peer, metric.key) < values[index] : valueOf(peer, metric.key) > values[index]).length;
+        const tied = peers.filter(peer => valueOf(peer, metric.key) === values[index]).length > 1;
+        return `${tied ? 'Tied ' : ''}${ordinal(better + 1)} in division`;
+      });
+      const display = values.map(value => value === null ? '&mdash;' : metric.percent ? `${value}%` : value.toFixed(2));
+      return `<div class="game-detail-stat-row">
+        <div class="game-detail-stat-values"><strong>${display[0]}</strong><span>${metric.label}</span><strong>${display[1]}</strong></div>
+        <div class="game-detail-stat-bars" aria-hidden="true">
+          <span class="game-detail-stat-bar-away" style="--bar-share:${shares[0]};--bar-color:${escapeHtml(teamPrimaryColor(teams[0]))}"></span>
+          <span class="game-detail-stat-bar-home" style="--bar-share:${shares[1]};--bar-color:${escapeHtml(teamPrimaryColor(teams[1]))}"></span>
+        </div>
+        <div class="game-detail-stat-details"><span>${ranks[0]}</span><span>${ranks[1]}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadTeamStats(teams) {
+    const target = document.getElementById('game-detail-team-stats-content');
+    if (!target) return;
+    try {
+      if (!TEAM_STATS_API_URL) throw new Error('Team statistics are not configured.');
+      const response = await fetch(TEAM_STATS_API_URL);
+      if (!response.ok) throw new Error(`Team stats request failed (${response.status}).`);
+      const data = await response.json();
+      target.innerHTML = renderTeamStats(Array.isArray(data.teams) ? data.teams : [], teams);
+    } catch (error) {
+      console.error('Could not load team statistics:', error);
+      target.innerHTML = '<p class="game-detail-muted">Team statistics could not be loaded.</p>';
     }
   }
 
@@ -660,7 +719,15 @@ permalink: /game/
       <div class="game-detail-columns${game.upcoming ? ' is-upcoming' : ''}">
         <div class="game-detail-side-column stats-container">
           ${seasonSeries}
-          ${game.upcoming ? '' : gameStatsMarkup}
+          ${game.upcoming ? `<section class="game-detail-section game-detail-stats">
+            <h2>Team Stats</h2>
+            <p class="game-detail-watch-subtitle">Regular Season</p>
+            <div class="game-detail-stats-heading">
+              <img src="${escapeHtml(teamLogo(teams[0]))}" alt="${escapeHtml(teams[0].name)}" class="away">
+              ${teams[1] ? `<img src="${escapeHtml(teamLogo(teams[1]))}" alt="${escapeHtml(teams[1].name)}" class="home">` : ''}
+            </div>
+            <div id="game-detail-team-stats-content" aria-live="polite"><p class="game-detail-muted">Loading team stats...</p></div>
+          </section>` : gameStatsMarkup}
           ${game.upcoming ? '' : shotsTable}
           ${game.upcoming ? '' : periodTable}
         </div>
@@ -672,7 +739,10 @@ permalink: /game/
     requestAnimationFrame(updateGameTableOverflow);
     requestAnimationFrame(updateGameBannerStickyState);
     loadSeasonSeries(game, teams);
-    if (game.upcoming) loadPlayersToWatch(teams);
+    if (game.upcoming) {
+      loadPlayersToWatch(teams);
+      loadTeamStats(teams);
+    }
   }
 
   function updateGameTableOverflow() {
