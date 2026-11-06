@@ -127,7 +127,7 @@ function parsePeriodTable(table) {
   if (headerIndex < 0) return null;
 
   const headers = table.rows[headerIndex].cells.map(cell => textContent(cell.text));
-  const periodLabels = headers.slice(1).filter((_, index) => index < headers.length - 1);
+  const periodLabels = headers.slice(1, -1);
   const rows = table.rows.slice(headerIndex + 1).map(row => {
     const name = textContent(row.cells[0]?.text || '');
     if (!name || /^(team|totals?|scoring|shots?)$/i.test(name)) return null;
@@ -321,6 +321,7 @@ function parseScoreSheet(html, gameId, sourceUrl) {
       side: team.side,
       score: team.score,
       shotsOnGoal: shots.find(row => sameTeam(row.team, team.name))?.total ?? null,
+      shotsOnGoalByPeriod: shots.find(row => sameTeam(row.team, team.name))?.periods ?? {},
       powerPlay: specialTeams.find(row => sameTeam(row.team, team.name))?.powerPlay ?? null,
       penaltyMinutes: specialTeams.find(row => sameTeam(row.team, team.name))?.penaltyMinutes ?? null,
       periods: team.periods,

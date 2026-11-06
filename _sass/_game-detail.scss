@@ -24,6 +24,9 @@
 }
 
 .game-detail-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: grid;
   grid-template-columns: 115px minmax(0, 1fr) 116px minmax(0, 1fr) 115px;
   align-items: stretch;
@@ -33,6 +36,40 @@
   border: 1px solid var(--gray-300);
   border-radius: 9px;
   background: var(--surface);
+}
+
+.game-detail-banner.is-stuck {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  border-radius: 0;
+}
+
+.game-detail-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
+  grid-template-areas: "players side";
+  align-items: start;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.game-detail-player-column {
+  display: grid;
+  min-width: 0;
+  grid-area: players;
+  gap: 20px;
+}
+
+.game-detail-side-column {
+  display: grid;
+  min-width: 0;
+  grid-area: side;
+  gap: 12px;
+}
+
+.game-detail-columns .game-detail-section {
+  min-width: 0;
+  margin-top: 0;
 }
 
 .game-detail-banner-team {
@@ -272,13 +309,45 @@
 }
 
 .game-detail-linescore,
-.game-detail-stats {
+.game-detail-stats,
+.game-detail-shot-periods {
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   padding-right: 0;
   padding-left: 0;
+}
+
+.game-detail-shot-periods,
+.game-detail-rosters {
+  border: 0;
+}
+
+.game-detail-stats-heading {
+  position: relative;
+  min-height: 36px;
+
+  h2 {
+    margin: 0;
+    text-align: center;
+  }
+
+  img {
+    position: absolute;
+    top: 0;
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+  }
+
+  .away {
+    left: 0;
+  }
+
+  .home {
+    right: 0;
+  }
 }
 
 .game-detail-stat-values {
@@ -338,28 +407,76 @@
   font-size: 0.78rem;
 }
 
-.game-detail-roster-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
-}
-
 .game-detail-roster-team {
   min-width: 0;
 
-  > h3 {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    margin: 0 0 14px;
-    font-size: 1.15rem;
+  &[hidden] {
+    display: none;
+  }
+}
 
-    img {
-      width: 34px;
-      height: 34px;
-      object-fit: contain;
+.game-detail-roster-heading {
+  position: relative;
+  min-height: 42px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-300);
+
+  h2 {
+    margin: 0;
+    white-space: nowrap;
+    font-size: clamp(1.15rem, 2vw, 1.55rem);
+  }
+}
+
+.game-detail-roster-tabs {
+  display: flex;
+  position: absolute;
+  top: 14px;
+  right: 0;
+  width: min(48%, 320px);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--gray-300);
+  border-radius: 9px;
+  background: var(--surface);
+
+  button {
+    flex: 1 1 50%;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    & + button {
+      border-left: 1px solid var(--gray-300);
+    }
+
+    &.active {
+      background: var(--primary);
+      color: var(--on-primary, #fff);
+    }
+
+    &:focus-visible {
+      position: relative;
+      z-index: 1;
+      outline: 2px solid var(--primary-text);
+      outline-offset: -3px;
     }
   }
+}
+
+.game-detail-roster-panels {
+  margin-bottom: 0;
 }
 
 .game-detail-roster-table + .game-detail-roster-table {
@@ -432,6 +549,14 @@
 }
 
 @media (max-width: 900px) {
+  .game-detail-columns {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "side"
+      "players";
+    gap: 16px;
+  }
+
   .game-detail-banner {
     grid-template-columns: 70px minmax(0, 1fr) 88px minmax(0, 1fr) 70px;
   }
@@ -508,8 +633,22 @@
     padding: 12px;
   }
 
-  .game-detail-roster-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .game-detail-roster-tabs {
+    flex: 1 1 180px;
+
+    button {
+      padding: 5px 6px;
+      font-size: 0.82rem;
+    }
+  }
+
+  .game-detail-roster-heading {
+    min-height: 38px;
+  }
+
+  .game-detail-roster-tabs {
+    top: 10px;
+    width: 56%;
   }
 
   .game-detail-card {

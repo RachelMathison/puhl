@@ -36,6 +36,10 @@
   overflow: visible;
 }
 
+.page-stage:has(.game-detail-page) {
+  overflow: visible;
+}
+
 /* ---------- the white card ---------- */
 .card {
   position: relative;

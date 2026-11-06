@@ -94,32 +94,41 @@ permalink: /game/
 
   function rosterTable(team, teamIndex, kind) {
     const isSkater = kind === 'skaters';
-    const players = Array.isArray(team[kind]) ? team[kind] : [];
+    const players = Array.isArray(team[kind]) ? [...team[kind]] : [];
     const columns = isSkater
       ? [
           ['number', '#', 'number'], ['name', 'Player', 'text'], ['goals', 'G', 'number'],
-          ['assists', 'A', 'number'], ['pim', 'PIM', 'number'], ['gwg', 'GWG', 'number']
+          ['assists', 'A', 'number'], ['points', 'P', 'number'], ['pim', 'PIM', 'number'], ['gwg', 'GWG', 'number']
         ]
       : [
           ['number', '#', 'number'], ['name', 'Goalie', 'text'], ['minutes', 'MIN', 'time'],
           ['shots', 'SH', 'number'], ['saves', 'SV', 'number'], ['decision', 'DEC', 'text']
         ];
+    const defaultSortKey = isSkater ? 'points' : 'number';
+    const defaultSortDirection = isSkater ? 'desc' : 'asc';
+    const valueFor = (player, key) => key === 'points'
+      ? Number(player.goals || 0) + Number(player.assists || 0)
+      : (player[key] ?? '');
+    if (isSkater) {
+      players.sort((left, right) => valueFor(right, 'points') - valueFor(left, 'points'));
+    }
     const tableKey = `${teamIndex}-${kind}`;
     const rows = players.map(player => `<tr>${columns.map(([key]) => {
-      const value = player[key] ?? '';
-      return `<td data-sort-value="${escapeHtml(value)}">${escapeHtml(value || '—')}</td>`;
+      const value = valueFor(player, key);
+      const displayValue = value === '' || value === null || value === undefined ? '—' : value;
+      return `<td data-sort-value="${escapeHtml(value)}">${escapeHtml(displayValue)}</td>`;
     }).join('')}</tr>`).join('');
     const headers = columns.map(([key, label, type], index) => `
-      <th scope="col" aria-sort="${index === 0 ? 'ascending' : 'none'}">
+      <th scope="col" aria-sort="${key === defaultSortKey ? (defaultSortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}">
         <button type="button" class="stats-sort-button" data-roster-sort-key="${escapeHtml(key)}" data-roster-sort-type="${type}">
-          ${escapeHtml(label)}<span class="sort-icon" aria-hidden="true">${index === 0 ? '▲' : ''}</span>
+          ${escapeHtml(label)}<span class="sort-icon" aria-hidden="true">${key === defaultSortKey ? (defaultSortDirection === 'asc' ? '▲' : '▼') : ''}</span>
         </button>
       </th>`).join('');
 
     return `<section class="game-detail-roster-table">
       <h4>${isSkater ? 'Skaters' : 'Goalies'}</h4>
       <div class="stats-table-wrapper">
-        <table class="stats-table game-detail-player-table" data-roster-table="${tableKey}" data-sort-key="number" data-sort-direction="asc">
+        <table class="stats-table game-detail-player-table" data-roster-table="${tableKey}" data-sort-key="${defaultSortKey}" data-sort-direction="${defaultSortDirection}">
           <thead><tr>${headers}</tr></thead>
           <tbody>${rows || `<tr><td colspan="${columns.length}" class="stats-table-message">${players.length ? '' : 'Player statistics are unavailable.'}</td></tr>`}</tbody>
         </table>
@@ -229,6 +238,33 @@ permalink: /game/
         </div>
       </section>` : '';
 
+    const shotPeriods = [...new Set(teams.flatMap(team => Object.keys(team.shotsOnGoalByPeriod || {})))].sort((left, right) => {
+      const leftNumber = Number(left);
+      const rightNumber = Number(right);
+      if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) return leftNumber - rightNumber;
+      if (Number.isFinite(leftNumber)) return -1;
+      if (Number.isFinite(rightNumber)) return 1;
+      return left.localeCompare(right, undefined, { numeric: true });
+    });
+    const shotsTable = shotPeriods.length ? `
+      <section class="game-detail-section game-detail-shot-periods">
+        <h2>Shots on Goal</h2>
+        <div class="stats-table-wrapper">
+          <table class="stats-table game-detail-period-table">
+            <thead><tr><th scope="col">Period</th>${teams.map(team => `<th scope="col">${escapeHtml(configuredTeam(team.name)?.abbreviation || team.name)}</th>`).join('')}</tr></thead>
+            <tbody>
+              ${shotPeriods.map(period => {
+                const label = /^\d+$/.test(period)
+                  ? `${period}${period === '1' ? 'st' : period === '2' ? 'nd' : period === '3' ? 'rd' : 'th'}`
+                  : period.toUpperCase();
+                return `<tr><td><strong>${escapeHtml(label)}</strong></td>${teams.map(team => `<td>${escapeHtml(team.shotsOnGoalByPeriod?.[period] ?? '—')}</td>`).join('')}</tr>`;
+              }).join('')}
+              <tr><td><strong>Total</strong></td>${teams.map(team => `<td>${escapeHtml(team.shotsOnGoal ?? '—')}</td>`).join('')}</tr>
+            </tbody>
+          </table>
+        </div>
+      </section>` : '';
+
     const totalGoalieSaves = team => {
       const sheetTotal = team.goalieTotals?.saves;
       if (sheetTotal !== null && sheetTotal !== undefined && Number.isFinite(Number(sheetTotal))) {
@@ -285,7 +321,11 @@ permalink: /game/
     ].filter(stat => stat.values.some(value => value !== null));
     const gameStatsMarkup = gameStats.length ? `
       <section class="game-detail-section game-detail-stats">
-        <h2>Game Stats</h2>
+        <div class="game-detail-stats-heading">
+          <img src="${escapeHtml(teamLogo(teams[0]))}" alt="${escapeHtml(teams[0].name || 'Team 1')}" class="away">
+          <h2>Game Stats</h2>
+          ${teams[1] ? `<img src="${escapeHtml(teamLogo(teams[1]))}" alt="${escapeHtml(teams[1].name || 'Team 2')}" class="home">` : '<span aria-hidden="true"></span>'}
+        </div>
         ${gameStats.map(stat => {
           const numeric = stat.values.map(value => value === null ? 0 : value);
           const total = numeric.reduce((sum, value) => sum + value, 0);
@@ -308,37 +348,41 @@ permalink: /game/
         }).join('')}
       </section>` : '';
 
-    const scorers = (game.goalScorers || []).filter(player =>
-      player.name && Number(player.goals) > 0 && String(player.number || '').toLowerCase() !== 'totals:'
-    );
-    const scorerMarkup = teams.map(team => {
-      const players = scorers.filter(player => normalize(player.team) === normalize(team.name));
-      if (!players.length) return '';
-      return `<section class="game-detail-scorer-team"><h3>${escapeHtml(team.name)}</h3><ul>${players.map(player => `
-        <li><span class="game-detail-scorer-name">${player.number ? `<strong>#${escapeHtml(player.number)}</strong> ` : ''}${escapeHtml(player.name)}</span><span>${escapeHtml(player.goals)} ${Number(player.goals) === 1 ? 'goal' : 'goals'}${Number(player.assists) > 0 ? ` · ${escapeHtml(player.assists)} ${Number(player.assists) === 1 ? 'assist' : 'assists'}` : ''}</span></li>
-      `).join('')}</ul></section>`;
-    }).join('');
-
     content.innerHTML = `
       ${banner}
-      ${periodTable}
-      ${gameStatsMarkup}
-        <section class="game-detail-section game-detail-goals">
-          <h2>Goal Scorers</h2>
-          ${scorerMarkup || '<p class="game-detail-muted">No goal scorers were reported.</p>'}
-        </section>
-        <section class="game-detail-section game-detail-rosters">
-          <h2>Player Stats</h2>
-          <div class="game-detail-roster-grid">${teams.map((team, index) => `
-            <section class="game-detail-roster-team">
-              <h3><img src="${escapeHtml(teamLogo(team))}" alt="">${escapeHtml(team.name || `Team ${index + 1}`)}</h3>
-              ${rosterTable(team, index, 'skaters')}
-              ${rosterTable(team, index, 'goalies')}
-            </section>
-          `).join('')}</div>
-        </section>
+      <div class="game-detail-columns">
+        <div class="game-detail-side-column stats-container">
+          ${gameStatsMarkup}
+          ${shotsTable}
+          ${periodTable}
+        </div>
+        <div class="game-detail-player-column">
+          <section class="game-detail-section game-detail-rosters">
+            <div class="game-detail-roster-heading">
+              <h2>Game Sheet</h2>
+              <div class="game-detail-roster-tabs" role="tablist" aria-label="Select team game sheet">
+                ${teams.map((team, index) => `
+                  <button type="button" class="${index === 0 ? 'active' : ''}" role="tab"
+                    id="game-roster-tab-${index}" aria-selected="${index === 0}" aria-controls="game-roster-panel-${index}"
+                    data-game-roster-tab="${index}">${escapeHtml(team.name || `Team ${index + 1}`)}</button>
+                `).join('')}
+              </div>
+            </div>
+            <div class="game-detail-roster-panels stats-container">
+              ${teams.map((team, index) => `
+                <section class="game-detail-roster-team" role="tabpanel" id="game-roster-panel-${index}"
+                  aria-labelledby="game-roster-tab-${index}" data-game-roster-panel="${index}" ${index === 0 ? '' : 'hidden'}>
+                  ${rosterTable(team, index, 'skaters')}
+                  ${rosterTable(team, index, 'goalies')}
+                </section>
+              `).join('')}
+            </div>
+          </section>
+        </div>
+      </div>
       `;
     requestAnimationFrame(updateGameTableOverflow);
+    requestAnimationFrame(updateGameBannerStickyState);
   }
 
   function updateGameTableOverflow() {
@@ -347,9 +391,31 @@ permalink: /game/
       wrapper.classList.toggle('has-horizontal-overflow', Boolean(table && table.scrollWidth > wrapper.clientWidth + 1));
     });
   }
+
+  function updateGameBannerStickyState() {
+    const banner = content.querySelector('.game-detail-banner');
+    if (banner) banner.classList.toggle('is-stuck', banner.getBoundingClientRect().top <= 0);
+  }
+
+  window.addEventListener('scroll', updateGameBannerStickyState, { passive: true });
+  window.addEventListener('resize', updateGameBannerStickyState);
   window.addEventListener('resize', updateGameTableOverflow, { passive: true });
 
   content.addEventListener('click', event => {
+    const rosterTab = event.target.closest('[data-game-roster-tab]');
+    if (rosterTab) {
+      const selectedIndex = rosterTab.dataset.gameRosterTab;
+      content.querySelectorAll('[data-game-roster-tab]').forEach(tab => {
+        const selected = tab === rosterTab;
+        tab.classList.toggle('active', selected);
+        tab.setAttribute('aria-selected', String(selected));
+      });
+      content.querySelectorAll('[data-game-roster-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.gameRosterPanel !== selectedIndex;
+      });
+      requestAnimationFrame(updateGameTableOverflow);
+      return;
+    }
     const button = event.target.closest('[data-roster-sort-key]');
     if (button) sortRosterTable(button);
   });
