@@ -4,6 +4,7 @@
   const CACHE_TIME_HEADER = 'x-puhl-browser-cached-at';
   const nativeFetch = window.fetch.bind(window);
   const inFlightRequests = new Map();
+  const cacheEnabled = document.currentScript?.dataset.cacheEnabled !== 'false';
   const debug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
   function isSiteApi(url) {
@@ -31,8 +32,8 @@
       return nativeFetch(input, init);
     }
     if (!isSiteApi(url)) return nativeFetch(input, init);
-    // Debug requests bypass both Cache Storage and the browser HTTP cache.
-    if (debug) return nativeFetch(input, { ...options, cache: 'no-store' });
+    // Uncached builds and debug requests bypass Cache Storage and the HTTP cache.
+    if (!cacheEnabled || debug) return nativeFetch(input, { ...options, cache: 'no-store' });
     if ((options.cache && options.cache !== 'default') || !window.caches) return nativeFetch(input, init);
 
     const key = new Request(url.href, { method: 'GET' });

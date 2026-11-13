@@ -25,6 +25,9 @@ url: "https://puhl.portland.hockey"
 twitter_username: jekyllrb
 github_username:  jekyll
 
+# Cache API responses in the browser for one hour. Set false for uncached builds.
+api_cache_enabled: false
+
 # Build settings
 theme: minima
 plugins:
