@@ -4,9 +4,14 @@
   const CACHE_TIME_HEADER = 'x-puhl-browser-cached-at';
   const nativeFetch = window.fetch.bind(window);
   const inFlightRequests = new Map();
+  const debug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
   function isSiteApi(url) {
     return url.hostname.endsWith('.workers.dev') ||
+      url.hostname === 'schedule-worker.portland.hockey' ||
+      url.hostname === 'standings-worker.portland.hockey' ||
+      url.hostname === 'puhl-stats-teams.portland.hockey' ||
+      url.hostname === 'puhl-stats-players.portland.hockey' ||
       url.hostname.endsWith('.darkknightshockey.com');
   }
 
@@ -17,7 +22,7 @@
   window.fetch = async function (input, init) {
     const options = init || {};
     const method = String(options.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
-    if (method !== 'GET' || (options.cache && options.cache !== 'default')) return nativeFetch(input, init);
+    if (method !== 'GET') return nativeFetch(input, init);
 
     let url;
     try {
@@ -25,7 +30,10 @@
     } catch (error) {
       return nativeFetch(input, init);
     }
-    if (!isSiteApi(url) || !window.caches) return nativeFetch(input, init);
+    if (!isSiteApi(url)) return nativeFetch(input, init);
+    // Debug requests bypass both Cache Storage and the browser HTTP cache.
+    if (debug) return nativeFetch(input, { ...options, cache: 'no-store' });
+    if ((options.cache && options.cache !== 'default') || !window.caches) return nativeFetch(input, init);
 
     const key = new Request(url.href, { method: 'GET' });
     const requestKey = url.href;

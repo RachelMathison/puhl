@@ -1,17 +1,17 @@
 // Add one SportsEngine stats/print URL for each team or division to combine.
 const STATS_URLS = [
-  'https://wicadulthockey.sportngin.com/stats/print/10598435?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598436?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598437?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598438?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598442?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598440?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598441?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598443?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598446?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598445?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598447?subseason=964738&tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598444?subseason=964738&tab=team_instance_player_stats'
+  'https://wicadulthockey.sportngin.com/stats/print/10598435?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598436?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598437?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598438?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598442?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598440?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598441?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598443?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598446?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598445?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598447?tab=team_instance_player_stats',
+  'https://wicadulthockey.sportngin.com/stats/print/10598444?tab=team_instance_player_stats'
 ];
 
 const CORS_HEADERS = {
@@ -123,7 +123,17 @@ export default {
       return jsonResponse({ error: 'Method not allowed. Use GET.' }, 405);
     }
 
-    const results = await Promise.allSettled(STATS_URLS.map(fetchStatsPage));
+    const subseason = new URL(request.url).searchParams.get('subseason')?.trim();
+    if (!subseason || !/^\d+$/.test(subseason)) {
+      return jsonResponse({ error: 'Provide a numeric subseason ID.' }, 400);
+    }
+
+    const statsUrls = STATS_URLS.map(sourceUrl => {
+      const url = new URL(sourceUrl);
+      url.searchParams.set('subseason', subseason);
+      return url.href;
+    });
+    const results = await Promise.allSettled(statsUrls.map(fetchStatsPage));
     const combined = { skaters: [], goalies: [], errors: [] };
 
     results.forEach((result, index) => {
@@ -132,7 +142,7 @@ export default {
         combined.goalies.push(...result.value.goalies);
       } else {
         combined.errors.push({
-          url: STATS_URLS[index],
+          url: statsUrls[index],
           error: result.reason instanceof Error ? result.reason.message : String(result.reason)
         });
       }

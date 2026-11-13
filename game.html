@@ -14,11 +14,10 @@ permalink: /game/
 <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
 <script>
 (() => {
-  const API_URL = 'https://score-sheet.xarria.workers.dev/';
+  const API_URL = 'https://score-sheet.portland.hockey/';
   const STATS_API_URL = {{ site.data.team_config.stats_api_url | jsonify }};
   const TEAM_STATS_API_URL = {{ site.data.team_config.team_stats_api_url | jsonify }};
   const TEAM_STATS_SUBSEASON = {{ site.data.team_config.team_stats_subseason | jsonify }};
-  const STANDINGS_API_URL = {{ site.data.team_config.standings_api_url | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
   const returnDate = params.get('returnDate');
@@ -615,7 +614,7 @@ permalink: /game/
       if (!target) return;
       const config = configuredTeamEntry(team.name);
       const division = leagues[config?.leagueKey];
-      const url = division?.standingsUrl || STANDINGS_API_URL;
+      const url = division?.standingsUrl;
       try {
         if (!url || !config) throw new Error('Team standings are not configured.');
         if (!requests.has(url)) requests.set(url, fetch(url).then(response => {

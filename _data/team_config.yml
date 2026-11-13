@@ -1,6 +1,5 @@
-standings_api_url: "https://standings.darkknightshockey.com"
-stats_api_url: "https://puhl-stats-players.xarria.workers.dev/"
-team_stats_api_url: "https://puhl-stats-teams.xarria.workers.dev/"
+stats_api_url: "https://puhl-stats-players.portland.hockey/?subseason=964738"
+team_stats_api_url: "https://puhl-stats-teams.portland.hockey/"
 team_stats_subseason: "964738" # Fall 2026
 primary_team_key: "dk"
 primary_team_keywords:

@@ -1,7 +1,7 @@
 comp:
   name: "Competitive"
-  icsUrl: "https://puhl-comp-schedule.xarria.workers.dev"
-  standingsUrl: "https://puhl-standings-comp.xarria.workers.dev/"
+  icsUrl: "https://schedule-worker.portland.hockey/?tags=9565189,9565371,9565372,9565373,9565374"
+  standingsUrl: "https://standings-worker.portland.hockey/?team=9565189&subseason=964738"
   teams:
     - name: "Bushtits"
       id: "bushtits"
@@ -9,29 +9,25 @@ comp:
       statsAliases:
         - "Bush"
       imagePath: "/assets/images/teams/bushtits.png"
-      statsUrl: "https://puhl-stats-players-bushtits.xarria.workers.dev/"
     - name: "Eagles"
       id: "eagles"
       abbreviation: "EAGL"
       imagePath: "/assets/images/teams/eagles.png"
-      statsUrl: "https://puhl-stats-players-eagles.xarria.workers.dev/"
     - name: "Hooters"
       id: "hooters"
       abbreviation: "HOOT"
       statsAliases:
         - "Hoot"
       imagePath: "/assets/images/teams/hooters.png"
-      statsUrl: "https://puhl-stats-players-hooters.xarria.workers.dev/"
     - name: "Imperial Shags"
       id: "shags"
       abbreviation: "SHAG"
       imagePath: "/assets/images/teams/shags.png"
-      statsUrl: "https://puhl-stats-players-shags.xarria.workers.dev/"
 
 rec:
   name: "Recreational"
-  icsUrl: "https://puhl-rec-schedule.xarria.workers.dev"
-  standingsUrl: "https://puhl-standings-rec.xarria.workers.dev/"
+  icsUrl: "https://schedule-worker.portland.hockey/?tags=9565190,9565382,9565383,9565384,9565385"
+  standingsUrl: "https://standings-worker.portland.hockey/?team=9565190&subseason=964738"
   teams:
     - name: "Boobies"
       id: "boobies"
@@ -39,31 +35,27 @@ rec:
       statsAliases:
         - "Boob"
       imagePath: "/assets/images/teams/boobies.png"
-      statsUrl: "https://puhl-stats-players-boobies.xarria.workers.dev/"
     - name: "Golden Coqs"
       id: "coqs"
       abbreviation: "COQ"
       imagePath: "/assets/images/teams/coqs.png"
-      statsUrl: "https://puhl-stats-players-coqs.xarria.workers.dev/"
     - name: "Flamingos"
       id: "flamingos"
       abbreviation: "MINGO"
       statsAliases:
         - "Mingos"
       imagePath: "/assets/images/teams/flamingos.png"
-      statsUrl: "https://puhl-stats-players-flamingos.xarria.workers.dev/"
     - name: "Flying V's"
       id: "flying"
       abbreviation: "FLYV"
       statsAliases:
         - "V's"
       imagePath: "/assets/images/teams/flying_vs.png"
-      statsUrl: "https://puhl-stats-players-flyingvs.xarria.workers.dev/"
 
 novice:
   name: "Novice"
-  icsUrl: "https://puhl-novice-schedule.xarria.workers.dev"
-  standingsUrl: "https://puhl-standings-novice.xarria.workers.dev/"
+  icsUrl: "https://schedule-worker.portland.hockey/?tags=9565195,9565397,9565398,9565399,9565400"
+  standingsUrl: "https://standings-worker.portland.hockey/?team=9565195&subseason=964738"
   teams:
     - name: "Penguins"
       id: "penguins"
@@ -71,25 +63,21 @@ novice:
       statsAliases:
         - "Pens"
       imagePath: "/assets/images/teams/penguins.png"
-      statsUrl: "https://puhl-stats-players-penguins.xarria.workers.dev/"
     - name: "Two Cans"
       id: "two cans"
       abbreviation: "CANS"
       statsAliases:
         - "Cans"
       imagePath: "/assets/images/teams/two-cans.png"
-      statsUrl: "https://puhl-stats-players-two-cans.xarria.workers.dev/"
     - name: "Pigeons"
       id: "pigeons"
       abbreviation: "PIGN"
       statsAliases:
         - "Pigeon"
       imagePath: "/assets/images/teams/pigeons.png"
-      statsUrl: "https://puhl-stats-players-pigeons.xarria.workers.dev/"
     - name: "Honkers"
       id: "honkers"
       abbreviation: "HONK"
       statsAliases:
         - "Honk"
       imagePath: "/assets/images/teams/honkers.png"
-      statsUrl: "https://puhl-stats-players-honkers.xarria.workers.dev/"

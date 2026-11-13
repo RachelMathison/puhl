@@ -42,7 +42,6 @@ permalink: /standings/
 
 <script>
   // Site Configuration Injected via Jekyll Data File (_data/team_config.yml)
-  const STANDINGS_API_URL = "{{ site.data.team_config.standings_api_url }}";
   const DIVISIONS = {{ site.data.league_structure | jsonify }};
   const TEAM_LOGOS = window.pageTeamLogos || {};
   const PRIMARY_TEAM_KEY = "{{ site.data.team_config.primary_team_key | default: 'default' }}";
@@ -91,31 +90,18 @@ permalink: /standings/
 
   async function fetchStandings() {
     try {
-      const configuredDivisionUrls = Object.entries(DIVISIONS).filter(([, division]) => division.standingsUrl);
-
-      if (configuredDivisionUrls.length === 0) {
-        const response = await fetch(STANDINGS_API_URL);
-        const allStandings = await response.json();
-        Object.entries(DIVISIONS).forEach(([divisionKey, division]) => {
-          standingsByDivision[divisionKey] = allStandings.filter(row => rowBelongsToDivision(row, divisionKey, division));
-        });
-      } else {
-        await Promise.all(Object.entries(DIVISIONS).map(async ([divisionKey, division]) => {
-          const hasDivisionUrl = Boolean(division.standingsUrl);
-          const divisionUrl = division.standingsUrl || STANDINGS_API_URL;
+      await Promise.all(Object.entries(DIVISIONS).map(async ([divisionKey, division]) => {
           try {
-            const response = await fetch(divisionUrl);
+            if (!division.standingsUrl) throw new Error('Division standings are not configured.');
+            const response = await fetch(division.standingsUrl);
             if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
             const rows = await response.json();
-            standingsByDivision[divisionKey] = hasDivisionUrl
-              ? rows.map(row => ({ ...row, Division: row.Division || division.name }))
-              : rows.filter(row => rowBelongsToDivision(row, divisionKey, division));
+            standingsByDivision[divisionKey] = rows.map(row => ({ ...row, Division: row.Division || division.name }));
           } catch (error) {
             divisionErrors[divisionKey] = true;
             console.error(`Error fetching ${division.name} standings:`, error);
           }
-        }));
-      }
+      }));
 
       executeSort();
     } catch (error) {
@@ -123,11 +109,6 @@ permalink: /standings/
       Object.keys(DIVISIONS).forEach(divisionKey => { divisionErrors[divisionKey] = true; });
       updateUI();
     }
-  }
-
-  function rowBelongsToDivision(row, divisionKey, division) {
-    const rowDivision = String(row.Division || '').trim().toLowerCase();
-    return rowDivision === division.name.toLowerCase() || rowDivision === divisionKey.toLowerCase();
   }
 
   function sortTable(key, divisionKey) {
