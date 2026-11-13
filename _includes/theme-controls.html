@@ -1,5 +1,5 @@
 <div class="site-theme-controls {{ include.variant }}">
-  <label for="{{ include.id_prefix }}-site-theme-select">Team</label>
+  <label for="{{ include.id_prefix }}-site-theme-select">Site Theme</label>
   <select id="{{ include.id_prefix }}-site-theme-select" data-theme-select>
     {% for theme in site.data.site_themes %}
     <option value="{{ theme.id }}">{{ theme.label }}</option>

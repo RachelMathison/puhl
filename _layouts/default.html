@@ -14,6 +14,29 @@
     }
   } catch (error) {}
 </script>
+{% if page.url == '/team/' %}
+<script>
+  (() => {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('team') || params.get('team_id') || params.get('id');
+    if (!requested) return;
+    const normalize = value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const divisions = {{ site.data.league_structure | jsonify }};
+    const themes = {{ site.data.site_themes | jsonify }};
+    for (const [divisionKey, division] of Object.entries(divisions)) {
+      const team = (division.teams || []).find(candidate =>
+        [candidate.id, candidate.statsTeamId].some(id => normalize(id) === normalize(requested)));
+      if (!team) continue;
+      const theme = themes.find(candidate => candidate.statsTeamKey === `${divisionKey}:${team.id}`);
+      if (theme) {
+        window.pageTeamTheme = theme.id;
+        document.documentElement.dataset.siteTheme = theme.id;
+      }
+      break;
+    }
+  })();
+</script>
+{% endif %}
 <meta property="og:type" content="website" />
 {% if page.header_image %}
   <meta property="og:image" content="{{ page.header_image | absolute_url }}" />

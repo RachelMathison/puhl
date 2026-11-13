@@ -20,6 +20,7 @@
       <a href="{{ '/scores/' | relative_url }}"{% if page.url == '/scores/' %} class="active"{% endif %}>Scores</a>
       <a href="{{ '/calendar/' | relative_url }}"{% if page.url == '/calendar/' %} class="active"{% endif %}>Calendar</a>
       <a href="{{ '/stats/' | relative_url }}"{% if page.url == '/stats/' %} class="active"{% endif %}>Stats</a>
+      <a href="{{ '/teams/' | relative_url }}"{% if page.url == '/teams/' or page.url == '/team/' %} class="active"{% endif %}>Teams</a>
       <a href="{{ '/standings/' | relative_url }}"{% if page.url == '/standings/' %} class="active"{% endif %}>Standings</a>
       <div class="nav-dropdown nav-settings">
         <button type="button" class="nav-settings-trigger" aria-label="Site settings" aria-expanded="false" aria-controls="site-settings-menu">
@@ -78,9 +79,10 @@
       themeSelect.value = document.documentElement.dataset.siteTheme || 'green';
       themeSelect.addEventListener('change', function () {
         const selectedTheme = themeSelect.value;
-        if (selectedTheme === 'green') delete document.documentElement.dataset.siteTheme;
-        else document.documentElement.dataset.siteTheme = selectedTheme;
-        window.updateSiteThemeSubtitle(selectedTheme);
+        const effectiveTheme = window.pageTeamTheme || selectedTheme;
+        if (effectiveTheme === 'green') delete document.documentElement.dataset.siteTheme;
+        else document.documentElement.dataset.siteTheme = effectiveTheme;
+        window.updateSiteThemeSubtitle(effectiveTheme);
         window.applyThemeStatsTeam(selectedTheme);
         themeSelects.forEach(select => { select.value = selectedTheme; });
         try { localStorage.setItem('puhl_site_theme', selectedTheme); } catch (error) {}

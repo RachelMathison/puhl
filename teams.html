@@ -1,0 +1,40 @@
+---
+layout: default
+title: Teams
+permalink: /teams/
+---
+
+<h1>Teams</h1>
+
+<div class="teams-directory">
+  {% assign division_order = "novice,rec,comp" | split: "," %}
+  {% for division_key in division_order %}
+  {% assign division = site.data.league_structure[division_key] %}
+  {% if division %}
+  <section class="teams-directory-league" aria-labelledby="teams-{{ division_key }}">
+    <h2 id="teams-{{ division_key }}">{{ division.name | escape }}</h2>
+    <ul class="teams-directory-list">
+      {% for team in division.teams %}
+      <li>
+        <div class="teams-directory-row">
+          <a class="teams-directory-logo" href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}" aria-label="{{ team.name | escape }}">
+          <img src="{{ team.imagePath | default: site.data.team_config.default_logo_path | relative_url }}" alt="" width="64" height="64" loading="lazy">
+          </a>
+          <div class="teams-directory-copy">
+            <a class="teams-directory-link" href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}"><strong>{{ team.name | escape }} <span class="teams-directory-arrow" aria-hidden="true">&rarr;</span></strong></a>
+            <nav class="teams-directory-tabs" aria-label="{{ team.name | escape }} pages">
+              <a href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}&amp;tab=roster">Roster</a>
+              <span aria-hidden="true">&middot;</span>
+              <a href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}&amp;tab=scores">Scores</a>
+              <span aria-hidden="true">&middot;</span>
+              <a href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}&amp;tab=schedule">Schedule</a>
+            </nav>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+  {% endfor %}
+</div>

@@ -605,13 +605,13 @@
 
 .game-detail-stat-bar-away {
   left: 0;
-  width: calc((100% - 14px) * var(--bar-share));
+  width: calc((100% - 9px) * var(--bar-share));
   clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 
 .game-detail-stat-bar-home {
   right: 0;
-  width: calc((100% - 14px) * var(--bar-share));
+  width: calc((100% - 9px) * var(--bar-share));
   clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%);
 }
 

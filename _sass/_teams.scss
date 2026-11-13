@@ -1,0 +1,217 @@
+.team-page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px 20px;
+
+  h1 { margin-bottom: 0; }
+  > span { color: var(--gray-500); font-size: 1.1rem; }
+  > div { margin-left: auto; }
+  label { margin-right: 8px; }
+}
+
+.teams-directory {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  margin-top: 28px;
+
+  @media (max-width: 1000px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
+.team-calendar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 16px;
+
+  h2 { margin: 0; }
+
+  button {
+    padding: 7px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+  }
+}
+
+.team-calendar-scroll { overflow-x: auto; }
+
+.team-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 760px;
+}
+
+.team-calendar-weekday {
+  padding: 8px 0;
+  text-align: center;
+  font-weight: 600;
+}
+
+.team-calendar-day {
+  min-width: 0;
+  min-height: 185px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--surface-raised);
+
+  > time { font-size: 0.85rem; }
+  &.outside { opacity: 0.45; }
+  &.has-games {
+    border-color: var(--gray-300);
+    background: var(--surface);
+  }
+}
+
+.team-calendar-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-height: 190px;
+  padding-top: 6px;
+  text-align: center;
+  font-size: 0.8rem;
+
+  + .team-calendar-game {
+    margin-top: 12px;
+    border-top: 1px solid var(--gray-300);
+  }
+
+  .team-calendar-opponent {
+    display: grid;
+    place-items: center;
+    width: 66px;
+    height: 66px;
+    border: 1px solid var(--gray-300);
+    border-radius: 50%;
+    background: var(--surface-raised);
+
+    img { width: 46px; height: 46px; object-fit: contain; }
+  }
+
+  .team-calendar-opponent-name { font-size: 0.8rem; }
+  .team-calendar-result { font-size: 1rem; }
+  .team-calendar-location { color: var(--gray-500); overflow-wrap: anywhere; }
+  .team-calendar-details {
+    display: block;
+    margin-top: auto;
+    padding: 7px 8px;
+    border-radius: 5px;
+    background: var(--primary);
+    color: var(--on-primary);
+    font-size: 0.75rem;
+    text-decoration: none;
+  }
+}
+
+.teams-directory-league {
+  min-width: 0;
+
+  h2 {
+    margin: 0 0 20px;
+    color: var(--gray-700);
+    font-size: 1.25rem;
+  }
+}
+
+.teams-directory-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    border-top: 1px solid var(--gray-300);
+  }
+
+  li:last-child {
+    border-bottom: 1px solid var(--gray-300);
+  }
+}
+
+.teams-directory-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 112px;
+  padding: 18px 8px;
+  box-sizing: border-box;
+  color: var(--text);
+  text-decoration: none;
+
+  .teams-directory-logo img {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+
+}
+
+.teams-directory-logo {
+  flex: 0 0 64px;
+}
+
+.teams-directory-link {
+  color: var(--text);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--primary-text);
+    background: var(--surface-raised);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--primary-text);
+    outline-offset: 3px;
+  }
+}
+
+.teams-directory-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--gray-500);
+
+  a {
+    color: var(--gray-500);
+    text-decoration: none;
+
+    &:hover { color: var(--primary-text); text-decoration: underline; }
+  }
+}
+
+.teams-directory-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+
+  strong {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  > span,
+  .teams-directory-arrow {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+  }
+}

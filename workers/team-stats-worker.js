@@ -1,3 +1,5 @@
+// ?subseason=964738&team_ids=10598437%2C10598436%2C10598438%2C10598435%2C10598440%2C10598442%2C10598441%2C10598443%2C10598445%2C10598444%2C10598447%2C10598446
+
 const allowedOrigins = [
   'https://portland.hockey',
   'http://portland.hockey',
