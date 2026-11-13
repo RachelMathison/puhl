@@ -15,13 +15,13 @@ permalink: /game/
 <script>
 (() => {
   const API_URL = 'https://score-sheet.portland.hockey/';
-  {% capture stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.team_config.stats_api_url %}{% endcapture %}
+  {% capture stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.api_config.stats_api_url %}{% endcapture %}
 
   const STATS_API_URL = {{ stats_api_url_with_teams | strip | jsonify }};
-  {% capture team_stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.team_config.team_stats_api_url %}{% endcapture %}
+  {% capture team_stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.api_config.team_stats_api_url %}{% endcapture %}
 
   const TEAM_STATS_API_URL = {{ team_stats_api_url_with_teams | strip | jsonify }};
-  const TEAM_STATS_SUBSEASON = {{ site.data.team_config.team_stats_subseason | jsonify }};
+  const TEAM_STATS_SUBSEASON = {{ site.data.season_config.subseason | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
   const returnDate = params.get('returnDate');
@@ -407,10 +407,11 @@ permalink: /game/
     const configs = teams.map(team => configuredTeamEntry(team.name));
     const selected = configs.map(config => config && entries.find(entry => entry.config?.leagueKey === config.leagueKey && sameConfiguredTeam(entry.config, config)));
     const valueOf = (entry, key) => {
-      // Fall 2026 Novice totals include six extra games in the GP count.
-      if (String(TEAM_STATS_SUBSEASON) === '964738' && entry?.config?.leagueKey === 'novice' && ['gpg', 'gapg'].includes(key)) {
+      const gpAdjustment = {{ site.data.season_config.team_stats_gp_adjustments | jsonify }};
+      const extraGames = Number(gpAdjustment?.[entry?.config?.leagueKey] || 0);
+      if (extraGames && ['gpg', 'gapg'].includes(key)) {
         const stats = entry.row.stats;
-        const gamesPlayed = Number(stats?.team?.gp) - 6;
+        const gamesPlayed = Number(stats?.team?.gp) - extraGames;
         const total = key === 'gpg' ? stats?.skater?.goals : stats?.goalie?.ga;
         return gamesPlayed > 0 && total !== null && total !== undefined && total !== '' && Number.isFinite(Number(total))
           ? Number(total) / gamesPlayed

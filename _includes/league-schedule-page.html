@@ -32,8 +32,8 @@ const STORAGE_KEY_TEAMS = 'puhl_selected_teams';
 const STORAGE_KEY_SHOW_ALL_TEAMS = 'puhl_show_all_teams';
 
 // --- League & Team Configurations ---
-const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
-{% capture stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.team_config.stats_api_url %}{% endcapture %}
+const LEAGUE_STRUCTURE = {% include league-structure-json.html %};
+{% capture stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.api_config.stats_api_url %}{% endcapture %}
 
 const SCHEDULE_STATS_API_URL = {{ stats_api_url_with_teams | strip | jsonify }};
 const SCORE_SHEET_API_URL = 'https://score-sheet.portland.hockey/';

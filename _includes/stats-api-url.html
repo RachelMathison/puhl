@@ -1,5 +1,5 @@
 {%- assign api_url = include.url -%}
-{{- api_url -}}{%- if api_url contains '?' -%}&{%- else -%}?{%- endif -%}team_ids=
+{{- api_url -}}{%- if api_url contains '?' -%}&{%- else -%}?{%- endif -%}subseason={{- site.data.season_config.subseason -}}&team_ids=
 {%- assign separator = '' -%}
 {%- for division in site.data.league_structure -%}
   {%- for team in division[1].teams -%}

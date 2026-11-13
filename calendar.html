@@ -53,9 +53,9 @@ permalink: /calendar/
 </div>
 
 <script>
-const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
+const LEAGUE_STRUCTURE = {% include league-structure-json.html %};
 const calendarsConfig = {{ site.data.training_calendar | jsonify }};
-const extraIceConfig = {{ site.data.extra_ice | jsonify }};
+const EXTRA_ICE_URL = {{ site.data.api_config.extra_ice_url | jsonify }};
 const teamLogos = window.pageTeamLogos || {};
 const GAME_STORAGE_KEY = 'puhl_show_games';
 const STORAGE_KEY_LEAGUES = 'puhl_selected_leagues';
@@ -348,7 +348,7 @@ function makeExtraIceSource() {
 
 async function loadExtraIceEvents() {
   try {
-    const response = await fetch(extraIceConfig.icsUrl);
+    const response = await fetch(EXTRA_ICE_URL);
     if (!response.ok) throw new Error(`Request failed (${response.status})`);
     const component = new ICAL.Component(ICAL.parse(await response.text()));
     masterExtraIceEvents = component.getAllSubcomponents('vevent').map((vevent, index) => {

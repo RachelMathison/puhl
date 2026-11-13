@@ -42,11 +42,9 @@ permalink: /standings/
 
 <script>
   // Site Configuration Injected via Jekyll Data File (_data/team_config.yml)
-  const DIVISIONS = {{ site.data.league_structure | jsonify }};
+  const DIVISIONS = {% include league-structure-json.html %};
   const TEAM_LOGOS = window.pageTeamLogos || {};
-  const PRIMARY_TEAM_KEY = "{{ site.data.team_config.primary_team_key | default: 'default' }}";
   const DEFAULT_LOGO_PATH = window.siteAssetUrl({{ site.data.team_config.default_logo_path | default: '/assets/images/default.png' | jsonify }});
-  const PRIMARY_TEAM_KEYWORDS = {{ site.data.team_config.primary_team_keywords | jsonify | default: "[]" }};
 
   let standingsByDivision = {};
   let divisionErrors = {};
@@ -79,11 +77,6 @@ permalink: /standings/
       key !== 'default' && normalizedName.includes(normalizeTeamName(key))
     );
     if (logoEntry) return window.siteAssetUrl(logoEntry[1]);
-
-    const matchesPrimaryTeam = PRIMARY_TEAM_KEYWORDS.some(keyword => normalizedName.includes(normalizeTeamName(keyword)));
-    if (matchesPrimaryTeam && TEAM_LOGOS[PRIMARY_TEAM_KEY]) {
-      return window.siteAssetUrl(TEAM_LOGOS[PRIMARY_TEAM_KEY]);
-    }
 
     return window.siteAssetUrl(fallbackLogo);
   }

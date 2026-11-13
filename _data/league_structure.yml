@@ -1,7 +1,7 @@
 comp:
   name: "Competitive"
   icsUrl: "https://schedule-worker.portland.hockey/?tags=9565189,9565371,9565372,9565373,9565374"
-  standingsUrl: "https://standings-worker.portland.hockey/?team=9565189&subseason=964738"
+  standingsUrl: "https://standings-worker.portland.hockey/?team=9565189"
   teams:
     - name: "Bushtits"
       id: "bushtits"
@@ -31,7 +31,7 @@ comp:
 rec:
   name: "Recreational"
   icsUrl: "https://schedule-worker.portland.hockey/?tags=9565190,9565382,9565383,9565384,9565385"
-  standingsUrl: "https://standings-worker.portland.hockey/?team=9565190&subseason=964738"
+  standingsUrl: "https://standings-worker.portland.hockey/?team=9565190"
   teams:
     - name: "Boobies"
       id: "boobies"
@@ -63,7 +63,7 @@ rec:
 novice:
   name: "Novice"
   icsUrl: "https://schedule-worker.portland.hockey/?tags=9565195,9565397,9565398,9565399,9565400"
-  standingsUrl: "https://standings-worker.portland.hockey/?team=9565195&subseason=964738"
+  standingsUrl: "https://standings-worker.portland.hockey/?team=9565195"
   teams:
     - name: "Penguins"
       id: "penguins"

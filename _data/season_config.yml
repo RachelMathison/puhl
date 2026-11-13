@@ -1,0 +1,5 @@
+name: "Fall 2026"
+subseason: "964738"
+# Extra games included in this season's reported team GP totals.
+team_stats_gp_adjustments:
+  novice: 6

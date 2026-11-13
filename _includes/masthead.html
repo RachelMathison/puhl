@@ -129,18 +129,6 @@
   };
   window.pageTeamLogos = Object.fromEntries(Object.entries({{ site.data.team_logos | jsonify }})
     .map(([key, path]) => [key, window.siteAssetUrl(path)]));
-  window.siteLeagueStructure = {{ site.data.league_structure | jsonify }};
-  window.pageTeamsConfig = [
-    {% for team in site.data.teams %}
-    {
-      id: "{{ team.id }}",
-      name: "{{ team.name }}",
-      teamName: "{{ team.teamName }}",
-      url: "{{ team.url }}",
-      selfLogo: window.siteAssetUrl({{ team.selfLogo | jsonify }}),
-      opponents: {{ team.opponents | jsonify }}
-    }{% unless forloop.last %},{% endunless %}
-    {% endfor %}
-  ];
+  window.siteLeagueStructure = {% include league-structure-json.html %};
 
 </script>

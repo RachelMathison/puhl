@@ -48,7 +48,7 @@ layout: default
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const HOME_DIVISION_ORDER = ['novice', 'rec', 'comp'];
-  const LEAGUE_STRUCTURE = {{ site.data.league_structure | jsonify }};
+  const LEAGUE_STRUCTURE = {% include league-structure-json.html %};
   const DEFAULT_TEAM_LOGO = teamLogos.default || '';
   const standingsRequests = new Map();
 

@@ -1,0 +1,17 @@
+{%- comment -%}Inject the current season into standings URLs stored in league data.{%- endcomment -%}
+{
+{%- for division in site.data.league_structure -%}
+  {{- division[0] | jsonify -}}: {
+  {%- for field in division[1] -%}
+    {{- field[0] | jsonify -}}:
+    {%- if field[0] == 'standingsUrl' -%}
+      {%- capture standings_url -%}{{- field[1] -}}{%- if field[1] contains '?' -%}&{%- else -%}?{%- endif -%}subseason={{- site.data.season_config.subseason -}}{%- endcapture -%}
+      {{- standings_url | jsonify -}}
+    {%- else -%}
+      {{- field[1] | jsonify -}}
+    {%- endif -%}
+    {%- unless forloop.last -%},{%- endunless -%}
+  {%- endfor -%}
+  }{%- unless forloop.last -%},{%- endunless -%}
+{%- endfor -%}
+}
