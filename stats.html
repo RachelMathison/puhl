@@ -58,6 +58,9 @@ permalink: /stats/
         </div>
       </section>
     </div>
+    <div class="stats-team-callouts" id="team-leaders" aria-label="Team leaders">
+      <p class="stats-empty">Loading team statistics...</p>
+    </div>
   </section>
 
   <section class="stats-view" id="stats-view-skaters" role="tabpanel" hidden>
@@ -424,6 +427,39 @@ permalink: /stats/
     renderLeaders('skater');
     renderLeaders('goalie');
     renderTeamStats();
+    renderTeamLeaders();
+  }
+
+  function renderTeamLeaders(message = 'No team statistics match the current filters.') {
+    const metrics = [
+      { key: 'goals', label: 'Most Goals' },
+      { key: 'assists', label: 'Most Assists' },
+      { key: 'sog', label: 'Highest SOG' },
+      { key: 'pim', label: 'Highest PIM' }
+    ];
+    document.getElementById('team-leaders').innerHTML = metrics.map(({ key, label }) => {
+      const available = teamStats.filter(team => {
+        const value = team.stats?.skater?.[key];
+        return value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value));
+      });
+      available.sort((left, right) => Number(right.stats.skater[key]) - Number(left.stats.skater[key]) ||
+        String(left.teamName || left.name).localeCompare(String(right.teamName || right.name)));
+      const team = available[0];
+      if (!team) return `<article class="stats-featured-player stats-team-callout"><h3>${label}</h3><p class="stats-empty">${escapeHtml(message)}</p></article>`;
+      const value = Number(team.stats.skater[key]);
+      const tied = available.filter(candidate => Number(candidate.stats.skater[key]) === value).length > 1;
+      return `
+        <article class="stats-featured-player stats-team-callout">
+          <img src="${escapeHtml(getTeamLogo(team))}" alt="" class="stats-featured-logo" loading="lazy">
+          <h3>${escapeHtml(team.teamName || team.name)}</h3>
+          <p class="stats-featured-team stats-featured-last-meta">${escapeHtml(DIVISIONS[team.divisionKey]?.name || 'Team')}${tied ? ' &middot; Tied for lead' : ''}</p>
+          <div class="stats-featured-metric">
+            <span class="stats-featured-label">${label}</span>
+            <strong class="stats-featured-value">${escapeHtml(value)}</strong>
+          </div>
+        </article>
+      `;
+    }).join('');
   }
 
   function renderTeamStats() {
@@ -543,6 +579,7 @@ permalink: /stats/
     const status = document.getElementById('team-stats-status');
     if (!TEAM_STATS_API_URL) {
       status.textContent = 'Team statistics are not configured.';
+      renderTeamLeaders('Team statistics are not configured.');
       document.getElementById('team-stats-content').innerHTML = '<p class="stats-empty">Team statistics are not configured.</p>';
       return;
     }
@@ -562,6 +599,7 @@ permalink: /stats/
     } catch (error) {
       console.error('Error fetching team statistics:', error);
       status.textContent = 'Could not load team statistics.';
+      renderTeamLeaders('Team statistics could not be loaded.');
       document.getElementById('team-stats-content').innerHTML = '<p class="stats-empty">Team statistics could not be loaded.</p>';
     }
   }
