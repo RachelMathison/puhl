@@ -1,44 +1,46 @@
+const allowedOrigins = [
+  'https://portland.hockey',
+  'http://portland.hockey',
+  'https://www.portland.hockey',
+  'http://www.portland.hockey',
+  'https://puhl.portland.hockey',
+  'http://puhl.portland.hockey',
+  'https://darkknightshockey.com',
+  'http://darkknightshockey.com',
+  'https://www.darkknightshockey.com',
+  'http://www.darkknightshockey.com',
+];
+
 export default {
   async fetch(request) {
-    // 1. Get the domain making the request
     const origin = request.headers.get('Origin');
-
-    // 2. Define your allowed domains
-    const allowedOrigins = [
-      'https://darkknightshockey.com',
-      'https://www.darkknightshockey.com',
-      'http://darkknightshockey.com',
-      'http://www.darkknightshockey.com',
-      'http://localhost:4000',
-      'http://127.0.0.1:4000',
-      'https://rachelmathison.github.io',
-      'https://portland.hockey',
-      'https://puhl.portland.hockey'
-    ];
-
-    // 3. Determine if the requesting origin is allowed
-    const isAllowed = allowedOrigins.includes(origin);
+    const isLocalhost = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin || '');
+    const isXarriaWorker = /^https:\/\/[a-z0-9-]+\.xarria\.workers\.dev$/.test(origin || '');
+    const isAllowed = allowedOrigins.includes(origin) || isLocalhost || isXarriaWorker;
     const corsOrigin = isAllowed ? origin : allowedOrigins[0];
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      Vary: 'Origin'
+    };
 
     // Optional: Handle browser preflight checks (OPTIONS request)
     if (request.method === 'OPTIONS') {
       return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': corsOrigin,
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        },
+        headers: corsHeaders,
       });
     }
 
-    // 4. Read the requested SportNgin tags and fetch the schedule feed.
+    // Read the requested SportNgin tags and fetch the schedule feed.
     const tags = new URL(request.url).searchParams.get('tags')?.trim();
     if (!tags || !/^\d+(,\d+)*$/.test(tags)) {
       return new Response('Provide tags as a comma-separated list of numeric IDs.', {
         status: 400,
         headers: {
+          ...corsHeaders,
           'Content-Type': 'text/plain; charset=utf-8',
-          'Access-Control-Allow-Origin': corsOrigin,
+          'Cache-Control': 'no-store',
         },
       });
     }
@@ -47,13 +49,24 @@ export default {
     icalUrl.searchParams.set('tags', tags);
     const response = await fetch(icalUrl);
     const data = await response.text();
+    if (!response.ok) {
+      return new Response('Could not fetch the schedule feed.', {
+        status: 502,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
 
-    // 5. Return the response with restricted CORS header
+    // Return the response with restricted CORS header
     return new Response(data, {
       headers: {
+        ...corsHeaders,
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Access-Control-Allow-Origin': corsOrigin,
         'Access-Control-Allow-Methods': 'GET',
+        'Cache-Control': 'public, max-age=900',
       },
     });
   },

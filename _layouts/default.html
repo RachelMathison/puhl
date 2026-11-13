@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="{{ '/assets/js/api-cache.js' | relative_url }}?v={{ site.time | date: '%s' }}" data-cache-enabled="{% if site.api_cache_enabled == false %}false{% else %}true{% endif %}"></script>
 <script>
   try {
     const savedTheme = localStorage.getItem('puhl_site_theme');

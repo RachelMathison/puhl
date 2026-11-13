@@ -1,3 +1,16 @@
+const allowedOrigins = [
+  'https://portland.hockey',
+  'http://portland.hockey',
+  'https://www.portland.hockey',
+  'http://www.portland.hockey',
+  'https://puhl.portland.hockey',
+  'http://puhl.portland.hockey',
+  'https://darkknightshockey.com',
+  'http://darkknightshockey.com',
+  'https://www.darkknightshockey.com',
+  'http://www.darkknightshockey.com',
+];
+
 // Add one SportsEngine stats/print URL for each team or division to combine.
 const STATS_URLS = [
   'https://wicadulthockey.sportngin.com/stats/print/10598435?tab=team_instance_player_stats',
@@ -13,17 +26,6 @@ const STATS_URLS = [
   'https://wicadulthockey.sportngin.com/stats/print/10598447?tab=team_instance_player_stats',
   'https://wicadulthockey.sportngin.com/stats/print/10598444?tab=team_instance_player_stats'
 ];
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json; charset=utf-8'
-};
-
-function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: CORS_HEADERS });
-}
 
 function decodeHtml(value) {
   return value
@@ -116,8 +118,31 @@ async function fetchStatsPage(url) {
 
 export default {
   async fetch(request) {
+    const origin = request.headers.get('Origin');
+    const isLocalhost = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin || '');
+    const isXarriaWorker = /^https:\/\/[a-z0-9-]+\.xarria\.workers\.dev$/.test(origin || '');
+    const isAllowed = allowedOrigins.includes(origin) || isLocalhost || isXarriaWorker;
+    const corsOrigin = isAllowed ? origin : allowedOrigins[0];
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      Vary: 'Origin'
+    };
+
+    function jsonResponse(body, status = 200) {
+      return new Response(JSON.stringify(body), {
+        status,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': status === 200 && !body.errors?.length ? 'public, max-age=900' : 'no-store'
+        }
+      });
+    }
+
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
     if (request.method !== 'GET') {
       return jsonResponse({ error: 'Method not allowed. Use GET.' }, 405);

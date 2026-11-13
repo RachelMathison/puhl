@@ -1,10 +1,32 @@
+const allowedOrigins = [
+  'https://portland.hockey',
+  'http://portland.hockey',
+  'https://www.portland.hockey',
+  'http://www.portland.hockey',
+  'https://puhl.portland.hockey',
+  'http://puhl.portland.hockey',
+  'https://darkknightshockey.com',
+  'http://darkknightshockey.com',
+  'https://www.darkknightshockey.com',
+  'http://www.darkknightshockey.com',
+];
+
 export default {
   async fetch(request, env, ctx) {
+    const origin = request.headers.get('Origin');
+    const isLocalhost = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin || '');
+    const isXarriaWorker = /^https:\/\/[a-z0-9-]+\.xarria\.workers\.dev$/.test(origin || '');
+    const isAllowed = allowedOrigins.includes(origin) || isLocalhost || isXarriaWorker;
+    const corsOrigin = isAllowed ? origin : allowedOrigins[0];
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      Vary: 'Origin'
     };
+
+    corsHeaders['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS';
+    corsHeaders['Cache-Control'] = 'no-store';
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
@@ -120,6 +142,7 @@ export default {
     return new Response(JSON.stringify(standingsData, null, 2), {
       headers: { 
         ...corsHeaders,
+        "Cache-Control": "public, max-age=900",
         "Content-Type": "application/json;charset=UTF-8" 
       }
     });

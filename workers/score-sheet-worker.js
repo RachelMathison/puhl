@@ -1,18 +1,17 @@
+const allowedOrigins = [
+  'https://portland.hockey',
+  'http://portland.hockey',
+  'https://www.portland.hockey',
+  'http://www.portland.hockey',
+  'https://puhl.portland.hockey',
+  'http://puhl.portland.hockey',
+  'https://darkknightshockey.com',
+  'http://darkknightshockey.com',
+  'https://www.darkknightshockey.com',
+  'http://www.darkknightshockey.com',
+];
+
 const UPSTREAM_ORIGIN = 'https://wicadulthockey.sportngin.com';
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json; charset=utf-8'
-};
-
-function jsonResponse(body, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS_HEADERS, ...extraHeaders }
-  });
-}
 
 function decodeHtml(value = '') {
   const named = {
@@ -365,7 +364,26 @@ function extractStatus(html) {
 
 export default {
   async fetch(request) {
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+    const origin = request.headers.get('Origin');
+    const isLocalhost = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin || '');
+    const isXarriaWorker = /^https:\/\/[a-z0-9-]+\.xarria\.workers\.dev$/.test(origin || '');
+    const isAllowed = allowedOrigins.includes(origin) || isLocalhost || isXarriaWorker;
+    const corsOrigin = isAllowed ? origin : allowedOrigins[0];
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': corsOrigin,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      Vary: 'Origin'
+    };
+
+    function jsonResponse(body, status = 200, extraHeaders = {}) {
+      return new Response(JSON.stringify(body), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...extraHeaders }
+      });
+    }
+
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
     if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed. Use GET.' }, 405);
 
     const requestUrl = new URL(request.url);
@@ -403,7 +421,7 @@ export default {
         }, 422);
       }
 
-      return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=60' });
+      return jsonResponse(result, 200, { 'Cache-Control': 'public, max-age=900' });
     } catch (error) {
       return jsonResponse({
         error: 'Could not fetch the SportsEngine game sheet.',
