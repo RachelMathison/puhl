@@ -5,22 +5,26 @@ comp:
   teams:
     - name: "Bushtits"
       id: "bushtits"
+      statsTeamId: "10598437"
       abbreviation: "BUSH"
       statsAliases:
         - "Bush"
       imagePath: "/assets/images/teams/bushtits.png"
     - name: "Eagles"
       id: "eagles"
+      statsTeamId: "10598436"
       abbreviation: "EAGL"
       imagePath: "/assets/images/teams/eagles.png"
     - name: "Hooters"
       id: "hooters"
+      statsTeamId: "10598438"
       abbreviation: "HOOT"
       statsAliases:
         - "Hoot"
       imagePath: "/assets/images/teams/hooters.png"
     - name: "Imperial Shags"
       id: "shags"
+      statsTeamId: "10598435"
       abbreviation: "SHAG"
       imagePath: "/assets/images/teams/shags.png"
 
@@ -31,22 +35,26 @@ rec:
   teams:
     - name: "Boobies"
       id: "boobies"
+      statsTeamId: "10598440"
       abbreviation: "BOOB"
       statsAliases:
         - "Boob"
       imagePath: "/assets/images/teams/boobies.png"
     - name: "Golden Coqs"
       id: "coqs"
+      statsTeamId: "10598442"
       abbreviation: "COQ"
       imagePath: "/assets/images/teams/coqs.png"
     - name: "Flamingos"
       id: "flamingos"
+      statsTeamId: "10598441"
       abbreviation: "MINGO"
       statsAliases:
         - "Mingos"
       imagePath: "/assets/images/teams/flamingos.png"
     - name: "Flying V's"
       id: "flying"
+      statsTeamId: "10598443"
       abbreviation: "FLYV"
       statsAliases:
         - "V's"
@@ -59,24 +67,28 @@ novice:
   teams:
     - name: "Penguins"
       id: "penguins"
+      statsTeamId: "10598445"
       abbreviation: "PENS"
       statsAliases:
         - "Pens"
       imagePath: "/assets/images/teams/penguins.png"
     - name: "Two Cans"
       id: "two cans"
+      statsTeamId: "10598444"
       abbreviation: "CANS"
       statsAliases:
         - "Cans"
       imagePath: "/assets/images/teams/two-cans.png"
     - name: "Pigeons"
       id: "pigeons"
+      statsTeamId: "10598447"
       abbreviation: "PIGN"
       statsAliases:
         - "Pigeon"
       imagePath: "/assets/images/teams/pigeons.png"
     - name: "Honkers"
       id: "honkers"
+      statsTeamId: "10598446"
       abbreviation: "HONK"
       statsAliases:
         - "Honk"

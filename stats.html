@@ -130,8 +130,12 @@ permalink: /stats/
 </div>
 
 <script>
-  const STATS_API_URL = "{{ site.data.team_config.stats_api_url }}";
-  const TEAM_STATS_API_URL = "{{ site.data.team_config.team_stats_api_url }}";
+  {% capture stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.team_config.stats_api_url %}{% endcapture %}
+
+  const STATS_API_URL = {{ stats_api_url_with_teams | strip | jsonify }};
+  {% capture team_stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.team_config.team_stats_api_url %}{% endcapture %}
+
+  const TEAM_STATS_API_URL = {{ team_stats_api_url_with_teams | strip | jsonify }};
   const TEAM_STATS_SUBSEASON = {{ site.data.team_config.team_stats_subseason | jsonify }};
   const DIVISIONS = {{ site.data.league_structure | jsonify }};
   const TEAM_LOGOS = {{ site.data.team_logos | jsonify }};

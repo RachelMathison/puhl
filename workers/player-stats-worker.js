@@ -11,22 +11,6 @@ const allowedOrigins = [
   'http://www.darkknightshockey.com',
 ];
 
-// Add one SportsEngine stats/print URL for each team or division to combine.
-const STATS_URLS = [
-  'https://wicadulthockey.sportngin.com/stats/print/10598435?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598436?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598437?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598438?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598442?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598440?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598441?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598443?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598446?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598445?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598447?tab=team_instance_player_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598444?tab=team_instance_player_stats'
-];
-
 function decodeHtml(value) {
   return value
     .replace(/&nbsp;|&#160;/gi, ' ')
@@ -153,8 +137,14 @@ export default {
       return jsonResponse({ error: 'Provide a numeric subseason ID.' }, 400);
     }
 
-    const statsUrls = STATS_URLS.map(sourceUrl => {
-      const url = new URL(sourceUrl);
+    const teamIdsParam = new URL(request.url).searchParams.get('team_ids')?.trim();
+    if (!teamIdsParam || !/^\d+(,\d+)*$/.test(teamIdsParam)) {
+      return jsonResponse({ error: 'Provide team_ids as a comma-separated list of numeric team IDs.' }, 400);
+    }
+    const teamIds = [...new Set(teamIdsParam.split(','))];
+    const statsUrls = teamIds.map(teamId => {
+      const url = new URL(`https://wicadulthockey.sportngin.com/stats/print/${teamId}`);
+      url.searchParams.set('tab', 'team_instance_player_stats');
       url.searchParams.set('subseason', subseason);
       return url.href;
     });

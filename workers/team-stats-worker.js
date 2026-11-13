@@ -11,22 +11,6 @@ const allowedOrigins = [
   'http://www.darkknightshockey.com',
 ];
 
-// One SportsEngine team-stats URL per team. Keep this list in sync with stats-worker.js.
-const TEAM_STATS_URLS = [
-  'https://wicadulthockey.sportngin.com/stats/print/10598435?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598436?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598437?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598438?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598442?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598440?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598441?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598443?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598446?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598445?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598447?tab=team_instance_team_stats',
-  'https://wicadulthockey.sportngin.com/stats/print/10598444?tab=team_instance_team_stats'
-];
-
 function decodeHtml(value = '') {
   const named = {
     nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
@@ -173,10 +157,16 @@ export default {
     if (!subseason || !/^\d+$/.test(subseason)) {
       return jsonResponse({ error: 'A numeric subseason query parameter is required.' }, 400);
     }
-    const urls = TEAM_STATS_URLS.map(source => {
-      const url = new URL(source);
+    const teamIdsParam = new URL(request.url).searchParams.get('team_ids')?.trim();
+    if (!teamIdsParam || !/^\d+(,\d+)*$/.test(teamIdsParam)) {
+      return jsonResponse({ error: 'Provide team_ids as a comma-separated list of numeric team IDs.' }, 400);
+    }
+    const teamIds = [...new Set(teamIdsParam.split(','))];
+    const urls = teamIds.map(teamId => {
+      const url = new URL(`https://wicadulthockey.sportngin.com/stats/print/${teamId}`);
+      url.searchParams.set('tab', 'team_instance_team_stats');
       url.searchParams.set('subseason', subseason);
-      return url.toString();
+      return url.href;
     });
     const results = await Promise.allSettled(urls.map(fetchTeamStats));
     const response = { league: null, season: null, teams: [], errors: [] };

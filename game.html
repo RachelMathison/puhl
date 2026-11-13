@@ -15,8 +15,12 @@ permalink: /game/
 <script>
 (() => {
   const API_URL = 'https://score-sheet.portland.hockey/';
-  const STATS_API_URL = {{ site.data.team_config.stats_api_url | jsonify }};
-  const TEAM_STATS_API_URL = {{ site.data.team_config.team_stats_api_url | jsonify }};
+  {% capture stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.team_config.stats_api_url %}{% endcapture %}
+
+  const STATS_API_URL = {{ stats_api_url_with_teams | strip | jsonify }};
+  {% capture team_stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.team_config.team_stats_api_url %}{% endcapture %}
+
+  const TEAM_STATS_API_URL = {{ team_stats_api_url_with_teams | strip | jsonify }};
   const TEAM_STATS_SUBSEASON = {{ site.data.team_config.team_stats_subseason | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
