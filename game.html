@@ -301,6 +301,12 @@ permalink: /game/
   }
 
   function renderPlayersToWatch(skaters, teams) {
+    const pointsPerGame = player => {
+      const average = player.avgPts;
+      if (average !== null && average !== undefined && average !== '' && Number.isFinite(Number(average))) return Number(average);
+      const games = Number(player.gp);
+      return games > 0 ? metricValue(player, 'points') / games : 0;
+    };
     const metrics = [
       ['points', 'Points'], ['goals', 'Goals'], ['goals', 'Goals', 1], ['assists', 'Assists']
     ];
@@ -309,7 +315,9 @@ permalink: /game/
       return skaters.filter(player => sameConfiguredTeam(playerTeamEntry(player), config));
     });
     return metrics.map(([metric, label, leaderIndex = 0]) => {
-      const leaders = teamPlayers.map(players => [...players].sort((left, right) => metricValue(right, metric) - metricValue(left, metric))[leaderIndex] || null);
+      const leaders = teamPlayers.map(players => [...players].sort((left, right) =>
+        metricValue(right, metric) - metricValue(left, metric) || pointsPerGame(right) - pointsPerGame(left)
+      )[leaderIndex] || null);
       const values = leaders.map(player => player ? metricValue(player, metric) : 0);
       const total = values[0] + values[1];
       const shares = total ? [values[0] / total, values[1] / total] : [0.5, 0.5];
@@ -816,7 +824,7 @@ permalink: /game/
           ${teams.map((team, index) => `
             <button type="button" class="${index === 0 ? 'active' : ''}" role="tab"
               id="game-roster-tab-${index}" aria-selected="${index === 0}" aria-controls="game-roster-panel-${index}"
-              data-game-roster-tab="${index}">${escapeHtml(team.name || `Team ${index + 1}`)}</button>
+              data-game-roster-tab="${index}" style="--roster-team-color:${escapeHtml(teamPrimaryColor(team))}">${escapeHtml(team.name || `Team ${index + 1}`)}</button>
           `).join('')}
         </div>
       </div>

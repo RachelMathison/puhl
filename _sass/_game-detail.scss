@@ -678,7 +678,7 @@
     }
 
     &.active {
-      background: var(--primary);
+      background: var(--roster-team-color, var(--primary));
       color: var(--on-primary, #fff);
     }
 
