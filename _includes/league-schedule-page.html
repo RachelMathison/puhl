@@ -822,9 +822,7 @@ function renderListView() {
   }
 
   let visibleEvents;
-  if (GAME_PAGE_MODE === 'scores') {
-    visibleEvents = scheduledEvents.filter(event => getLocalDateKey(new Date(event.start)) === selectedScoreDateKey);
-  } else {
+  {
     const weekStart = new Date();
     weekStart.setHours(0, 0, 0, 0);
     weekStart.setDate(weekStart.getDate() + scheduleWeekOffset * 7);
@@ -837,14 +835,7 @@ function renderListView() {
   }
 
   if (visibleEvents.length === 0) {
-    const selectedDate = selectedScoreDateKey
-      ? new Date(`${selectedScoreDateKey}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })
-      : '';
-    container.innerHTML = GAME_PAGE_MODE === 'scores' && selectedDate
-      ? `<p>No games scheduled for ${escapeLeaderHtml(selectedDate)}.</p>`
-      : GAME_PAGE_MODE === 'schedule'
-        ? '<p>No games scheduled this week.</p>'
-        : '<p>No games scheduled.</p>';
+    container.innerHTML = '<p>No games scheduled this week.</p>';
     return;
   }
 
@@ -946,6 +937,9 @@ function renderDaySelector(events) {
     return getLocalDateKey(day);
   });
   const weekGameKeys = currentWeekKeys.filter(key => eventCounts[key]);
+  if (GAME_PAGE_MODE === 'scores' && !weekGameKeys.includes(selectedScoreDateKey)) {
+    selectedScoreDateKey = weekGameKeys[0] || null;
+  }
   if (GAME_PAGE_MODE === 'schedule' && !weekGameKeys.includes(selectedScheduleDateKey)) {
     selectedScheduleDateKey = weekGameKeys[0] || null;
   }
@@ -982,7 +976,8 @@ function renderDaySelector(events) {
 
 function selectScoreDate(dateKey) {
   selectedScoreDateKey = dateKey;
-  renderListView();
+  renderDaySelector(masterAllEvents.filter(event => event.start && isEventActive(event.leagueKey, event.title)));
+  scrollToScheduleDay(dateKey);
 }
 
 function selectScheduleDate(dateKey) {

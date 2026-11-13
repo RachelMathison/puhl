@@ -644,6 +644,21 @@ permalink: /game/
     }));
   }
 
+  function renderGameWinningGoal(game) {
+    if (game.upcoming) return '';
+    const scorers = (game.teams || []).flatMap(team => (team.skaters || [])
+      .filter(player => Number(player.gwg) > 0)
+      .map(player => `<div class="game-detail-watch-player">
+        <img src="${escapeHtml(teamLogo(team))}" alt="">
+        <div><strong>${escapeHtml(player.name || 'Player')}</strong><span>${escapeHtml([player.number ? `#${player.number}` : '', team.name].filter(Boolean).join(' · '))}</span></div>
+      </div>`));
+    if (!scorers.length) return '';
+    return `<section class="game-detail-section game-detail-winning-goal">
+      <h2>Game-Winning Goal</h2>
+      ${scorers.join('')}
+    </section>`;
+  }
+
   function renderGameSheet(game) {
     const teams = Array.isArray(game.teams) ? game.teams : [];
     if (!teams.length) throw new Error('No team scores were included in the game sheet.');
@@ -870,6 +885,7 @@ permalink: /game/
             <dt>Location</dt><dd>${escapeHtml(game.location || 'TBD')}</dd>
             ${teams.map((team, index) => `<dt>${escapeHtml(configuredTeam(team.name)?.abbreviation || team.name)} Captain</dt><dd id="game-detail-captains-${index}">Loading...</dd>`).join('')}</dl>
           </section>` : ''}
+          ${renderGameWinningGoal(game)}
         </div>
         <div class="game-detail-player-column">
           ${game.upcoming ? playersToWatch : gameSheet}
