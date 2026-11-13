@@ -136,7 +136,7 @@ permalink: /stats/
   {% capture team_stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.api_config.team_stats_api_url %}{% endcapture %}
 
   const TEAM_STATS_API_URL = {{ team_stats_api_url_with_teams | strip | jsonify }};
-  const TEAM_STATS_SUBSEASON = {{ site.data.season_config.subseason | jsonify }};
+  const TEAM_STATS_SUBSEASON = {{ site.data.season_config.seasons[site.data.season_config.active_season].subseason | jsonify }};
   const DIVISIONS = {% include league-structure-json.html %};
   const TEAM_LOGOS = {{ site.data.team_logos | jsonify }};
   const DEFAULT_LOGO_PATH = window.siteAssetUrl({{ site.data.team_config.default_logo_path | default: '/assets/images/teams/default.png' | jsonify }});

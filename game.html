@@ -21,7 +21,7 @@ permalink: /game/
   {% capture team_stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.api_config.team_stats_api_url %}{% endcapture %}
 
   const TEAM_STATS_API_URL = {{ team_stats_api_url_with_teams | strip | jsonify }};
-  const TEAM_STATS_SUBSEASON = {{ site.data.season_config.subseason | jsonify }};
+  const TEAM_STATS_SUBSEASON = {{ site.data.season_config.seasons[site.data.season_config.active_season].subseason | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
   const returnDate = params.get('returnDate');
@@ -407,7 +407,7 @@ permalink: /game/
     const configs = teams.map(team => configuredTeamEntry(team.name));
     const selected = configs.map(config => config && entries.find(entry => entry.config?.leagueKey === config.leagueKey && sameConfiguredTeam(entry.config, config)));
     const valueOf = (entry, key) => {
-      const gpAdjustment = {{ site.data.season_config.team_stats_gp_adjustments | jsonify }};
+      const gpAdjustment = {{ site.data.season_config.seasons[site.data.season_config.active_season].team_stats_gp_adjustments | jsonify }};
       const extraGames = Number(gpAdjustment?.[entry?.config?.leagueKey] || 0);
       if (extraGames && ['gpg', 'gapg'].includes(key)) {
         const stats = entry.row.stats;

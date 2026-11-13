@@ -1,5 +1,9 @@
-name: "Fall 2026"
-subseason: "964738"
-# Extra games included in this season's reported team GP totals.
-team_stats_gp_adjustments:
-  novice: 6
+# Add future seasons under seasons, then select the current one here.
+active_season: fall_2026
+seasons:
+  fall_2026:
+    name: "Fall 2026"
+    subseason: "964738"
+    # Extra games included in this season's reported team GP totals.
+    team_stats_gp_adjustments:
+      novice: 6
