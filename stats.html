@@ -328,7 +328,8 @@ permalink: /stats/
     button.addEventListener('click', () => showStatsView(button.dataset.statsView));
   });
   document.getElementById('team-stats-content').addEventListener('click', event => {
-    const button = event.target.closest('[data-team-sort-section][data-team-sort-key]');
+    const header = event.target.closest('th');
+    const button = header?.querySelector('[data-team-sort-section][data-team-sort-key]');
     if (!button) return;
     const { teamSortSection: section, teamSortKey: key } = button.dataset;
     const current = teamStatsSort[section] || { key: 'name', ascending: true };

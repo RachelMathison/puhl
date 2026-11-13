@@ -997,7 +997,8 @@ permalink: /game/
       requestAnimationFrame(updateGameTableOverflow);
       return;
     }
-    const button = event.target.closest('[data-roster-sort-key]');
+    const header = event.target.closest('th');
+    const button = header?.querySelector('[data-roster-sort-key]');
     if (button) sortRosterTable(button);
   });
 
