@@ -37,6 +37,7 @@ permalink: /stats/
         <h2><button type="button" class="stats-heading-link" data-open-stats-view="skaters">Skaters</button><button type="button" class="stats-view-link" data-open-stats-view="skaters" aria-label="View all skater statistics">&rsaquo;</button></h2>
         <div class="stats-metric-tabs" role="tablist" aria-label="Skater leader category">
           <button type="button" class="active" data-leader-category="skater" data-leader-metric="pts">Points</button>
+          <button type="button" data-leader-category="skater" data-leader-metric="avgPts">PPG</button>
           <button type="button" data-leader-category="skater" data-leader-metric="g">Goals</button>
           <button type="button" data-leader-category="skater" data-leader-metric="a">Assists</button>
           <button type="button" data-leader-category="skater" data-leader-metric="pim">Penalties</button>
@@ -142,6 +143,7 @@ permalink: /stats/
   const DEFAULT_LOGO_PATH = window.siteAssetUrl({{ site.data.team_config.default_logo_path | default: '/assets/images/teams/default.png' | jsonify }});
   const skaterMetrics = {
     pts: { label: 'Points', key: 'pts', ascending: false },
+    avgPts: { label: 'Points Per Game', key: 'avgPts', ascending: false },
     g: { label: 'Goals', key: 'g', ascending: false },
     a: { label: 'Assists', key: 'a', ascending: false },
     pim: { label: 'Penalty Minutes', key: 'pim', ascending: false }
@@ -820,8 +822,10 @@ permalink: /stats/
 
   function renderLeaders(category) {
     const isSkater = category === 'skater';
-    const players = isSkater ? skaterStats : goalieStats;
     const metricKey = isSkater ? currentSkaterMetric : currentGoalieMetric;
+    const players = isSkater && metricKey === 'avgPts'
+      ? skaterStats.filter(player => Number(player.gp) > 0).map(player => ({ ...player, avgPts: Number(player.pts || 0) / Number(player.gp) }))
+      : isSkater ? skaterStats : goalieStats;
     const metric = (isSkater ? skaterMetrics : goalieMetrics)[metricKey];
     const container = document.getElementById(isSkater ? 'skater-leaders' : 'goalie-leaders');
 

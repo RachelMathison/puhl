@@ -5,6 +5,7 @@ permalink: /team/
 ---
 
 <div class="team-page-heading">
+  <img id="team-heading-logo" class="team-heading-logo" alt="" width="56" height="56" hidden>
   <h1 id="team-title">Team</h1>
   <span id="team-league" hidden></span>
   <div id="team-season-control" hidden>
@@ -104,6 +105,9 @@ permalink: /team/
   }
 
   document.getElementById('team-title').textContent = team.name;
+  const headingLogo = document.getElementById('team-heading-logo');
+  headingLogo.src = window.siteAssetUrl(team.imagePath || '/assets/images/default.png');
+  headingLogo.hidden = false;
   document.title = `${team.name} · ${document.title}`;
   status.textContent = '';
   const league = document.getElementById('team-league');
