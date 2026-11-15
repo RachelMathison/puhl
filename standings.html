@@ -27,11 +27,12 @@ permalink: /standings/
           <th onclick="sortTable('SOL', '{{ division_key }}')">SOL <span class="sort-icon" data-key="SOL"></span></th>
           <th onclick="sortTable('GF', '{{ division_key }}')">GF <span class="sort-icon" data-key="GF"></span></th>
           <th onclick="sortTable('GA', '{{ division_key }}')">GA <span class="sort-icon" data-key="GA"></span></th>
+          <th title="Goals for minus goals against" onclick="sortTable('Diff', '{{ division_key }}')">Diff <span class="sort-icon" data-key="Diff"></span></th>
           <th onclick="sortTable('Division', '{{ division_key }}')">Division <span class="sort-icon" data-key="Division"></span></th>
         </tr>
       </thead>
       <tbody id="standings-tbody-{{ division_key }}" data-division-key="{{ division_key }}" data-division-name="{{ division.name | escape }}">
-        <tr><td colspan="11" style="text-align: center; color: var(--gray-500);">Loading standings...</td></tr>
+        <tr><td colspan="12" style="text-align: center; color: var(--gray-500);">Loading standings...</td></tr>
       </tbody>
     </table>
   </div>
@@ -49,7 +50,7 @@ permalink: /standings/
   let standingsByDivision = {};
   let divisionErrors = {};
   const divisionSorts = Object.fromEntries(Object.keys(DIVISIONS).map(key => [key, { key: 'PTS', ascending: false }]));
-  const columnKeys = ['Team', 'PTS', 'GP', 'W', 'L', 'T', 'OTL', 'SOL', 'GF', 'GA', 'Division'];
+  const columnKeys = ['Team', 'PTS', 'GP', 'W', 'L', 'T', 'OTL', 'SOL', 'GF', 'GA', 'Diff', 'Division'];
 
   function normalizeTeamName(name) {
     return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -89,7 +90,11 @@ permalink: /standings/
             const response = await fetch(division.standingsUrl);
             if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
             const rows = await response.json();
-            standingsByDivision[divisionKey] = rows.map(row => ({ ...row, Division: row.Division || division.name }));
+            standingsByDivision[divisionKey] = rows.map(row => ({
+              ...row,
+              Diff: Number(row.GF || 0) - Number(row.GA || 0),
+              Division: row.Division || division.name
+            }));
           } catch (error) {
             divisionErrors[divisionKey] = true;
             console.error(`Error fetching ${division.name} standings:`, error);
@@ -153,13 +158,13 @@ permalink: /standings/
       });
 
       if (divisionErrors[divisionKey]) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--gray-500);">Failed to load standings data.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: var(--gray-500);">Failed to load standings data.</td></tr>';
         return;
       }
 
       const standingsData = standingsByDivision[divisionKey] || [];
       if (standingsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--gray-500);">No standings found for this division.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: var(--gray-500);">No standings found for this division.</td></tr>';
         return;
       }
 
@@ -184,7 +189,8 @@ permalink: /standings/
             <td ${activeIndex === 7 ? 'class="active-sort-col"' : ''}>${row['SOL'] || 0}</td>
             <td ${activeIndex === 8 ? 'class="active-sort-col"' : ''}>${row['GF'] || 0}</td>
             <td ${activeIndex === 9 ? 'class="active-sort-col"' : ''}>${row['GA'] || 0}</td>
-            <td ${activeIndex === 10 ? 'class="active-sort-col"' : ''}>${row['Division'] || ''}</td>
+            <td ${activeIndex === 10 ? 'class="active-sort-col"' : ''}>${row['Diff']}</td>
+            <td ${activeIndex === 11 ? 'class="active-sort-col"' : ''}>${row['Division'] || ''}</td>
           </tr>
         `;
       }).join('');
