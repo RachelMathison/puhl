@@ -1,23 +1,23 @@
 - id: wsc
   name: "Winterhawks Ice Center (Beaverton)"
-  icsUrl: "https://beaverton-stick-and-puck.darkknightshockey.com"
+  icsUrl: "https://beaverton-hockey-calendar.portland.hockey"
   siteUrl: "https://winterhawksskatingcenter.com/registration"
   enabled: true
 
 - id: sherwood
   name: "Sherwood Ice Arena"
-  icsUrl: "https://sherwood-stick-and-puck.darkknightshockey.com"
+  icsUrl: "https://sherwood-hockey-calendar.portland.hockey"
   siteUrl: "https://www.winterhawksice.com/sherwood-schedule"
   enabled: true
 
 - id: mv
   name: "Mountain View Ice Arena"
-  icsUrl: "https://mountainview-stick-and-puck.darkknightshockey.com"
+  icsUrl: "https://mountainview-hockey-calendar.portland.hockey"
   siteUrl: "https://15560.ezfacility.com/Sessions?reset=True"
   enabled: true
 
 - id: vmc
   name: "Veterans Memorial Coliseum"
-  icsUrl: "https://vmc-clinics.darkknightshockey.com"
+  icsUrl: "https://vmc-hockey-calendar.portland.hockey"
   siteUrl: "https://wicadulthockey.sportngin.com/page/show/3326613--center-evaluations-and-adult-youth-hockey-skills-class-center-"
   enabled: true

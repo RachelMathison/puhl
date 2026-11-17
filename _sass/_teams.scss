@@ -101,15 +101,29 @@
   }
 
   .team-calendar-opponent {
-    display: grid;
-    place-items: center;
+    position: relative;
+    flex: none;
+    box-sizing: border-box;
     width: 66px;
     height: 66px;
     border: 1px solid var(--gray-300);
     border-radius: 50%;
     background: var(--surface-raised);
 
-    img { width: 46px; height: 46px; object-fit: contain; }
+    &.upcoming {
+      border-color: var(--game-rink-color);
+      background-color: color-mix(in srgb, var(--game-rink-color) 12%, var(--surface));
+    }
+
+    img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+      transform: translate(-50%, -50%);
+    }
   }
 
   .team-calendar-opponent-name { font-size: 0.8rem; }
@@ -124,6 +138,52 @@
     color: var(--on-primary);
     font-size: 0.75rem;
     text-decoration: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .team-calendar {
+    min-width: 0;
+    gap: 3px;
+  }
+
+  .team-calendar-weekday {
+    padding: 6px 0;
+    font-size: 0.7rem;
+  }
+
+  .team-calendar-day {
+    min-height: 72px;
+    padding: 3px;
+    border-radius: 5px;
+
+    > time { font-size: 0.7rem; }
+  }
+
+  .team-calendar-game {
+    min-height: 0;
+    gap: 3px;
+    padding-top: 3px;
+    font-size: 0.6rem;
+    overflow-wrap: anywhere;
+
+    .team-calendar-opponent {
+      width: min(100%, 32px);
+      height: auto;
+      aspect-ratio: 1;
+
+      img { width: 75%; height: 75%; }
+    }
+
+    .team-calendar-opponent-name,
+    .team-calendar-location { display: none; }
+    .team-calendar-result { font-size: 0.65rem; }
+    .team-calendar-details {
+      max-width: 100%;
+      padding: 4px 2px;
+      font-size: 0.6rem;
+    }
+    .team-calendar-details-label { display: none; }
   }
 }
 

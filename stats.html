@@ -52,6 +52,7 @@ permalink: /stats/
         <div class="stats-metric-tabs" role="tablist" aria-label="Goalie leader category">
           <button type="button" class="active" data-leader-category="goalie" data-leader-metric="gaa">GAA</button>
           <button type="button" data-leader-category="goalie" data-leader-metric="svPct">SV%</button>
+          <button type="button" data-leader-category="goalie" data-leader-metric="sv">Saves</button>
           <button type="button" data-leader-category="goalie" data-leader-metric="so">Shutouts</button>
         </div>
         <div class="stats-leader-content" id="goalie-leaders">
@@ -151,6 +152,7 @@ permalink: /stats/
   const goalieMetrics = {
     gaa: { label: 'GAA', key: 'gaa', ascending: true },
     svPct: { label: 'Save Percentage', key: 'svPct', ascending: false },
+    sv: { label: 'Saves', key: 'sv', ascending: false },
     so: { label: 'Shutouts', key: 'so', ascending: false }
   };
 
@@ -441,19 +443,20 @@ permalink: /stats/
       { key: 'goals', label: 'Most Goals' },
       { key: 'assists', label: 'Most Assists' },
       { key: 'sog', label: 'Highest SOG' },
-      { key: 'pim', label: 'Highest PIM' }
+      { key: 'pim', label: 'Highest PIM' },
+      { key: 'saves', label: 'Most Saves', category: 'goalie' }
     ];
-    document.getElementById('team-leaders').innerHTML = metrics.map(({ key, label }) => {
+    document.getElementById('team-leaders').innerHTML = metrics.map(({ key, label, category = 'skater' }) => {
       const available = teamStats.filter(team => {
-        const value = team.stats?.skater?.[key];
+        const value = team.stats?.[category]?.[key];
         return value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value));
       });
-      available.sort((left, right) => Number(right.stats.skater[key]) - Number(left.stats.skater[key]) ||
+      available.sort((left, right) => Number(right.stats[category][key]) - Number(left.stats[category][key]) ||
         String(left.teamName || left.name).localeCompare(String(right.teamName || right.name)));
       const team = available[0];
       if (!team) return `<article class="stats-featured-player stats-team-callout"><h3>${label}</h3><p class="stats-empty">${escapeHtml(message)}</p></article>`;
-      const value = Number(team.stats.skater[key]);
-      const tied = available.filter(candidate => Number(candidate.stats.skater[key]) === value).length > 1;
+      const value = Number(team.stats[category][key]);
+      const tied = available.filter(candidate => Number(candidate.stats[category][key]) === value).length > 1;
       return `
         <article class="stats-featured-player stats-team-callout">
           <img src="${escapeHtml(getTeamLogo(team))}" alt="" class="stats-featured-logo" loading="lazy">
@@ -839,7 +842,7 @@ permalink: /stats/
       const valueB = Number(b[metric.key] || 0);
       return metric.ascending ? valueA - valueB : valueB - valueA;
     });
-    const ranked = sortedPlayers.slice(0, 11).map((player, index) => {
+    const ranked = sortedPlayers.slice(0, 10).map((player, index) => {
       const value = Number(player[metric.key] || 0);
       let tieStart = index;
       let tieEnd = index;

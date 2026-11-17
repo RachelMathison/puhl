@@ -172,7 +172,7 @@ permalink: /team/
       <h2>${heading}</h2>
       <div class="team-summary-leader">
         <strong class="team-summary-value">${key === 'gaa' ? best.toFixed(2) : best}</strong>
-        <p class="team-summary-names">${leaders.map(player => escape(player.name || 'Unknown player')).join('<br>')}</p>
+        <p class="team-summary-names">${leaders.map(player => escape(key === 'gaa' ? (player.name || 'Unknown player').replace(/\s*-\s*\(G\)\s*$/i, '') : (player.name || 'Unknown player'))).join('<br>')}</p>
       </div>
       ${leaders.length > 1 ? '<span class="team-summary-tie">Tied leaders</span>' : ''}`;
   }

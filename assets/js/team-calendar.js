@@ -8,6 +8,16 @@ window.createTeamCalendar = function ({ games, team }) {
   month = new Date(month.getFullYear(), month.getMonth(), 1);
   let generation = 0;
 
+  function rinkColor(location) {
+    const rinkIds = {
+      'sherwood': 'sherwood',
+      'beaverton': 'wsc',
+      'veterans memorial coliseum': 'vmc'
+    };
+    const id = rinkIds[String(location || '').trim().toLowerCase()];
+    return id ? `var(--rink-${id})` : 'var(--training-bg-light)';
+  }
+
   function resultText(result, event, matchup) {
     const configured = row => games.getConfiguredTeam(row.name, event.leagueKey);
     const own = (result.teams || []).find(row => configured(row)?.displayName === team.name);
@@ -57,10 +67,10 @@ window.createTeamCalendar = function ({ games, team }) {
         const past = start < new Date();
         const href = games.gameDetailHref(event.gameId, games.getLocalDateKey(start), event, matchup);
         html += `<article class="team-calendar-game" aria-label="${escape(opponent)} on ${escape(start.toLocaleDateString())}">
-          <div class="team-calendar-opponent"><img src="${escape(logo)}" alt="${escape(opponent)}" loading="lazy"></div>
+          <div class="team-calendar-opponent${past ? '' : ' upcoming'}"${past ? '' : ` style="--game-rink-color: ${rinkColor(event.location)}"`}><img src="${escape(logo)}" alt="${escape(opponent)}" loading="lazy"></div>
           <strong class="team-calendar-opponent-name">${escape(opponent)}</strong>
           ${past ? `<strong id="${key}" class="team-calendar-result">${event.gameId ? 'Loading score...' : 'Score unavailable'}</strong>` : `<time datetime="${escape(start.toISOString())}">${escape(start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }))}</time><span class="team-calendar-location">${escape(event.location || 'Location TBD')}</span>`}
-          <a class="team-calendar-details" href="${escape(href)}">Game Details <span aria-hidden="true">&rarr;</span></a>
+          <a class="team-calendar-details" href="${escape(href)}" aria-label="Game details: ${escape(opponent)} on ${escape(start.toLocaleDateString())}"><span class="team-calendar-details-label">Game Details </span><span aria-hidden="true">&rarr;</span></a>
         </article>`;
         if (past && event.gameId) pending.push({ event, matchup, key });
       });

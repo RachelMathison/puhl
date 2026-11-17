@@ -235,6 +235,10 @@
   overflow-x: auto;
   border-bottom: 1px solid var(--gray-300);
 
+  &.has-horizontal-overflow {
+    box-shadow: inset -14px 0 12px -12px rgba(0, 0, 0, 0.32);
+  }
+
   button {
     flex: 0 0 auto;
     padding: 12px 20px 10px;
@@ -370,8 +374,9 @@
 
   .team-summary-leader {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 4px;
   }
 
   .team-summary-value {
@@ -389,7 +394,8 @@
     font-size: 1.05rem;
     font-weight: 600;
     line-height: 1.4;
-    overflow-wrap: anywhere;
+    flex-basis: 100%;
+    overflow-wrap: break-word;
   }
 
   .team-summary-tie {
@@ -728,5 +734,46 @@
   a {
     color: var(--primary-text);
     font-weight: 600;
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-container .player-column-stuck :is(#skaters-table, #goalies-table) .stats-player-cell img {
+    display: none;
+  }
+
+  .stats-container :is(#skaters-table, #goalies-table, .team-player-table, .game-detail-player-table) {
+    th:nth-child(2),
+    td:nth-child(2):not([colspan]) {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      width: 150px;
+      min-width: 150px;
+      max-width: 150px;
+      padding-right: 8px;
+      padding-left: 8px;
+      box-shadow: 3px 0 5px -4px rgba(0, 0, 0, 0.35);
+    }
+
+    th:nth-child(2) {
+      z-index: 2;
+    }
+
+    td:nth-child(2):not([colspan]) {
+      background: var(--surface);
+      white-space: normal;
+      overflow-wrap: anywhere;
+
+      &.active-sort-col {
+        background: var(--gray-100);
+      }
+    }
+
+    .stats-player-cell img {
+      flex: 0 0 24px;
+      width: 24px;
+      height: 24px;
+    }
   }
 }

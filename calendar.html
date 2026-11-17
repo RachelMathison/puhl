@@ -11,6 +11,7 @@ permalink: /calendar/
 <div class="training-page combined-calendar-page">
   <h1>Ice Time Calendar</h1>
 
+  <div id="calendar-filters">
   <div class="training-session-filters calendar-controls" role="group" aria-label="Calendar filters">
     <label class="training-switch" for="games-toggle">
       <input type="checkbox" id="games-toggle" checked>
@@ -27,11 +28,11 @@ permalink: /calendar/
       <span class="training-switch-track" aria-hidden="true"><span></span></span>
       <span>Skills Clinics</span>
     </label>
-    <label class="training-switch" for="public-skate-toggle">
+    <!-- <label class="training-switch" for="public-skate-toggle">
       <input type="checkbox" id="public-skate-toggle" checked>
       <span class="training-switch-track" aria-hidden="true"><span></span></span>
       <span>Public Skate</span>
-    </label>
+    </label> -->
   </div>
 
   <section id="game-filters" class="combined-calendar-game-filters" aria-label="Game team filters">
@@ -43,6 +44,8 @@ permalink: /calendar/
   </section>
 
   <div id="combined-calendar-legend" class="legend" aria-label="Calendar locations"></div>
+  </div>
+  <button type="button" id="calendar-filter-toggle" class="schedule-filter-toggle" aria-controls="calendar-filters" aria-expanded="true">Hide Filters</button>
   <div class="training-calendar-shell">
     <div id="calendar-refresh-indicator" class="training-calendar-refresh" role="status" aria-live="polite" hidden>
       <span class="training-calendar-spinner" aria-hidden="true"></span>
@@ -72,7 +75,7 @@ const activeTeams = new Set();
 const allTeamConfigs = [];
 const sessionFilters = { publicSkate: true, stickAndPuck: true, clinics: true };
 const sessionFilterControls = [
-  { id: 'public-skate-toggle', key: 'publicSkate', storageKey: 'puhl_show_public_skate' },
+  // { id: 'public-skate-toggle', key: 'publicSkate', storageKey: 'puhl_show_public_skate' },
   { id: 'stick-puck-toggle', key: 'stickAndPuck', storageKey: 'puhl_show_stick_puck' },
   { id: 'clinics-toggle', key: 'clinics', storageKey: 'puhl_show_clinics' }
 ];
@@ -450,6 +453,12 @@ function initializeCalendar() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('calendar-filter-toggle').addEventListener('click', event => {
+    const filters = document.getElementById('calendar-filters');
+    filters.hidden = !filters.hidden;
+    event.currentTarget.setAttribute('aria-expanded', String(!filters.hidden));
+    event.currentTarget.textContent = filters.hidden ? 'Show Filters' : 'Hide Filters';
+  });
   loadSavedTeamFilters();
   buildFilterUI();
   setGameFilterVisibility();
@@ -527,10 +536,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   .combined-calendar-game-filters {
     margin: 0 0 1rem;
-    padding: 1rem;
-    border: 1px solid var(--gray-300);
-    border-radius: 12px;
-    background: var(--surface);
   }
 
   .combined-calendar-game-filters[hidden] { display: none; }

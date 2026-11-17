@@ -30,7 +30,6 @@
   display: grid;
   grid-template-columns: 115px minmax(0, 1fr) 116px minmax(0, 1fr) 115px;
   align-items: stretch;
-  height: 96px;
   min-height: 96px;
   overflow: hidden;
   border: 1px solid var(--gray-300);
@@ -175,6 +174,14 @@
   gap: 8px;
   padding: 16px 8px;
 
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    .game-detail-goalie-name {
+      grid-column: 1 / -1;
+    }
+  }
+
   &.is-team {
     border: 1px solid var(--gray-300);
     border-radius: 9px;
@@ -186,9 +193,11 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow-wrap: break-word;
 
   img {
+    flex: 0 0 36px;
     width: 36px;
     height: 36px;
     object-fit: contain;
@@ -867,7 +876,7 @@
   }
 
   .game-detail-banner {
-    grid-template-columns: 70px minmax(0, 1fr) 88px minmax(0, 1fr) 70px;
+    grid-template-columns: 24px minmax(0, 1fr) 100px minmax(0, 1fr) 24px;
   }
 
   .game-detail-banner-team {
@@ -884,23 +893,22 @@
 
 @media (max-width: 600px) {
   .game-detail-banner {
-    grid-template-columns: 36px minmax(0, 1fr) 58px minmax(0, 1fr) 36px;
-    height: 96px;
+    grid-template-columns: 12px minmax(0, 1fr) 76px minmax(0, 1fr) 12px;
     min-height: 96px;
   }
 
   .game-detail-banner-team {
-    gap: 5px;
-    padding: 8px 4px;
+    gap: 4px;
+    padding: 8px 2px;
 
     > img {
-      flex-basis: 30px;
-      width: 30px;
-      height: 30px;
+      flex-basis: 36px;
+      width: 36px;
+      height: 36px;
     }
 
     .game-detail-team-copy strong {
-      font-size: 0.68rem;
+      font-size: 0.78rem;
     }
 
     .game-detail-team-copy span {
@@ -926,6 +934,7 @@
     gap: 4px;
     padding: 4px;
     font-size: 0.63rem;
+    overflow-wrap: anywhere;
   }
 
   .game-detail-stat-values {
