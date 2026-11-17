@@ -700,6 +700,9 @@ permalink: /game/
         </span>
       </span>`;
     const bannerTeam = (team, side) => {
+      const teamConfig = configuredTeam(team.name);
+      const teamName = escapeHtml(teamConfig?.name || team.name || 'Team');
+      const teamQuery = teamConfig?.id ? new URLSearchParams({ team: teamConfig.id, tab: 'scores' }) : null;
       const opponent = teams.find(candidate => candidate !== team);
       const score = Number(team.score);
       const opponentScore = Number(opponent?.score);
@@ -712,8 +715,10 @@ permalink: /game/
         <div class="game-detail-banner-team ${side}">
           <img src="${escapeHtml(teamLogo(team))}" alt="">
           <div class="game-detail-team-copy">
-            <strong>${escapeHtml(team.name || 'Team')}</strong>
-            <span id="game-detail-team-record-${teams.indexOf(team)}">Loading record...</span>
+            <strong>${teamQuery ? `<a href="${escapeHtml(window.siteAssetUrl('/team/') + '?' + teamQuery)}">${teamName}</a>` : teamName}</strong>
+            ${game.upcoming
+              ? `<span id="game-detail-team-record-${teams.indexOf(team)}">Loading record...</span>`
+              : `<span>SOG: ${escapeHtml(team.shotsOnGoal ?? '—')}</span>`}
           </div>
           ${game.upcoming ? '' : `<strong class="game-detail-score ${resultClass}">${escapeHtml(team.score ?? '—')}</strong>`}
         </div>`;
@@ -926,7 +931,7 @@ permalink: /game/
     requestAnimationFrame(updateGameTableOverflow);
     requestAnimationFrame(updateGameBannerStickyState);
     loadSeasonSeries(game, teams);
-    loadTeamRecords(teams);
+    if (game.upcoming) loadTeamRecords(teams);
     if (game.upcoming) {
       loadPlayersToWatch(teams);
       loadTeamStats(teams);
