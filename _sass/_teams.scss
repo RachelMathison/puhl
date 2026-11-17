@@ -54,6 +54,23 @@
   }
 }
 
+.team-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+
+  span { display: inline-flex; align-items: center; gap: 6px; }
+  i {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--legend-rink-color);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--legend-rink-color) 12%, var(--surface));
+  }
+}
+
 .team-calendar-scroll { overflow-x: auto; }
 
 .team-calendar {
@@ -131,7 +148,8 @@
   .team-calendar-location { color: var(--gray-500); overflow-wrap: anywhere; }
   .team-calendar-details {
     display: block;
-    margin-top: auto;
+    align-self: stretch;
+    margin: auto 4px 0;
     padding: 7px 8px;
     border-radius: 5px;
     background: var(--primary);
@@ -180,6 +198,8 @@
     .team-calendar-result { font-size: 0.65rem; }
     .team-calendar-details {
       max-width: 100%;
+      margin-right: 2px;
+      margin-left: 2px;
       padding: 4px 2px;
       font-size: 0.6rem;
     }

@@ -62,6 +62,13 @@ permalink: /team/
   <div class="team-calendar-scroll" tabindex="0" role="region" aria-label="Monthly team schedule">
     <div id="team-calendar" class="team-calendar"></div>
   </div>
+  <div class="team-calendar-legend" aria-label="Upcoming game locations">
+    {% assign game_rink_ids = 'sherwood,wsc,vmc' | split: ',' %}
+    {% for rink_id in game_rink_ids %}
+      {% assign rink = site.data.training_calendar | where: 'id', rink_id | first %}
+      {% if rink %}<span><i aria-hidden="true" style="--legend-rink-color: var(--rink-{{ rink.id | escape }})"></i>{{ rink.name | escape }}</span>{% endif %}
+    {% endfor %}
+  </div>
 </section>
 </div>
 

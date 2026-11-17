@@ -14,7 +14,8 @@ permalink: /teams/
   <section class="teams-directory-league" aria-labelledby="teams-{{ division_key }}">
     <h2 id="teams-{{ division_key }}">{{ division.name | escape }}</h2>
     <ul class="teams-directory-list">
-      {% for team in division.teams %}
+      {% assign sorted_teams = division.teams | sort_natural: 'name' %}
+      {% for team in sorted_teams %}
       <li>
         <div class="teams-directory-row">
           <a class="teams-directory-logo" href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}" aria-label="{{ team.name | escape }}">
