@@ -1,6 +1,6 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
-html{min-height:100%; background: var(--page-background);}
+html{min-height:100%; background: var(--page-background) fixed;}
 body {
   position: relative;
   isolation: isolate;
