@@ -34,6 +34,15 @@
 /* Let the league schedule's sticky date selector move with the viewport. */
 .page-stage:has(.schedule-date-picker) {
   overflow: visible;
+
+  .page-stage-watermark {
+    right: 0;
+
+    &.left {
+      right: auto;
+      left: 0;
+    }
+  }
 }
 
 .page-stage:has(.game-detail-page) {
