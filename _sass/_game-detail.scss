@@ -28,7 +28,7 @@
   top: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: 115px minmax(0, 1fr) 116px minmax(0, 1fr) 115px;
+  grid-template-columns: minmax(0, 1fr) 116px minmax(0, 1fr);
   align-items: stretch;
   min-height: 96px;
   overflow: hidden;
@@ -45,7 +45,7 @@
 
 @media (min-width: 901px) {
   .game-detail-banner.is-upcoming {
-    grid-template-columns: 115px minmax(0, 1fr) max-content minmax(0, 1fr) 115px;
+    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
 
     .game-detail-banner-center {
       min-width: 116px;
@@ -300,6 +300,8 @@
 
 .game-detail-banner-team {
   display: flex;
+  position: relative;
+  z-index: 1;
   min-width: 0;
   align-items: center;
   gap: 22px;
@@ -314,7 +316,7 @@
   }
 
   .game-detail-team-copy {
-    flex: 1 1 0;
+    flex: 0 1 auto;
     min-width: 0;
 
     strong {
@@ -334,19 +336,21 @@
 }
 
 .game-detail-banner-team.away {
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .game-detail-banner-team.home {
   flex-direction: row-reverse;
-  justify-content: flex-start;
+  justify-content: flex-end;
   text-align: right;
 }
 
 .game-detail-banner-stripe {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
-  width: 100%;
+  width: 115px;
   height: 100%;
   min-width: 0;
   overflow: hidden;
@@ -383,6 +387,9 @@
 }
 
 .game-detail-banner-stripe.home {
+  right: 0;
+  left: auto;
+
   .game-detail-banner-stripe-art {
     transform: scaleX(-1) scaleY(-1);
   }
@@ -390,6 +397,8 @@
 
 .game-detail-banner-center {
   display: flex;
+  position: relative;
+  z-index: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -876,7 +885,7 @@
   }
 
   .game-detail-banner {
-    grid-template-columns: 24px minmax(0, 1fr) 100px minmax(0, 1fr) 24px;
+    grid-template-columns: minmax(0, 1fr) 100px minmax(0, 1fr);
   }
 
   .game-detail-banner-team {
@@ -893,7 +902,7 @@
 
 @media (max-width: 600px) {
   .game-detail-banner {
-    grid-template-columns: 12px minmax(0, 1fr) 76px minmax(0, 1fr) 12px;
+    grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr);
     min-height: 96px;
   }
 
