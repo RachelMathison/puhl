@@ -164,7 +164,7 @@
 }
 
 .game-detail-goalie-team + .game-detail-goalie-team {
-  margin-top: 24px;
+  margin-top: 4px;
 }
 
 .game-detail-goalie-row {
@@ -172,7 +172,7 @@
   grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
   align-items: center;
   gap: 8px;
-  padding: 16px 8px;
+  padding: 8px;
 
   @media (max-width: 600px) {
     grid-template-columns: repeat(4, minmax(0, 1fr));

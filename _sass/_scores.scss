@@ -121,12 +121,24 @@
   grid-template-columns: 54px minmax(0, 1fr) auto;
   min-height: 56px;
 
+  strong.is-loser {
+    color: #666;
+  }
+
   .scores-game-final-score {
     color: var(--text);
     font-size: 1.6rem;
     font-weight: 800;
     line-height: 1;
+
+    &.is-loser {
+      color: #666;
+    }
   }
+}
+
+:root[data-color-mode="dark"] .scores-game-team.scores-game-final-team strong.is-loser {
+  color: #aaa;
 }
 
 .scores-game-goal-scorers {

@@ -25,8 +25,14 @@ permalink: /game/
   const params = new URLSearchParams(window.location.search);
   const gameId = params.get('id');
   const returnDate = params.get('returnDate');
+  const returnTeam = params.get('returnTeam');
   const backLink = document.querySelector('.game-detail-back');
-  if (backLink && /^\d{4}-\d{2}-\d{2}$/.test(returnDate || '')) {
+  if (backLink && returnTeam) {
+    const backUrl = new URL(window.siteAssetUrl('/team/'), window.location.href);
+    backUrl.search = returnTeam;
+    backLink.href = backUrl.toString();
+    backLink.textContent = '← Back to Team Scores';
+  } else if (backLink && /^\d{4}-\d{2}-\d{2}$/.test(returnDate || '')) {
     const backUrl = new URL(backLink.href, window.location.href);
     backUrl.searchParams.set('date', returnDate);
     backLink.href = backUrl.toString();
@@ -241,6 +247,7 @@ permalink: /game/
     });
     if (event.gameId) query.set('id', event.gameId);
     if (returnDate) query.set('returnDate', returnDate);
+    if (returnTeam) query.set('returnTeam', returnTeam);
     const href = window.siteAssetUrl(`/game/?${query.toString()}`);
     const clickable = Boolean(event.gameId) || !isPast;
     const tag = clickable ? 'a' : 'article';
@@ -901,7 +908,7 @@ permalink: /game/
             <h2>Game Info</h2>
             <dl><dt>Date/Time</dt><dd>${escapeHtml([game.date, game.time].filter(Boolean).join(' · ') || 'TBD')}</dd>
             <dt>Location</dt><dd>${escapeHtml(game.location || 'TBD')}</dd>
-            ${teams.map((team, index) => `<dt>${escapeHtml(configuredTeam(team.name)?.abbreviation || team.name)} Captain</dt><dd id="game-detail-captains-${index}">Loading...</dd>`).join('')}</dl>
+            ${teams.map((team, index) => `<dt id="game-detail-captains-label-${index}" hidden>${escapeHtml(configuredTeam(team.name)?.abbreviation || team.name)} Captain</dt><dd id="game-detail-captains-${index}" hidden></dd>`).join('')}</dl>
           </section>` : ''}
           ${renderGameWinningGoal(game)}
         </div>
@@ -997,11 +1004,17 @@ permalink: /game/
           const entry = playerTeamEntry(player);
           return config && entry?.leagueKey === config.leagueKey && sameConfiguredTeam(entry, config) && /\(C\)/i.test(player.name || '');
         }).map(player => String(player.name).replace(/\(C\)|\(G\)|\*|&(?:#x0*a0|#0*160|nbsp);/gi, ' ').replace(/\s*-\s*$/, '').trim());
-        document.getElementById(`game-detail-captains-${index}`).textContent = [...new Set(names)].join(', ') || 'Unavailable';
+        const captainNames = [...new Set(names.filter(Boolean))].join(', ');
+        if (captainNames) {
+          const label = document.getElementById(`game-detail-captains-label-${index}`);
+          const value = document.getElementById(`game-detail-captains-${index}`);
+          value.textContent = captainNames;
+          label.hidden = false;
+          value.hidden = false;
+        }
       });
     } catch (error) {
       console.warn('Could not load captains:', error);
-      teams.forEach((_, index) => { document.getElementById(`game-detail-captains-${index}`).textContent = 'Unavailable'; });
     }
   }
 

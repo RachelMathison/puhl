@@ -1,5 +1,5 @@
 // Shared calendar loading, team matching, score cards, and scoresheet caching.
-window.createLeagueGames = function ({ divisions: LEAGUE_STRUCTURE, statsUrl: SCHEDULE_STATS_API_URL, onUpdate = () => {} }) {
+window.createLeagueGames = function ({ divisions: LEAGUE_STRUCTURE, statsUrl: SCHEDULE_STATS_API_URL, onUpdate = () => {}, returnTeam = false }) {
 const SCORE_SHEET_API_URL = 'https://score-sheet.portland.hockey/';
 const teamLogos = window.pageTeamLogos || {};
 const allTeamConfigs = [];
@@ -277,7 +277,7 @@ function getScoreCardKey(event) {
   return raw.replace(/[^a-z0-9_-]/gi, '-');
 }
 
-function gameDetailHref(gameId, returnDate, event, matchup) {
+function gameDetailHref(gameId, returnDate, event, matchup, teamTab = 'scores') {
   const query = new URLSearchParams();
   if (gameId) query.set('id', gameId);
   if (returnDate) query.set('returnDate', returnDate);
@@ -285,6 +285,11 @@ function gameDetailHref(gameId, returnDate, event, matchup) {
   if (event?.leagueKey) query.set('league', event.leagueKey);
   if (matchup?.team1Name) query.set('team1', matchup.team1Name);
   if (matchup?.team2Name) query.set('team2', matchup.team2Name);
+  if (returnTeam) {
+    const teamQuery = new URLSearchParams(window.location.search);
+    teamQuery.set('tab', teamTab);
+    query.set('returnTeam', teamQuery.toString());
+  }
   return window.siteAssetUrl(`/game/?${query.toString()}`);
 }
 
@@ -319,10 +324,14 @@ function renderPastGameDetails(result, event, matchup) {
       ? 'SOG: -'
       : `SOG: ${team.shotsOnGoal}`;
     const score = team.score === null || team.score === undefined ? '–' : team.score;
+    const opponent = teams.length === 2 ? teams[1 - index] : null;
+    const isLoser = team.score !== null && team.score !== undefined && team.score !== '' &&
+      opponent?.score !== null && opponent?.score !== undefined && opponent?.score !== '' &&
+      Number(team.score) < Number(opponent.score);
     return `<div class="scores-game-team scores-game-final-team">
       <img src="${escapeLeaderHtml(logo)}" alt="">
-      <div><strong>${escapeLeaderHtml(team.name || fallback?.name || 'Team')}</strong><span>${escapeLeaderHtml(shotText)}</span></div>
-      <strong class="scores-game-final-score">${escapeLeaderHtml(score)}</strong>
+      <div><strong${isLoser ? ' class="is-loser"' : ''}>${escapeLeaderHtml(team.name || fallback?.name || 'Team')}</strong><span>${escapeLeaderHtml(shotText)}</span></div>
+      <strong class="scores-game-final-score${isLoser ? ' is-loser' : ''}">${escapeLeaderHtml(score)}</strong>
     </div>`;
   }).join('');
 

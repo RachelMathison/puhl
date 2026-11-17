@@ -273,6 +273,7 @@ permalink: /team/
   const games = window.createLeagueGames({
     divisions: { [divisionKey]: team.division },
     statsUrl: scheduleStatsUrl.href,
+    returnTeam: true,
     onUpdate: renderTeamSchedule
   });
   const calendar = window.createTeamCalendar({ games, team });

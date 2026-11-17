@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function formatGame(event, division, standingsRows) {
+  function formatGame(event, divisionKey, division, standingsRows) {
     const teams = getMatchedTeams(event.title, division);
     const teamRows = teams.length === 2
       ? teams.map(team => {
@@ -116,11 +116,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const date = event.start.toLocaleDateString([], { month: 'short', day: 'numeric' });
     const time = event.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     const location = event.location || 'Location to be announced';
+    const dateKey = `${event.start.getFullYear()}-${String(event.start.getMonth() + 1).padStart(2, '0')}-${String(event.start.getDate()).padStart(2, '0')}`;
+    const query = new URLSearchParams({ date: dateKey, league: divisionKey, team1: teams[0]?.name || '', team2: teams[1]?.name || '' });
+    const gameHref = window.siteAssetUrl(`/game/?${query.toString()}`);
 
     return `<article class="home-game-row">
-      <p class="home-game-time">${date} · ${time}</p>
+      <div class="home-game-meta"><p class="home-game-time">${date} · ${time}</p><p class="home-game-location">${escapeHtml(location)}</p></div>
       <div class="home-game-teams">${teamRows}</div>
-      <p class="home-game-location">${escapeHtml(location)}</p>
+      ${teams.length === 2 ? `<a class="home-game-info" href="${escapeHtml(gameHref)}" aria-label="Game info for ${escapeHtml(teams[0].name)} and ${escapeHtml(teams[1].name)}">Game Info &rarr;</a>` : ''}
     </article>`;
   }
 
@@ -149,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .sort((a, b) => a.start - b.start).slice(0, 2);
 
       container.innerHTML = games.length
-        ? games.map(game => formatGame(game, division, standingsRows)).join('')
+        ? games.map(game => formatGame(game, divisionKey, division, standingsRows)).join('')
         : '<p class="home-data-message">No upcoming games scheduled.</p>';
     } catch (error) {
       console.error(`Could not load ${division.name} games:`, error);

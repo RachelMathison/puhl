@@ -145,6 +145,13 @@
   --watermark-image:#{'url("../images/teams/two-cans.png")'};
 }
 
+:root[data-site-theme="twocans"][data-color-mode="dark"] {
+  --primary:#0eb29f;
+  --primary-deep:#452576;
+  --accent:#187dbd;
+  --page-background: linear-gradient(150deg, var(--accent) 0%, var(--primary-deep) 55%, var(--primary-deep) 100%);
+}
+
 :root[data-site-theme="coqs"] {
   --primary:#f7bd1a;
   --primary-deep:#cb2227;
