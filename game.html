@@ -233,10 +233,21 @@ permalink: /game/
       </div>`;
     }).join('');
     const resultStatus = isPast ? (sheet?.status || 'FINAL') : '';
-    return `<article class="game-detail-series-card">
+    const query = new URLSearchParams({
+      date: localDateKey(event.start),
+      league: event.teams[0].leagueKey,
+      team1: event.teams[0].name,
+      team2: event.teams[1].name
+    });
+    if (event.gameId) query.set('id', event.gameId);
+    if (returnDate) query.set('returnDate', returnDate);
+    const href = window.siteAssetUrl(`/game/?${query.toString()}`);
+    const clickable = Boolean(event.gameId) || !isPast;
+    const tag = clickable ? 'a' : 'article';
+    return `<${tag} class="game-detail-series-card"${clickable ? ` href="${escapeHtml(href)}" aria-label="View game details for ${escapeHtml(event.teams.map(team => team.name).join(' vs '))} on ${escapeHtml(formatDate)}"` : ''}>
       <div class="game-detail-series-matchup">${rows}</div>
       <div class="game-detail-series-footer"><span>${escapeHtml(resultStatus)}</span><time>${escapeHtml(formatDate)}</time></div>
-    </article>`;
+    </${tag}>`;
   }
 
   async function loadSeasonSeries(currentGame, gameTeams) {
@@ -324,19 +335,18 @@ permalink: /game/
       const values = leaders.map(player => player ? metricValue(player, metric) : 0);
       const total = values[0] + values[1];
       const shares = total ? [values[0] / total, values[1] / total] : [0.5, 0.5];
-      const playerMarkup = (player, team, side) => player
+      const playerMarkup = (player, side) => player
         ? `<div class="game-detail-watch-player ${side}">
-            <img src="${escapeHtml(teamLogo(team))}" alt="">
             <div><strong>${escapeHtml(player.name || 'Player')}</strong><span>${player.number ? `#${escapeHtml(player.number)}` : ''}${player.position || player.pos ? ` · ${escapeHtml(player.position || player.pos)}` : ''}</span></div>
           </div>`
-        : `<div class="game-detail-watch-player ${side} unavailable"><img src="${escapeHtml(teamLogo(team))}" alt=""><div><strong>Player stats unavailable</strong></div></div>`;
+        : `<div class="game-detail-watch-player ${side} unavailable"><div><strong>Player stats unavailable</strong></div></div>`;
       return `<div class="game-detail-watch-stat">
         <div class="game-detail-watch-stat-line">
-          ${playerMarkup(leaders[0], teams[0], 'away')}
+          ${playerMarkup(leaders[0], 'away')}
           <strong class="game-detail-watch-value">${values[0]}</strong>
           <span class="game-detail-watch-label">${label}</span>
           <strong class="game-detail-watch-value">${values[1]}</strong>
-          ${playerMarkup(leaders[1], teams[1], 'home')}
+          ${playerMarkup(leaders[1], 'home')}
         </div>
         <div class="game-detail-stat-bars" aria-hidden="true">
           <span class="game-detail-stat-bar-away" style="--bar-share:${shares[0]};--bar-color:${escapeHtml(teamPrimaryColor(teams[0]))}"></span>
@@ -462,21 +472,22 @@ permalink: /game/
     }
   }
 
-  function themePrimaryColor(themeId) {
-    if (!themeId) return getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-    if (themePrimaryColors.has(themeId)) return themePrimaryColors.get(themeId);
+  function themeColor(themeId, property) {
+    if (!themeId) return getComputedStyle(document.documentElement).getPropertyValue(property).trim();
+    const cacheKey = `${themeId}:${property}`;
+    if (themePrimaryColors.has(cacheKey)) return themePrimaryColors.get(cacheKey);
     const root = document.documentElement;
     const previousTheme = root.getAttribute('data-site-theme');
     if (themeId === 'green') root.removeAttribute('data-site-theme');
     else root.setAttribute('data-site-theme', themeId);
-    const color = getComputedStyle(root).getPropertyValue('--primary').trim();
+    const color = getComputedStyle(root).getPropertyValue(property).trim();
     if (previousTheme === null) root.removeAttribute('data-site-theme');
     else root.setAttribute('data-site-theme', previousTheme);
-    themePrimaryColors.set(themeId, color);
+    themePrimaryColors.set(cacheKey, color);
     return color;
   }
 
-  function teamPrimaryColor(team) {
+  function teamThemeColor(team, property) {
     const config = configuredTeam(team.name);
     const identifiers = [config?.id, config?.name, ...(config?.statsAliases || [])].map(normalize).filter(Boolean);
     const theme = (window.siteThemeMetadata || []).find(item => {
@@ -484,7 +495,11 @@ permalink: /game/
       const configuredKey = normalize(String(item.statsTeamKey).split(':').slice(1).join(':'));
       return identifiers.includes(configuredKey);
     }) || (window.siteThemeMetadata || []).find(item => normalize(item.id) === normalize(config?.id));
-    return themePrimaryColor(theme?.id);
+    return themeColor(theme?.id, property);
+  }
+
+  function teamPrimaryColor(team) {
+    return teamThemeColor(team, '--primary');
   }
 
   function periodColumns(teams) {
@@ -669,7 +684,7 @@ permalink: /game/
     status.hidden = true;
 
     const meta = [game.date, game.time, game.location].filter(Boolean);
-    const bannerMeta = [game.time, game.location].filter(Boolean).join(' · ');
+    const bannerMeta = [game.date, game.location].filter(Boolean).join(' · ');
     const bannerStripe = (team, side) => `
       <span class="game-detail-banner-stripe ${side}" style="--team-primary:${escapeHtml(teamPrimaryColor(team))}" aria-hidden="true">
         <span class="game-detail-banner-stripe-art">
@@ -701,14 +716,13 @@ permalink: /game/
         ${bannerStripe(teams[0], 'away')}
         ${bannerTeam(teams[0], 'away')}
         <div class="game-detail-banner-center">
-          <span class="game-detail-final">${escapeHtml(game.upcoming ? (game.time || 'Time TBD') : (game.status || 'FINAL'))}</span>
-          ${game.date ? `<span>${escapeHtml(game.date)}</span>` : ''}
-          ${game.upcoming && game.location ? `<span>${escapeHtml(game.location)}</span>` : ''}
+          <span class="game-detail-final">${escapeHtml(game.upcoming ? (game.time || 'Time TBD') : 'FINAL')}</span>
+          ${game.upcoming && game.start ? `<span>${escapeHtml(new Date(game.start).toLocaleDateString([], { month: 'short', day: 'numeric' }))}</span>` : ''}
         </div>
         ${teams[1] ? bannerTeam(teams[1], 'home') : ''}
         ${teams[1] ? bannerStripe(teams[1], 'home') : ''}
       </section>
-      ${!game.upcoming && bannerMeta ? `<p class="game-detail-banner-meta">${escapeHtml(bannerMeta)}</p>` : ''}`;
+      ${bannerMeta ? `<p class="game-detail-banner-meta">${escapeHtml(bannerMeta)}</p>` : ''}`;
 
     const periods = periodColumns(teams);
     const periodTable = periods.length ? `
@@ -834,6 +848,10 @@ permalink: /game/
 
     const playersToWatch = `<section class="game-detail-section game-detail-players-watch">
       <h2>Players to Watch</h2>
+      <div class="game-detail-stats-heading">
+        <img src="${escapeHtml(teamLogo(teams[0]))}" alt="${escapeHtml(teams[0].name)}" class="away">
+        ${teams[1] ? `<img src="${escapeHtml(teamLogo(teams[1]))}" alt="${escapeHtml(teams[1].name)}" class="home">` : ''}
+      </div>
       <div id="game-detail-watch-content" aria-live="polite"><p class="game-detail-muted">Loading player stats...</p></div>
     </section>`;
     const gameSheet = `<section class="game-detail-section game-detail-rosters">
@@ -843,7 +861,7 @@ permalink: /game/
           ${teams.map((team, index) => `
             <button type="button" class="${index === 0 ? 'active' : ''}" role="tab"
               id="game-roster-tab-${index}" aria-selected="${index === 0}" aria-controls="game-roster-panel-${index}"
-              data-game-roster-tab="${index}" style="--roster-team-color:${escapeHtml(teamPrimaryColor(team))}">${escapeHtml(team.name || `Team ${index + 1}`)}</button>
+              data-game-roster-tab="${index}" style="--roster-team-color:${escapeHtml(teamPrimaryColor(team))};--roster-team-on-primary:${escapeHtml(teamThemeColor(team, '--on-primary'))}">${escapeHtml(team.name || `Team ${index + 1}`)}</button>
           `).join('')}
         </div>
       </div>

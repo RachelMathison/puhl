@@ -329,6 +329,7 @@
 
     > span {
       overflow: hidden;
+      font-size: 1rem;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
@@ -337,12 +338,14 @@
 
 .game-detail-banner-team.away {
   justify-content: flex-end;
+  padding-right: 22px;
 }
 
 .game-detail-banner-team.home {
   flex-direction: row-reverse;
   justify-content: flex-end;
   text-align: right;
+  padding-left: 22px;
 }
 
 .game-detail-banner-stripe {
@@ -404,7 +407,7 @@
   justify-content: center;
   gap: 6px;
   color: var(--gray-500);
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   text-align: center;
 }
 
@@ -585,6 +588,21 @@
   }
 }
 
+.game-detail-players-watch {
+  h2 {
+    margin-bottom: 4px;
+  }
+
+  .game-detail-stats-heading {
+    min-height: 46px;
+
+    img {
+      width: 46px;
+      height: 46px;
+    }
+  }
+}
+
 .game-detail-stat-values {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(120px, 1.4fr) minmax(0, 1fr);
@@ -698,7 +716,7 @@
 
     &.active {
       background: var(--roster-team-color, var(--primary));
-      color: var(--on-primary, #fff);
+      color: var(--roster-team-on-primary, var(--on-primary, #fff));
     }
 
     &:focus-visible {
@@ -707,6 +725,12 @@
       outline: 2px solid var(--primary-text);
       outline-offset: -3px;
     }
+  }
+}
+
+@media (min-width: 601px) {
+  .game-detail-roster-tabs {
+    top: 9px;
   }
 }
 
@@ -824,6 +848,17 @@
   border: 1px solid var(--gray-300);
   border-radius: 10px;
   background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+
+  &[href]:hover {
+    border-color: var(--primary);
+  }
+
+  &[href]:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+  }
 }
 
 .game-detail-series-matchup {
@@ -907,7 +942,7 @@
   }
 
   .game-detail-banner-team {
-    gap: 4px;
+    // gap: 4px;
     padding: 8px 2px;
 
     > img {
@@ -917,22 +952,25 @@
     }
 
     .game-detail-team-copy strong {
-      font-size: 0.78rem;
+      font-size: 0.9rem;
     }
 
     .game-detail-team-copy span {
-      font-size: 0.62rem;
+      font-size: 0.75rem;
     }
   }
 
+  // .game-detail-banner-team.away { padding-right: 10px; }
+  // .game-detail-banner-team.home { padding-left: 10px; }
+
   .game-detail-banner-corner {
-    width: 36px;
-    height: 36px;
+    width: 50px;
+    height: 50px;
   }
 
   .game-detail-banner-diagonal {
-    width: 36px;
-    height: 96px;
+    left: -33px;
+    width: 115px;
   }
 
   .game-detail-banner-team .game-detail-score {
@@ -940,10 +978,15 @@
   }
 
   .game-detail-banner-center {
+    min-width: 0;
     gap: 4px;
     padding: 4px;
-    font-size: 0.63rem;
+    font-size: 0.75rem;
     overflow-wrap: anywhere;
+
+    > span {
+      max-width: 100%;
+    }
   }
 
   .game-detail-stat-values {
