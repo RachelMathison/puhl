@@ -40,7 +40,7 @@ permalink: /game/
   const content = document.getElementById('game-detail-content');
   const status = document.getElementById('game-detail-status');
   const title = document.getElementById('game-detail-title');
-  const leagues = window.siteLeagueStructure || {};
+  const leagues = {% include league-structure-json.html %};
   const themePrimaryColors = new Map();
   const statsRequests = new Map();
 
