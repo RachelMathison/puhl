@@ -26,6 +26,8 @@ permalink: /teams/
             <nav class="teams-directory-tabs" aria-label="{{ team.name | escape }} pages">
               <a href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}&amp;tab=roster">Roster</a>
               <span aria-hidden="true">&middot;</span>
+              <a href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}&amp;tab=stats">Stats</a>
+              <span aria-hidden="true">&middot;</span>
               <a href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}&amp;tab=scores">Scores</a>
               <span aria-hidden="true">&middot;</span>
               <a href="{{ '/team/' | relative_url }}?id={{ team.id | url_encode }}&amp;tab=schedule">Schedule</a>

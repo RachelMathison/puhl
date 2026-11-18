@@ -21,6 +21,7 @@ permalink: /team/
 <div id="team-content" hidden>
 <nav class="stats-tabs" role="tablist" aria-label="Team views">
   <button type="button" id="team-roster-tab" class="active" role="tab" aria-selected="true" aria-controls="team-roster" data-team-tab="roster">Roster</button>
+  <button type="button" id="team-stats-tab" role="tab" aria-selected="false" aria-controls="team-stats" tabindex="-1" data-team-tab="stats">Stats</button>
   <button type="button" id="team-scores-tab" role="tab" aria-selected="false" aria-controls="team-scores" tabindex="-1" data-team-tab="scores">Scores</button>
   <button type="button" id="team-schedule-tab" role="tab" aria-selected="false" aria-controls="team-schedule" tabindex="-1" data-team-tab="schedule">Schedule</button>
 </nav>
@@ -44,6 +45,20 @@ permalink: /team/
 </div>
 </section>
 
+<section id="team-stats" role="tabpanel" hidden aria-labelledby="team-stats-tab">
+  <h2>Team Statistics</h2>
+  <div class="stats-container"><div class="team-summary-grid" aria-label="Team statistics summary">
+    <article class="team-summary-card"><h2>Games Played</h2><strong class="team-summary-value" id="team-stats-games">—</strong></article>
+    <article class="team-summary-card"><h2>Total Goals</h2><strong class="team-summary-value" id="team-stats-goals">—</strong></article>
+    <article class="team-summary-card"><h2>Total Assists</h2><strong class="team-summary-value" id="team-stats-assists">—</strong></article>
+    <article class="team-summary-card"><h2>Total Points</h2><strong class="team-summary-value" id="team-stats-points">—</strong></article>
+    <article class="team-summary-card"><h2>Penalty Minutes</h2><strong class="team-summary-value" id="team-stats-pim">—</strong></article>
+    <article class="team-summary-card"><h2>Goals For Per Game</h2><strong class="team-summary-value" id="team-stats-gpg">—</strong></article>
+    <article class="team-summary-card"><h2>Goals Against Per Game</h2><strong class="team-summary-value" id="team-stats-gaa">—</strong></article>
+    <article class="team-summary-card" id="team-stats-shutouts-card" hidden><h2>Shutouts</h2><strong class="team-summary-value" id="team-stats-shutouts">—</strong></article>
+  </div></div>
+  <div id="team-stats-content" class="stats-container" aria-live="polite"><p class="stats-empty">Loading team statistics...</p></div>
+</section>
 <section id="team-scores" role="tabpanel" hidden aria-labelledby="team-scores-tab">
   <h2>Scores</h2>
   <p id="team-schedule-status" class="stats-status" role="status">Loading schedule...</p>
@@ -79,6 +94,8 @@ permalink: /team/
 (() => {
   const divisions = {% include league-structure-json.html %};
   const statsApi = {{ site.data.api_config.stats_api_url | jsonify }};
+  {% capture team_stats_api_url_with_teams %}{% include stats-api-url.html url=site.data.api_config.team_stats_api_url %}{% endcapture %}
+  const teamStatsApi = {{ team_stats_api_url_with_teams | strip | jsonify }};
   const params = new URLSearchParams(window.location.search);
   const seasons = {{ site.data.season_config.seasons | jsonify }};
   const activeSeason = {{ site.data.season_config.active_season | jsonify }};
@@ -188,6 +205,135 @@ permalink: /team/
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Request failed: ${response.status}`);
     return response.json();
+  }
+
+  async function loadTeamStats() {
+    const container = document.getElementById('team-stats-content');
+    try {
+      if (!teamStatsApi) throw new Error('Team statistics are not configured.');
+      const url = new URL(teamStatsApi, window.location.href);
+      url.searchParams.set('subseason', subseason);
+      const data = await fetchJson(url);
+      const identifiers = [team.name, team.id, ...(team.statsAliases || [])].map(normalize).filter(Boolean);
+      const rows = data.teams || [];
+      const row = rows.find(candidate => identifiers.includes(normalize(candidate.name))) || rows.find(candidate => {
+        const name = normalize(candidate.name);
+        return name && identifiers.some(identifier => name.includes(identifier) || identifier.includes(name));
+      });
+      if (!row?.stats) {
+        container.innerHTML = '<p class="stats-empty">No team statistics are available for this season.</p>';
+        return;
+      }
+      const gamesPlayed = row.stats.team?.gp ?? row.stats.goalie?.gp;
+      const gaa = row.stats.goalie?.gaa;
+      const gpg = row.stats.team?.gpg;
+      document.getElementById('team-stats-games').textContent = gamesPlayed ?? '—';
+      document.getElementById('team-stats-gpg').textContent = gpg !== null && gpg !== undefined && gpg !== '' && Number.isFinite(Number(gpg)) ? Number(gpg).toFixed(2) : '—';
+      document.getElementById('team-stats-gaa').textContent = gaa !== null && gaa !== undefined && gaa !== '' && Number.isFinite(Number(gaa)) ? Number(gaa).toFixed(2) : '—';
+      document.getElementById('team-stats-pim').textContent = row.stats.skater?.pim ?? '—';
+      document.getElementById('team-stats-assists').textContent = row.stats.skater?.assists ?? '—';
+      document.getElementById('team-stats-goals').textContent = row.stats.skater?.goals ?? '—';
+      document.getElementById('team-stats-points').textContent = row.stats.skater?.points ?? '—';
+      document.getElementById('team-stats-shutouts').textContent = row.stats.goalie?.shutouts ?? '—';
+      document.getElementById('team-stats-shutouts-card').hidden = Number(row.stats.goalie?.shutouts || 0) === 0;
+      const sections = [
+        { key: 'scoreByPeriod', title: 'Scoring by Period' },
+        { key: 'skater', title: 'Skater Totals', columns: [['gp', 'GP'], ['goals', 'G'], ['assists', 'A'], ['points', 'PTS'], ['sog', 'SOG'], ['ppg', 'PPG'], ['ppa', 'PPA'], ['sh', 'SH'], ['sha', 'SHA'], ['penalties', 'PEN'], ['pim', 'PIM']] },
+        { key: 'goalie', title: 'Team Stats', columns: [['gp', 'GP'], ['minutes', 'MIN'], ['sog', 'SOG'], ['ga', 'GA'], ['saves', 'SV'], ['gaa', 'GAA'], ['svPct', 'SV%'], ['shutouts', 'SO']] },
+        { key: 'team', title: 'Team Totals', columns: [['gp', 'GP'], ['gpg', 'GPG'], ['gapg', 'GAPG'], ['pp', 'PP'], ['ppPct', 'PP%'], ['pk', 'PK'], ['ppga', 'PPGA'], ['pkPct', 'PK%']] }
+      ];
+      const format = (key, value) => {
+        if (value === undefined || value === null || value === '') return '—';
+        const number = Number(value);
+        if (!Number.isFinite(number)) return value;
+        if (key === 'svPct') return number.toFixed(3).replace(/^0/, '');
+        if (key === 'ppPct' || key === 'pkPct') return `${number}%`;
+        if (['gpg', 'gapg', 'gaa'].includes(key)) return number.toFixed(2);
+        return value;
+      };
+      const sectionMarkup = sections.map(section => {
+        const stats = row.stats[section.key];
+        if (!stats) return '';
+        const columns = (section.columns || Object.keys(stats).sort((a, b) => {
+          const left = Number(a), right = Number(b);
+          if (Number.isFinite(left) && Number.isFinite(right)) return left - right;
+          if (Number.isFinite(left)) return -1;
+          if (Number.isFinite(right)) return 1;
+          return a.localeCompare(b);
+        }).map(key => [key, /^overtime|^ot/i.test(key) ? 'OT' : key.toUpperCase()]))
+          .filter(([key]) => stats[key] !== undefined && stats[key] !== null);
+        if (!columns.length) return '';
+        if (section.key === 'scoreByPeriod') {
+          return `<section class="stats-team-section"><h2>${escape(section.title)}</h2><div class="stats-table-wrapper"><table class="stats-table game-detail-period-table"><thead><tr><th scope="col">Period</th><th scope="col">Goals</th></tr></thead><tbody>${columns.map(([key, label]) => {
+            const period = /^\d+$/.test(key) ? `${key}${key === '1' ? 'st' : key === '2' ? 'nd' : key === '3' ? 'rd' : 'th'}` : /^total$/i.test(key) ? 'Total' : label;
+            return `<tr><td><strong>${escape(period)}</strong></td><td>${escape(format(key, stats[key]))}</td></tr>`;
+          }).join('')}</tbody></table></div></section>`;
+        }
+        if (section.key === 'goalie') {
+          const validNumber = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+          const saves = validNumber(stats.saves) ? Number(stats.saves) : null;
+          const goals = validNumber(stats.ga) ? Number(stats.ga) : null;
+          const total = saves !== null && goals !== null ? saves + goals : null;
+          const savePercentage = validNumber(stats.svPct) ? Number(stats.svPct) : null;
+          const saveShare = savePercentage === null ? 0 : Math.max(0, Math.min(1, savePercentage > 1 ? savePercentage / 100 : savePercentage));
+          const shotsFor = validNumber(row.stats.skater?.sog) ? Number(row.stats.skater.sog) : null;
+          const goalsFor = validNumber(row.stats.skater?.goals) ? Number(row.stats.skater.goals) : null;
+          const shotsShare = shotsFor !== null && goalsFor !== null && shotsFor > 0 ? Math.max(0, Math.min(1, goalsFor / shotsFor)) : 0;
+          const divisionAliases = (team.division.teams || []).map(candidate => [candidate.name, candidate.id, ...(candidate.statsAliases || [])].map(normalize).filter(Boolean));
+          const peers = rows.filter(candidate => {
+            const name = normalize(candidate.name);
+            return name && divisionAliases.some(aliases => aliases.some(alias => name === alias || name.includes(alias) || alias.includes(name)));
+          });
+          const rank = (key, value, ascending = false, group = 'goalie') => {
+            if (value === null) return 'Rank unavailable';
+            const values = peers.map(peer => peer.stats?.[group]?.[key]).filter(validNumber).map(Number);
+            if (!values.length) return 'Rank unavailable';
+            const position = values.filter(peer => ascending ? peer < value : peer > value).length + 1;
+            const suffix = position % 100 >= 11 && position % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[position % 10] || 'th');
+            return `${values.filter(peer => peer === value).length > 1 ? 'Tied ' : ''}${position}${suffix}`;
+          };
+          const specialTeams = [['ppPct', 'Power Play %'], ['pkPct', 'Penalty Kill %']].map(([key, label]) => {
+            const value = validNumber(row.stats.team?.[key]) ? Number(row.stats.team[key]) : null;
+            const share = value === null ? 0 : Math.max(0, Math.min(1, value / 100));
+            const opportunities = row.stats.team?.[key === 'ppPct' ? 'pp' : 'pk'];
+            const successes = key === 'ppPct' ? row.stats.skater?.ppg : (validNumber(opportunities) && validNumber(row.stats.team?.ppga) ? Number(opportunities) - Number(row.stats.team.ppga) : null);
+            const count = typeof opportunities === 'string' && /^\s*\d+\s*\/\s*\d+\s*$/.test(opportunities)
+              ? opportunities.split('/').map(part => part.trim())
+              : validNumber(opportunities) && validNumber(successes) && Number(successes) >= 0 && Number(successes) <= Number(opportunities)
+                ? [successes, opportunities] : ['—', '—'];
+            const unsuccessful = count[0] !== '—' && Number(count[1]) >= Number(count[0]) ? Number(count[1]) - Number(count[0]) : '—';
+            return `<div class="game-detail-stat-values"><strong>${escape(count[0])}</strong><span>${label}</span><strong>${escape(unsuccessful)}</strong></div>
+              <div class="game-detail-stat-bars" aria-hidden="true"><span class="game-detail-stat-bar-away" style="--bar-color:var(--primary);--bar-share:${share}"></span><span class="game-detail-stat-bar-home" style="--bar-color:var(--accent);--bar-share:${value === null ? 0 : 1 - share}"></span></div>
+              <div class="game-detail-stat-details team-goalie-shot-details"><span>${escape(rank(key, value, false, 'team'))}</span><span>${value === null ? '—' : escape(`${value}%`)}</span><span></span></div>`;
+          }).join('');
+          return `<section class="stats-team-section"><h3>${escape(section.title)}</h3>
+            <div class="team-goalie-bars">
+              <div class="game-detail-stat-values"><strong>${escape(shotsFor ?? '—')}</strong><span>Shots on Goal / Goals</span><strong>${escape(goalsFor ?? '—')}</strong></div>
+              <div class="game-detail-stat-bars" aria-hidden="true"><span class="game-detail-stat-bar-away" style="--bar-color:var(--primary);--bar-share:${shotsFor !== null && goalsFor !== null && shotsFor > 0 ? 1 - shotsShare : 0}"></span><span class="game-detail-stat-bar-home" style="--bar-color:var(--accent);--bar-share:${shotsShare}"></span></div>
+              <div class="game-detail-stat-details team-goalie-shot-details"><span>${escape(rank('sog', shotsFor, false, 'skater'))}</span><span>${shotsFor !== null && goalsFor !== null && shotsFor > 0 ? `${(shotsShare * 100).toFixed(1)}% Shooting` : '—'}</span><span>${escape(rank('goals', goalsFor, false, 'skater'))}</span></div>
+              <div class="game-detail-stat-values"><strong>${escape(saves ?? '—')}</strong><span>Saves / Goals Against</span><strong>${escape(goals ?? '—')}</strong></div>
+              <div class="game-detail-stat-bars" aria-hidden="true"><span class="game-detail-stat-bar-away" style="--bar-color:var(--primary);--bar-share:${total ? Math.max(0, Math.min(1, saves / total)) : 0}"></span><span class="game-detail-stat-bar-home" style="--bar-color:var(--accent);--bar-share:${total ? Math.max(0, Math.min(1, goals / total)) : 0}"></span></div>
+              <div class="game-detail-stat-details team-goalie-shot-details"><span>${escape(rank('saves', saves))}</span><span>${escape(total ?? '—')} Shots</span><span>${escape(rank('ga', goals, true))}</span></div>
+              <div class="game-detail-stat-values"><strong>${savePercentage === null ? '—' : escape(`${(saveShare * 100).toFixed(1)}%`)}</strong><span>Save Percentage</span><strong></strong></div>
+              <div class="game-detail-stat-bars" aria-hidden="true"><span class="game-detail-stat-bar-away" style="--bar-color:var(--primary);--bar-share:${saveShare}"></span><span class="game-detail-stat-bar-home" style="--bar-color:var(--accent);--bar-share:${savePercentage === null ? 0 : 1 - saveShare}"></span></div>
+              <div class="game-detail-stat-details"><span>${escape(rank('svPct', savePercentage))}</span></div>
+              ${specialTeams}
+            </div></section>`;
+        }
+        return `<section class="stats-team-section"><h3>${escape(section.title)}</h3><div class="stats-table-wrapper"><table class="stats-table stats-team-table"><thead><tr>${columns.map(([, label]) => `<th scope="col">${escape(label)}</th>`).join('')}</tr></thead><tbody><tr>${columns.map(([key]) => `<td>${escape(format(key, stats[key]))}</td>`).join('')}</tr></tbody></table></div></section>`;
+      });
+      const goalsFor = row.stats.skater?.goals;
+      const goalsAgainst = row.stats.goalie?.ga;
+      const hasGoalTotals = [goalsFor, goalsAgainst].every(value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)));
+      const differential = hasGoalTotals ? Number(goalsFor) - Number(goalsAgainst) : null;
+      const differentialDisplay = differential === null ? '—' : `${differential > 0 ? '+' : ''}${differential}`;
+      container.innerHTML = sectionMarkup.some(Boolean)
+        ? `<div class="game-detail-columns"><div class="game-detail-player-column">${sectionMarkup[2]}</div><div class="game-detail-side-column"><section class="stats-team-section"><h2>Goal Differential</h2><p class="team-goal-differential">${escape(differentialDisplay)}</p></section>${sectionMarkup[0]}</div></div>`
+        : '<p class="stats-empty">Team statistics were not returned.</p>';
+    } catch (error) {
+      console.error('Could not load team statistics:', error);
+      container.innerHTML = '<p class="stats-empty">Unable to load team statistics. Please try again later.</p>';
+    }
   }
 
   function renderPlayerTable(id, players, columns, defaultKey, defaultAscending = false) {
@@ -307,6 +453,7 @@ permalink: /team/
   }
 
   loadPlayers();
+  loadTeamStats();
   loadTeamSchedule();
 })();
 </script>

@@ -621,7 +621,10 @@ permalink: /stats/
       if (!response.ok) throw new Error(`Stats request failed: ${response.status}`);
       const data = await response.json();
       allSkaterStats = (data.skaters || []).map(addTeamMetadata);
-      allGoalieStats = (data.goalies || []).map(addTeamMetadata);
+      allGoalieStats = (data.goalies || []).map(goalie => addTeamMetadata({
+        ...goalie,
+        name: typeof goalie.name === 'string' ? goalie.name.replace(/\s*-\s*\(G\)\s*$/i, '') : goalie.name
+      }));
       populateTeamFilter();
       applyStatsFilters();
 

@@ -182,16 +182,24 @@
 }
 
 :root[data-site-theme="boobies"] {
-  --primary:#c3e1db;
-  --primary-deep:#252c62;
+  --primary:#252c62;
+  --primary-deep:#ce2121;
+  --on-primary:#ffffff;
   --subtitle-color:#c3e1db;
-  --on-primary:#15201e;
-  --accent:#ce2121;
-  --on-accent:#ffffff;
+  --accent:#c3e1db;
+  --on-accent:#252c62;
   --nav-highlight: var(--subtitle-color);
   --header-logo-image:#{'url("../images/teams/boobies.png")'};
   --watermark-image:#{'url("../images/teams/boobies.png")'};
-  --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 40%, var(--primary-deep) 80%, #6ca0bc 100%);
+  --page-background: linear-gradient(150deg, var(--accent) 0%, var(--primary) 40%, var(--primary) 80%, var(--accent) 100%);
+}
+
+:root[data-site-theme="boobies"][data-color-mode="dark"] {
+  --primary:#c3e1db;
+  --primary-deep:#252c62;
+  --on-primary:#15201e;
+  --accent: #ce2121;
+  --page-background: linear-gradient(150deg, var(--primary) 0%, var(--primary-deep) 40%, var(--primary-deep) 80%, var(--primary) 100%);
 }
 
 :root[data-site-theme="pride"] {
