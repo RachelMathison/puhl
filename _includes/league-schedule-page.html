@@ -211,27 +211,6 @@ function toggleShowAllTeams(showAll) {
   }
 }
 
-window.addEventListener('puhl:schedule-theme-division-change', event => {
-  const { divisionKey } = event.detail;
-  const division = LEAGUE_STRUCTURE[divisionKey];
-  if (!division) return;
-
-  activeLeagues.clear();
-  activeLeagues.add(divisionKey);
-  activeTeams.clear();
-  division.teams.forEach(team => activeTeams.add(team.name));
-  showAllTeamsMode = false;
-  localStorage.setItem(STORAGE_KEY_SHOW_ALL_TEAMS, 'false');
-
-  const showAllControl = document.getElementById('show-all-teams');
-  if (showAllControl) showAllControl.checked = false;
-  const filterPanel = document.getElementById('filter-controls');
-  if (filterPanel) filterPanel.hidden = false;
-  buildFilterUI();
-  saveFiltersToStorage();
-  refreshViews();
-});
-
 function toggleScheduleFilters() {
   const filterSection = document.getElementById('schedule-filters');
   if (!filterSection) return;
