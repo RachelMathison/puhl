@@ -667,17 +667,6 @@ permalink: /stats/
     applyStatsFilters();
   });
 
-  window.addEventListener('puhl:stats-theme-team-change', event => {
-    const { divisionKey, teamKey } = event.detail;
-    selectedDivisionKey = DIVISIONS[divisionKey] ? divisionKey : '';
-    divisionSelect.value = selectedDivisionKey;
-    populateTeamFilter();
-    selectedTeamKey = teamKey;
-    teamSelect.value = selectedTeamKey;
-    saveStatsFilters();
-    applyStatsFilters();
-  });
-
   playerSearchInputs.forEach(input => {
     input.addEventListener('input', () => {
       playerNameQuery = input.value.trim();
