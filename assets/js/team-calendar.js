@@ -64,7 +64,7 @@ window.createTeamCalendar = function ({ games, team }) {
         const opponent = (isFirst ? matchup.team2Name : matchup.team1Name) || 'Opponent TBD';
         const logo = isFirst ? matchup.oppLogo : matchup.selfLogo;
         const key = `team-calendar-result-${games.getScoreCardKey(event)}`;
-        const past = start < new Date();
+        const past = window.isPastGameDay(start);
         const href = games.gameDetailHref(event.gameId, games.getLocalDateKey(start), event, matchup, 'schedule');
         html += `<article class="team-calendar-game" aria-label="${escape(opponent)} on ${escape(start.toLocaleDateString())}">
           <div class="team-calendar-opponent${past ? '' : ' upcoming'}"${past ? '' : ` style="--game-rink-color: ${rinkColor(event.location)}"`}><img src="${escape(logo)}" alt="${escape(opponent)}" loading="lazy"></div>

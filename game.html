@@ -221,7 +221,7 @@ permalink: /game/
   }
 
   function renderSeasonSeriesCard(event, sheet) {
-    const isPast = event.start < new Date();
+    const isPast = window.isPastGameDay(event.start);
     const scores = sheet?.teams || [];
     const formatDate = event.start.toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase();
     const rows = event.teams.map(team => {
@@ -267,7 +267,7 @@ permalink: /game/
         return;
       }
       const results = await Promise.all(events.map(async event => {
-        if (event.start >= new Date()) return { event, sheet: null };
+        if (!window.isPastGameDay(event.start)) return { event, sheet: null };
         try { return { event, sheet: await fetchSeriesGameSheet(event, currentGame) }; }
         catch (error) {
           console.warn(`Could not load season series score for game ${event.gameId || 'unknown'}:`, error);
@@ -276,7 +276,7 @@ permalink: /game/
       }));
       const [firstTeam, secondTeam] = gameTeams.map(team => configuredTeamEntry(team.name));
       const record = results.reduce((totals, { event, sheet }) => {
-        if (event.start >= new Date() || !sheet?.teams) return totals;
+        if (!window.isPastGameDay(event.start) || !sheet?.teams) return totals;
         const first = sheet.teams.find(candidate => sameConfiguredTeam(configuredTeamEntry(candidate.name), firstTeam));
         const second = sheet.teams.find(candidate => sameConfiguredTeam(configuredTeamEntry(candidate.name), secondTeam));
         if (!first || !second || first.score === null || first.score === undefined || second.score === null || second.score === undefined ||
@@ -287,7 +287,7 @@ permalink: /game/
         return totals;
       }, { firstWins: 0, secondWins: 0, completed: 0 });
       const summary = !record.completed
-        ? (results.some(result => result.event.start < new Date()) ? 'Results unavailable' : 'No completed games')
+        ? (results.some(result => window.isPastGameDay(result.event.start)) ? 'Results unavailable' : 'No completed games')
         : record.firstWins === record.secondWins
           ? `Tied ${record.firstWins}-${record.secondWins}`
           : `${escapeHtml((record.firstWins > record.secondWins ? firstTeam : secondTeam)?.abbreviation || '')} leads ${Math.max(record.firstWins, record.secondWins)}-${Math.min(record.firstWins, record.secondWins)}`;
@@ -968,7 +968,7 @@ permalink: /game/
         const events = (await feeds.get(url)).map(vevent => {
           const event = new ICAL.Event(vevent);
           return { start: event.startDate?.toJSDate(), gameId: extractGameIdFromIcs(vevent), teams: getTeamsInTitle(event.summary, config.leagueKey) };
-        }).filter(event => event.start && event.start < new Date() && event.gameId && String(event.gameId) !== String(game.gameId) && event.teams.some(candidate => sameConfiguredTeam(candidate, config)))
+        }).filter(event => event.start && window.isPastGameDay(event.start) && event.gameId && String(event.gameId) !== String(game.gameId) && event.teams.some(candidate => sameConfiguredTeam(candidate, config)))
           .sort((a, b) => b.start - a.start);
         const results = [];
         const seen = new Set();
@@ -1066,7 +1066,7 @@ permalink: /game/
     } catch (error) {
       console.warn('Could not look up the scheduled matchup:', error);
     }
-    if (scheduled && scheduled.start >= new Date()) {
+    if (scheduled && !window.isPastGameDay(scheduled.start)) {
       renderGameSheet(scheduled);
       return;
     }

@@ -241,7 +241,7 @@ function renderScoreCard(event, matchup) {
   const firstTeam = getConfiguredTeam(matchup.team1Name, event.leagueKey);
   const secondTeam = getConfiguredTeam(matchup.team2Name, event.leagueKey);
   const start = new Date(event.start);
-  const isPastGame = start < new Date();
+  const isPastGame = window.isPastGameDay(start);
   const date = start.toLocaleDateString([], { month: 'short', day: 'numeric' });
   const time = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   const cardKey = getScoreCardKey(event);
@@ -421,7 +421,7 @@ function decodeIcsUrl(value) {
 }
 
 function loadPastGameDetails(events) {
-  events.filter(event => new Date(event.start) < new Date()).forEach(event => {
+  events.filter(event => window.isPastGameDay(event.start)).forEach(event => {
     const target = document.getElementById(`scores-game-result-${getScoreCardKey(event)}`);
     if (!target || !event.gameId) return;
     const matchup = getMatchupDetails(event.title, event.leagueKey);
@@ -445,7 +445,7 @@ function loadPastGameDetails(events) {
 }
 
 function loadPastScheduleResults(events) {
-  events.filter(event => new Date(event.start) < new Date()).forEach(event => {
+  events.filter(event => window.isPastGameDay(event.start)).forEach(event => {
     const targetId = `schedule-result-${getScoreCardKey(event)}`;
     const target = document.getElementById(targetId);
     if (!target) return;

@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
           start: game.startDate.toJSDate(),
           location: game.location || ''
         };
-      }).filter(game => game.start && game.start > now)
+      }).filter(game => game.start && !window.isPastGameDay(game.start, now))
         .sort((a, b) => a.start - b.start).slice(0, 2);
 
       container.innerHTML = games.length

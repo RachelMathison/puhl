@@ -403,7 +403,7 @@ function renderListView() {
 
   let html = '';
   for (const dateKey in grouped) {
-    const hasPastGames = grouped[dateKey].some(event => new Date(event.start) < new Date());
+    const hasPastGames = grouped[dateKey].some(event => window.isPastGameDay(event.start));
     const date = new Date(`${dateKey}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
     html += `<div class="date-group${GAME_PAGE_MODE === 'scores' ? ' scores-date-group' : ''}" id="schedule-day-${dateKey}">
       <h3 class="date-header">${date}</h3>`;
@@ -425,7 +425,7 @@ function renderListView() {
     grouped[dateKey].forEach(event => {
       const timeStr = new Date(event.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       const matchup = getMatchupDetails(event.title, event.leagueKey);
-      const isPastGame = new Date(event.start) < new Date();
+      const isPastGame = window.isPastGameDay(event.start);
 
       html += `
         <tr>
